@@ -25,6 +25,6 @@ class Player
   end
 
   def get_default_unit_package()
-    'unit.peasant'
+    'peasant'
   end
 end
