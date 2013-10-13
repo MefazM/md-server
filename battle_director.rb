@@ -1,6 +1,7 @@
 require "securerandom"
 require 'pry'
 
+
 require_relative 'ai_player.rb'
 
 module BattleStatuses
@@ -136,7 +137,7 @@ private
 
   def add_unit_to_pool(opponent, unit_pakage)
     # initialization unit by prototype
-    unit = $db_resources.get_unit(unit_pakage)
+    unit = DBResources.get_unit(unit_pakage)
     # additional params
     unit[:status] = UnitStatuses::MOVE
     unit[:attack_period_time] = 0

@@ -9,7 +9,8 @@ require_relative 'player.rb'
 require_relative 'battle_director.rb'
 require_relative 'db_resources.rb'
 
-$db_resources = DBResources.new()
+DBResources.connect
+DBResources.load_resources
 $battles = {}
 # $log = Logger.new('./logs/server.log')
 
@@ -24,9 +25,9 @@ class Connection < EM::Connection
     @latency
   end
 
-  def post_init
-    # $log.info("New connection from #{get_peername[2,6].unpack("nC4")}")
-  end
+  # def post_init
+  #   # $log.info("New connection from #{get_peername[2,6].unpack("nC4")}")
+  # end
 
   def make_response (response, action)
     response[:timestamp] = Time.now.to_f

@@ -1,19 +1,35 @@
 require 'pry'
 require 'mysql2'
-class DBResources
-  def initialize(host = "localhost", username = "root", database = "game_cms")
-    @mysql_connection = Mysql2::Client.new(:host => host, :username => username, :database => database)
 
-    print "Loading units ..."
-    @units = {}
-    results = @mysql_connection.query("SELECT * FROM units").each(:symbolize_keys => true) do |unit|
-      @units[unit[:package].to_sym] = unit
+class DBResources
+
+  def self.connect(host = "localhost", username = "root", database = "game_cms")
+    print "Connecting to DB..."
+    begin
+      @@mysql_connection = Mysql2::Client.new(:host => host, :username => username, :database => database)  
+    rescue Exception => e
+      raise e
     end
-    print " #{@units.count} unit(s) \n"
+
+    print " OK \n"
   end
 
-  def get_unit(package)
-    @units[package.to_sym].dup
+  def self.load_resources
+    print "Loading units ..."
+    @@units = {}
+    begin
+      results = @@mysql_connection.query("SELECT * FROM units").each(:symbolize_keys => true) do |unit|
+        @@units[unit[:package].to_sym] = unit
+      end
+    rescue Exception => e
+      raise e
+    end
+
+    print " OK [#{@@units.count} unit(s)] \n"
+  end
+
+  def self.get_unit(package)
+    @@units[package.to_sym].dup
   end
 
 end
