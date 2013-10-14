@@ -19,6 +19,14 @@ class DBResources
     @@units = {}
     begin
       results = @@mysql_connection.query("SELECT * FROM units").each(:symbolize_keys => true) do |unit|
+        # Cast from integer to bool, 1 == true, other = false
+        unit[:range_attack] = unit[:range_attack] == 1
+        unit[:melee_attack] = unit[:melee_attack] == 1
+        # Convert ms to seconds
+        unit[:melee_attack_speed] = unit[:melee_attack_speed] * 0.001 if unit[:melee_attack_speed]
+        unit[:range_attack_speed] = unit[:range_attack_speed] * 0.001 if unit[:range_attack_speed]
+        
+
         @@units[unit[:package].to_sym] = unit
       end
     rescue Exception => e

@@ -15,8 +15,6 @@ $battles = {}
 # $log = Logger.new('./logs/server.log')
 
 class Connection < EM::Connection  
-  @player = nil
-  @latency = 0
   def get_player()
     @player
   end
@@ -25,14 +23,16 @@ class Connection < EM::Connection
     @latency
   end
 
-  # def post_init
-  #   # $log.info("New connection from #{get_peername[2,6].unpack("nC4")}")
-  # end
+  def post_init
+    @player = nil
+    @latency = 0
+    # $log.info("New connection from #{get_peername[2,6].unpack("nC4")}")
+  end
 
   def make_response (response, action)
-    response[:timestamp] = Time.now.to_f
+    # response[:timestamp] = Time.now.to_f
     response[:action] = action
-    response[:latency] = @latency.to_i
+    response[:latency] = (@latency * 1000.0).to_i
     send_data("__JSON__START__#{response.to_json}__JSON__END__")
     # $log.debug("Send message: #{response}")
   end
@@ -65,7 +65,7 @@ class Connection < EM::Connection
       when :spawn_unit
 
       when :ping
-        @latency = Time.now.to_f * 1000.0 - data[:time]
+        @latency = Time.now.to_f - data[:time]
       end
     end
   end
