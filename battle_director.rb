@@ -2,6 +2,8 @@ require "securerandom"
 require 'pry'
 require_relative 'ai_player.rb'
 require_relative 'defines.rb'
+require_relative 'battle_unit.rb'
+
 
 class BattleDirector
 
@@ -66,23 +68,17 @@ class BattleDirector
       @opponents.each do |player_id, opponent|
         response = {}
         opponent[:units_pool].each do |uid, unit|
-          unit_status = unit[:status]
-          if unit[:health_points] < 0
-            unit_status = UnitStatuses::DIE
+
+          if unit.is_dead?
+
+            unit.set_status(UnitStatuses::DIE)
             opponent[:units_pool].delete(uid)
-          elsif unit_status == UnitStatuses::MOVE
-            unit[:position] += iteration_delta * unit[:movement_speed]
+          elsif unit.respond_status? UnitStatuses::MOVE
+
+            unit.move(iteration_delta)
           end
 
-          resp = { 
-            :position => unit[:position], 
-            :status => unit_status
-          }
-
-          resp[:sequence_name] = unit[:attack_type] unless unit[:attack_type].nil?
-          resp[:attacked_unit] = unit[:attacked_unit] unless unit[:attacked_unit].nil?
-
-          response[uid] = resp
+          response[uid] = unit.to_hash
         end
         broadcast_response({:units_data => response, :player_id => player_id}, 'sync_client')
       end
@@ -104,9 +100,9 @@ class BattleDirector
     # Default unit spawn
     if current_time - @default_unit_spawn_time > Timings::DEFAULT_UNITS_SPAWN_TIME
       @default_unit_spawn_time = current_time
-      @opponents.each do |player_id, opponent|     
-        unit_pakage = opponent[:player].get_default_unit_package()
-        spawn_data = add_unit_to_pool(opponent, unit_pakage)
+      @opponents.each do |player_id, opponent|
+        unit_package = opponent[:player].get_default_unit_package()
+        spawn_data = add_unit_to_pool(opponent, unit_package)
         spawn_data[:owner_id] = player_id
         
         broadcast_response(spawn_data, 'spawn_unit')
@@ -127,40 +123,25 @@ private
     }
   end   
 
-  def add_unit_to_pool(opponent, unit_pakage)
-    # initialization unit by prototype
-    unit = DBResources.get_unit(unit_pakage)
-    unit_uid = SecureRandom.hex(5)
-    # additional params
-    unit[:status] = UnitStatuses::MOVE
-    unit[:attack_period_time] = 0
-    unit[:position] = 0.1
-    unit[:range_attack_power] = rand(unit[:range_attack_power_min]..unit[:range_attack_power_max]) if unit[:range_attack]
-    unit[:melee_attack_power] = rand(unit[:melee_attack_power_min]..unit[:melee_attack_power_max]) if unit[:melee_attack]
-    unit[:deferred_damage] = []
-    unit[:uid] = unit_uid
-    opponent[:units_pool][unit_uid] = unit
-    
-    return {:uid => unit_uid, :health_points => unit[:health_points], :movement_speed => unit[:movement_speed], :package => unit_pakage}
+  def add_unit_to_pool(player, unit_package)
+    unit = BattleUnit.new(unit_package)
+    uid = unit.get_uid()
+    player[:units_pool][uid] = unit
+
+    return unit.to_hash(true)
   end
 
   def deffered_attack_phase(iteration_delta)
     @opponents.each do |player_id, opponent|
       opponent[:units_pool].each do |uid, unit|
-        unit[:deferred_damage].each_with_index do |deferred_damage, index|
-          deferred_damage[:initial_position] += iteration_delta * 0.4 #! This is magick, 0.4 is a arrow speed!!
-          if (deferred_damage[:initial_position] + unit[:position] >= 1.0)
-            unit[:health_points] -= deferred_damage[:power]
-            unit[:deferred_damage].delete_at(index)
-          end
-        end
+        unit.process_deffered_damage(iteration_delta)
       end
     end
   end
 
   def has_target(opponent, position, attack_distantion)
     opponent[:units_pool].each do |uid, opponent_unit|
-      distantion = opponent_unit[:position] + position
+      distantion = opponent_unit.get_position() + position
       if distantion > 1.0 - attack_distantion and attack_distantion < 1.0
         return true
       end
@@ -170,7 +151,7 @@ private
 
   def get_target(opponent, position, attack_distantion)
     opponent[:units_pool].each do |uid, opponent_unit|
-      distantion = opponent_unit[:position] + position and attack_distantion < 1.0
+      distantion = opponent_unit.get_position() + position and attack_distantion < 1.0
       if distantion > 1.0 - attack_distantion
         return opponent_unit
       end
@@ -179,40 +160,41 @@ private
   end
 
   def make_attack(opponent, unit, iteration_delta)
-    case unit[:status]
+    case unit.get_status()
     when UnitStatuses::START_ATTACK
-      unit[:attack_period_time] -= iteration_delta
-      if unit[:attack_period_time] < 0
-        case unit[:attack_type]
+      if unit.decrease_attack_timer(iteration_delta) < 0
+        case unit.get_current_attack_type()
         when :melee_attack
-          opponent_unit = get_target(opponent, unit[:position], unit[:melee_attack_range])
-          opponent_unit[:health_points] -= unit[:melee_attack_power] unless opponent_unit.nil?
-          unit[:status] = UnitStatuses::DEFAULT
+          opponent_unit = get_target(opponent, unit.get_position(), unit.get_attack_option(:melee_attack_range))
+          opponent_unit.decrease_health_points(unit.get_melee_attack_power()) unless opponent_unit.nil?
+          unit.set_status(UnitStatuses::DEFAULT)
         when :range_attack
-          opponent_unit = get_target(opponent, unit[:position], unit[:range_attack_range])
+          opponent_unit = get_target(opponent, unit.get_position(), unit.get_attack_option(:range_attack_range))
           unless opponent_unit.nil?
-            opponent_unit[:deferred_damage] << {
-              :power => unit[:range_attack_power],
-              :initial_position => unit[:position],
-            }
-            unit[:attacked_unit] = opponent_unit[:uid]
+            opponent_unit.add_deffered_damage(unit.get_range_attack_power(), unit.get_position())
+            unit.set_current_attacked_unit(opponent_unit.get_uid())
           end
-          unit[:status] = UnitStatuses::FINISH_ATTACK
+          unit.set_status(UnitStatuses::FINISH_ATTACK)
         end
       end
     when UnitStatuses::FINISH_ATTACK
-      unit[:status] = UnitStatuses::DEFAULT
+      unit.set_status(UnitStatuses::DEFAULT)
+      unit.set_current_attacked_unit(nil)
+
     when UnitStatuses::MOVE, UnitStatuses::DEFAULT
-      if unit[:melee_attack] and has_target(opponent, unit[:position], unit[:melee_attack_range])
-        unit[:status] = UnitStatuses::START_ATTACK
-        unit[:attack_type] = :melee_attack 
-        unit[:attack_period_time] = unit[:melee_attack_speed]
-      elsif unit[:range_attack] and has_target(opponent, unit[:position], unit[:range_attack_range])
-        unit[:status] = UnitStatuses::START_ATTACK
-        unit[:attack_type] = :range_attack
-        unit[:attack_period_time] = unit[:range_attack_speed]
+      if unit.has_attack?(:melee_attack) and has_target(opponent, unit.get_position(), unit.get_attack_option(:melee_attack_range))
+        unit.set_status(UnitStatuses::START_ATTACK)
+
+        unit.set_current_attack_type(:melee_attack)
+        unit.set_attack_period_time(:melee_attack_speed)
+      elsif unit.has_attack?(:range_attack) and has_target(opponent, unit.get_position(), unit.get_attack_option(:range_attack_range))
+        unit.set_status(UnitStatuses::START_ATTACK)
+        
+        unit.set_current_attack_type(:range_attack)
+        unit.set_attack_period_time(:range_attack_speed)
       else
-        unit[:status] = UnitStatuses::MOVE
+
+        unit.set_status(UnitStatuses::MOVE)
       end
     end
   end

@@ -35,13 +35,14 @@ class Connection < EM::Connection
     response[:latency] = (@latency * 1000.0).to_i
     send_data("__JSON__START__#{response.to_json}__JSON__END__")
     # $log.debug("Send message: #{response}")
+    puts("Send message: #{response}")
   end
 
   def receive_data(message)
     str_start, str_end = message.index('__JSON__START__'), message.index('__JSON__END__')
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
-      # $log.debug("Receive message: #{json}")
+      puts("Receive message: #{json}")
       data = JSON.parse(json,:symbolize_names => true)
       action = data[:action]
       case action.to_sym
