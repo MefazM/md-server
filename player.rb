@@ -2,18 +2,10 @@ require "securerandom"
 require 'pry'
 
 class Player
-
-  module States
-    LOGIN = 1
-    IN_WORLD = 2
-    IN_BATTLE = 3
-    READY_TO_FIGHT = 4
-  end
-
-  def initialize(token)
-    @id = token
-    @state = States::LOGIN
-    @latency = 0
+  def map_from_db(db_data)
+    @id = db_data[:id]
+    @email = db_data[:email]
+    @username = db_data[:username]
   end
 
   def get_game_data()
@@ -23,6 +15,10 @@ class Player
   def get_id()
     return @id
   end
+
+  def to_hash()
+    {:id => @id, :username => @username}
+  end 
 
   def get_default_unit_package()
     'peasant'

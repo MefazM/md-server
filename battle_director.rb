@@ -31,7 +31,7 @@ class BattleDirector
   def enable_ai(ai_uid)
     @opponents_indexes << ai_uid
     @opponents[ai_uid] = { 
-      :player => AiPlayer.new('token'),
+      :player => AiPlayer.new(),
       :connection => nil,
       :is_ready => true, 
       :units_pool => {}, 

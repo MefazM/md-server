@@ -5,11 +5,12 @@ require 'eventmachine'
 require 'json'
 require 'logger'
 
-require_relative 'player.rb'
 require_relative 'battle_director.rb'
+require_relative 'db_connection.rb'
 require_relative 'db_resources.rb'
+require_relative 'player_factory.rb'
 
-DBResources.connect
+DBConnection.connect
 DBResources.load_resources
 $battles = {}
 # $log = Logger.new('./logs/server.log')
@@ -17,6 +18,10 @@ $battles = {}
 class Connection < EM::Connection  
   def get_player()
     @player
+  end
+
+  def set_player(player)
+    @player = player
   end
 
   def get_latency()
@@ -35,19 +40,19 @@ class Connection < EM::Connection
     response[:latency] = (@latency * 1000.0).to_i
     send_data("__JSON__START__#{response.to_json}__JSON__END__")
     # $log.debug("Send message: #{response}")
-    puts("Send message: #{response}")
+    # puts("Send message: #{response}")
   end
 
   def receive_data(message)
     str_start, str_end = message.index('__JSON__START__'), message.index('__JSON__END__')
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
-      puts("Receive message: #{json}")
+      # puts("Receive message: #{json}")
       data = JSON.parse(json,:symbolize_names => true)
       action = data[:action]
       case action.to_sym
       when :request_player
-        @player = Player.new(data[:login_data][:rand_id])
+        PlayerFactory.find_or_create(data[:login_data], self)
         make_response({:uid => @player.get_id(), :game_data => @player.get_game_data()}, action)
         # $connections[@player.get_id()] = self
 
@@ -62,7 +67,15 @@ class Connection < EM::Connection
         make_response(response, action)
 
       when :request_battle_start
-        $battles[data[:battle_uid]].set_opponent_ready(data[:player_id])
+        $battles[data[:battle_uid]].set_opponent_ready(@player.get_id())
+
+      when :request_battle_map_data
+        response = {}
+
+        response[:players] = PlayerFactory.get_appropriate_players(@player.get_id())
+        response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
+
+        make_response(response, action)
       when :spawn_unit
 
       when :ping
