@@ -55,8 +55,7 @@ class Connection < EM::Connection
         # $connections[@player.get_id()] = self
 
       when :request_new_battle
-        # Тут нужна проверка, может ли игрок в данное время нападать на это AI
-
+        # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
         battle_director = BattleDirector.new()
         battle_director.set_opponent(self)
         # возможно добавлять battle_director только после согласия обоих игроков на бой?

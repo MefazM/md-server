@@ -21,6 +21,6 @@ class Player
   end 
 
   def get_default_unit_package()
-    'peasant'
+    'mage'
   end
 end
