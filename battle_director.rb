@@ -9,36 +9,54 @@ class BattleDirector
 
   def initialize()
     @opponents = {}
+
     @status = BattleStatuses::PENDING
     @uid = SecureRandom.hex(5)
+
     @opponents_indexes = []
     @iteration_time = get_timer()
     @ping_time = get_timer()
     @default_unit_spawn_time = 0
+
+    MageLogger.instance.info "New BattleDirector initialize... UID = #{@uid}"
   end
 
   def set_opponent(connection)
     player_id = connection.get_player().get_id()
     @opponents_indexes << player_id
+    
     @opponents[player_id] = { 
       :player => connection.get_player(),
       :connection => connection,
       :is_ready => false, 
       :units_pool => {}
     }
+
+    MageLogger.instance.info "BattleDirector (UID=#{@uid}) added opponent. ID = #{player_id}"
+
+    # Надо вынести в отдельный метод. 
+    if @opponents.count == 2
+      MageLogger.instance.info "BattleDirector (UID=#{@uid}) has two opponents. Initialize battle on clients."
+
+      broadcast_response({:battle_uid => @uid}, 'request_new_battle')
+    end
   end
 
   def enable_ai(ai_uid)
+    MageLogger.instance.info "BattleDirector (UID=#{@uid}) enable AI. UID = #{ai_uid} "
+    
     @opponents_indexes << ai_uid
-    @opponents[ai_uid] = { 
+    
+    @opponents[ai_uid] = {
       :player => AiPlayer.new(),
       :connection => nil,
       :is_ready => true, 
       :units_pool => {}, 
-    }    
+    }
   end  
 
   def set_opponent_ready(player_id)
+    MageLogger.instance.info "BattleDirector (UID=#{@uid}) opponent ID = #{player_id} is ready to battle."
     @opponents[player_id][:is_ready] = true
     if (ready_to_start?)
       start()
@@ -91,7 +109,7 @@ class BattleDirector
     if current_time - @ping_time > Timings::PING_TIME
       @ping_time = current_time
       @opponents.each do |player_id, opponent|
-        opponent[:connection].make_response({:time => current_time}, 'ping') unless opponent[:connection].nil?
+        opponent[:connection].send_message({:time => current_time}, 'ping') unless opponent[:connection].nil?
       end
     end
     # /Ping update
@@ -119,7 +137,7 @@ private
 
   def broadcast_response(data, action)
     @opponents.each_value { |opponent| 
-      opponent[:connection].make_response(data, action) unless opponent[:connection].nil?
+      opponent[:connection].send_message(data, action) unless opponent[:connection].nil?
     }
   end   
 
@@ -213,6 +231,8 @@ private
   end
  
   def start()
+    MageLogger.instance.info "BattleDirector (UID=#{@uid}) is started!"
+
     @status = BattleStatuses::IN_PROGRESS
     
     broadcast_response({:message => 'Let the battle begin!'}, 'start_battle')

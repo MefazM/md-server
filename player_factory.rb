@@ -1,22 +1,21 @@
 require 'pry'
 require_relative 'db_connection.rb'
 require_relative 'player.rb'
+require_relative 'mage_logger.rb'
 
 class PlayerFactory
   @@connections = {}
 
   def self.find_or_create(login_data, connection)
     login_data.map {|k,v| login_data[k] = DBConnection.escape(v)}
-    print("Player login. Token = #{login_data[:token]}")
-    player = get_player_by_token(login_data[:token])
+    
+    MageLogger.instance.info "Player login. Token = #{login_data[:token]}"
 
+    player = get_player_by_token(login_data[:token])
     if !player
-      print(" Not found. Create new...")
+      MageLogger.instance.info " Not found. Create new..."
       player = create_player(login_data)
     end
-
-    print(" OK!\n")
-
     @@connections[player.get_id()] = connection
 
     connection.set_player(player)
@@ -25,10 +24,14 @@ class PlayerFactory
   def self.get_appropriate_players (player_id)
     responce = []
     @@connections.each do |p_id, conn|
-      responce << conn.get_player().to_hash() #if p_id != player_id
+      responce << conn.get_player().to_hash() if p_id != player_id
     end
 
     responce
+  end
+
+  def self.get_connection(player_id)
+    @@connections[player_id]
   end
 
 private
@@ -61,10 +64,11 @@ private
     player_id = DBConnection.last_inser_id
 
     DBConnection.query(
-      "INSERT INTO authentications (user_id, provider, token) 
+      "INSERT INTO authentications (player_id, provider, token) 
       VALUES (#{player_id}, '#{login_data[:provider]}', '#{login_data[:token]}')"
     )
-    print(" OK! user id = #{player_id} \n")
+
+    MageLogger.instance.info "New player created. id = #{player_id}"
 
     get_player_by_id(player_id)
   end

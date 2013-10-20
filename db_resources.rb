@@ -4,7 +4,7 @@ require_relative 'db_connection.rb'
 class DBResources
 
   def self.load_resources
-    print "Loading units ..."
+    MageLogger.instance.info "Loading units from DB ..."
     @@units = {}
     begin
       DBConnection.query("SELECT * FROM units").each do |unit|
@@ -18,7 +18,7 @@ class DBResources
       raise e
     end
 
-    print " OK [#{@@units.count} unit(s)] \n"
+    MageLogger.instance.info "#{@@units.count} unit(s) - loaded."
   end
 
   def self.get_unit(package)

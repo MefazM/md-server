@@ -1,9 +1,12 @@
 require 'mysql2'
+require_relative 'mage_logger.rb'
 
 class DBConnection
 
   def self.connect(host = "localhost", username = "root", database = "game_cms")
-    print "Connecting to DB..."
+    
+    MageLogger.instance.info "Connecting to DB..."
+
     begin
       @@connection = Mysql2::Client.new(:host => host, :username => username, :database => database)
 
@@ -12,7 +15,7 @@ class DBConnection
       raise e
     end
 
-    print " OK \n"
+    MageLogger.instance.info "DB connected!"
   end
 
   def self.escape (string)
