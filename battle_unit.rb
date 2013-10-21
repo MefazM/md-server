@@ -24,8 +24,6 @@ class BattleUnit
 
     @attack_type = nil
     @attacked_unit = nil
-
-    @is_current_attack_melee = false
   end
 
   def get_uid()
@@ -36,46 +34,29 @@ class BattleUnit
     @status == UnitStatuses::DIE
   end
 
-  def respond_status? (status)
-    @status == status
-  end
-
-  def set_status(status)
-    @status = status
-  end
-
   def get_position()
     @position
   end
 
   def to_hash is_short = false
     data = {}
-
     if is_short
-      data = {:uid => @uid, :health_points => @health_points, :movement_speed => @movement_speed, :package => @unit_package}
+      data = {
+        :uid => @uid, 
+        :health_points => @health_points, 
+        :movement_speed => @movement_speed, 
+        :package => @unit_package
+      }
     else
       data = { 
         :position => @position,
         :status => @status
       }
-
       data[:sequence_name] = @attack_type unless @attack_type.nil?
       data[:attacked_unit] = @attacked_unit unless @attacked_unit.nil?
-
     end
 
     data
-  end
-
-  def process_deffered_damage(iteration_delta)
-    @deferred_damage.each_with_index do |deferred, index|
-      deferred[:position] += iteration_delta * 0.4 #! This is magick, 0.4 is a arrow speed!!
-
-      if (deferred[:position] + @position >= 1.0)
-        @health_points -= deferred[:power]
-        @deferred_damage.delete_at(index)
-      end
-    end
   end
 
   def add_deffered_damage(attack_power, initial_position)
@@ -107,9 +88,20 @@ class BattleUnit
       end
     end
     return nil
+  end
+
+  def process_deffered_damage(iteration_delta)
+    @deferred_damage.each_with_index do |deferred, index|
+      deferred[:position] += iteration_delta * 0.4 #! This is magick, 0.4 is a arrow speed!!
+
+      if (deferred[:position] + @position >= 1.0)
+        @health_points -= deferred[:power]
+        @deferred_damage.delete_at(index)
+      end
+    end
   end  
 
-  def make_attack(opponent, iteration_delta)
+  def update(opponent, iteration_delta)
     case @status
     when UnitStatuses::START_ATTACK
       @attack_period_time -= iteration_delta

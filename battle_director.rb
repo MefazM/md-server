@@ -138,7 +138,7 @@ private
 
       player[:units_pool].each do |uid, unit|
 
-        unit.make_attack(opponent, iteration_delta)
+        unit.update(opponent, iteration_delta)
 
         response[uid] = unit.to_hash
         player[:units_pool].delete(uid) if unit.is_dead?
