@@ -28,6 +28,7 @@ class Connection < EM::Connection
 
   def post_init
     @player = nil
+    @battle_director = nil
     @latency = 0
     # $log.info("New connection from #{get_peername[2,6].unpack("nC4")}")
   end
@@ -59,14 +60,16 @@ class Connection < EM::Connection
         battle_director = BattleDirector.new()
         battle_director.set_opponent(self)
         # возможно добавлять battle_director только после согласия обоих игроков на бой?
-        $battles[battle_director.get_uid()] = battle_director        
-        
+        $battles[battle_director.get_uid()] = battle_director
+
+        @battle_director = battle_director
+
         # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте. 
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада
         if data[:is_ai_battle]
           battle_director.enable_ai(data[:id])
-          send_message({:battle_uid => battle_director.get_uid()}, action)
+
         else
           opponent = PlayerFactory.get_connection(data[:id])
 
@@ -79,10 +82,11 @@ class Connection < EM::Connection
         
       when :accept_battle
         MageLogger.instance.info "Player ID = #{@player.get_id()}, accepted battle UID = #{data[:battle_uid]}."
-        $battles[data[:battle_uid]].set_opponent(self)
+        @battle_director = $battles[data[:battle_uid]]
+        @battle_director.set_opponent(self)
 
       when :request_battle_start
-        $battles[data[:battle_uid]].set_opponent_ready(@player.get_id())
+        @battle_director.set_opponent_ready(@player.get_id())
 
       when :request_battle_map_data
         response = {}
@@ -91,7 +95,9 @@ class Connection < EM::Connection
         response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
 
         send_message(response, action)
-      when :spawn_unit
+
+      when :request_spawn_unit
+        @battle_director.spawn_unit(data[:unit_uid], @player.get_id())
 
       when :ping
         @latency = Time.now.to_f - data[:time]

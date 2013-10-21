@@ -25,5 +25,14 @@ class DBResources
     @@units[package.to_sym].dup
   end
 
+  # Этот метод должен быть в Player. Достает тех юнитов которые есть у игрока в данный момент.
+  def self.get_units(units_ids)
+    units = []
+    @@units.each do |uid, unit|
+      units << {:uid => uid, :count => 3} if units_ids.include? uid.to_s
+    end
+
+    units
+  end
 
 end

@@ -34,12 +34,8 @@ class BattleDirector
 
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) added opponent. ID = #{player_id}"
 
-    # Надо вынести в отдельный метод. 
-    if @opponents.count == 2
-      MageLogger.instance.info "BattleDirector (UID=#{@uid}) has two opponents. Initialize battle on clients."
-
-      broadcast_response({:battle_uid => @uid}, 'request_new_battle')
-    end
+    # Если достаточное количество игроков чтобы начать бой
+    create_battle_at_clients() if @opponents.count == 2
   end
 
   def enable_ai(ai_uid)
@@ -53,6 +49,8 @@ class BattleDirector
       :is_ready => true, 
       :units_pool => {}, 
     }
+
+    create_battle_at_clients()
   end  
 
   def set_opponent_ready(player_id)
@@ -127,7 +125,14 @@ class BattleDirector
       end
     end
     # /Default unit spawn
-  end 
+  end
+
+  def spawn_unit (unit_uid, player_id)
+    spawn_data = add_unit_to_pool(@opponents[player_id], unit_uid)
+    spawn_data[:owner_id] = player_id
+    
+    broadcast_response(spawn_data, 'spawn_unit')    
+  end
 
 private
 
@@ -141,10 +146,10 @@ private
     }
   end   
 
-  def add_unit_to_pool(player, unit_package)
+  def add_unit_to_pool(opponent, unit_package)
     unit = BattleUnit.new(unit_package)
     uid = unit.get_uid()
-    player[:units_pool][uid] = unit
+    opponent[:units_pool][uid] = unit
 
     return unit.to_hash(true)
   end
@@ -247,5 +252,18 @@ private
       return opponent[:is_ready] unless opponent[:is_ready] # разве не if???
     }
     return true
+  end
+
+  # Оба игрока согласны на бой. Надо инициализировать бой на их устройствах.
+  # Также надо передать информацию о доступных юнитах
+  def create_battle_at_clients()
+    MageLogger.instance.info "BattleDirector (UID=#{@uid}) has two opponents. Initialize battle on clients."
+    
+    player_units = DBResources.get_units(['stone_golem', 'mage', 'doghead', 'elf'])
+
+    @opponents.each_value { |opponent| 
+      opponent[:connection].send_message({:battle_uid => @uid, :units => player_units}, 'request_new_battle') unless opponent[:connection].nil?
+    }
+
   end
 end
