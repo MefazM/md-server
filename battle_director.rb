@@ -22,10 +22,10 @@ class BattleDirector
 
   def set_opponent(connection)
     player_id = connection.get_player().get_id()
-    
-    @opponents[player_id] = { 
+
+    @opponents[player_id] = {
       :connection => connection,
-      :is_ready => false, 
+      :is_ready => false,
       :units_pool => {}
     }
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) added opponent. ID = #{player_id}"
@@ -38,11 +38,11 @@ class BattleDirector
 
     @opponents[ai_uid] = {
       :connection => nil,
-      :is_ready => true, 
-      :units_pool => {}, 
+      :is_ready => true,
+      :units_pool => {},
     }
     create_battle_at_clients()
-  end  
+  end
 
   def set_opponent_ready(player_id)
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) opponent ID = #{player_id} is ready to battle."
@@ -73,7 +73,7 @@ class BattleDirector
     end
     # /World update
 
-    # 
+    #
     # Ping update
     #
     if current_time - @ping_time > Timings::PING_TIME
@@ -83,17 +83,17 @@ class BattleDirector
     end
     # /Ping update
 
-    # 
+    #
     # Default unit spawn
     if current_time - @default_unit_spawn_time > Timings::DEFAULT_UNITS_SPAWN_TIME
       @default_unit_spawn_time = current_time
-      
+
       @opponents.each do |player_id, opponent|
-        unit_package = 'elf'
-        
+        unit_package = 'crusader'
+
         spawn_data = add_unit_to_pool(opponent, unit_package)
         spawn_data[:owner_id] = player_id
-        
+
         broadcast_response(spawn_data, 'spawn_unit')
       end
     end
@@ -103,8 +103,8 @@ class BattleDirector
   def spawn_unit (unit_uid, player_id)
     spawn_data = add_unit_to_pool(@opponents[player_id], unit_uid)
     spawn_data[:owner_id] = player_id
-    
-    broadcast_response(spawn_data, 'spawn_unit')    
+
+    broadcast_response(spawn_data, 'spawn_unit')
   end
 private
 
@@ -113,10 +113,10 @@ private
   end
 
   def broadcast_response(data, action)
-    @opponents.each_value { |opponent| 
+    @opponents.each_value { |opponent|
       opponent[:connection].send_message(data, action) unless opponent[:connection].nil?
     }
-  end   
+  end
 
   def add_unit_to_pool(opponent, unit_package)
     unit = BattleUnit.new(unit_package)
@@ -145,12 +145,12 @@ private
       broadcast_response({:units_data => response, :player_id => player_id}, 'sync_client')
     end
   end
- 
+
   def start()
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) is started!"
 
     @status = BattleStatuses::IN_PROGRESS
-    
+
     broadcast_response({:message => 'Let the battle begin!'}, 'start_battle')
 
     @iteration_time = get_timer()
@@ -159,7 +159,7 @@ private
   end
 
   def ready_to_start?()
-    @opponents.each_value { |opponent| 
+    @opponents.each_value { |opponent|
       return opponent[:is_ready] unless opponent[:is_ready] # разве не if???
     }
     return true
@@ -169,7 +169,7 @@ private
   # Также надо передать информацию о доступных юнитах
   def create_battle_at_clients()
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) has two opponents. Initialize battle on clients."
-    
+
     player_units = DBResources.get_units(['stone_golem', 'mage', 'doghead', 'elf'])
 
     _opponents_indexes = []

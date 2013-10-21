@@ -13,7 +13,7 @@ require_relative 'mage_logger.rb'
 
 $battles = {}
 
-class Connection < EM::Connection  
+class Connection < EM::Connection
   def get_player()
     @player
   end
@@ -60,7 +60,7 @@ class Connection < EM::Connection
         $battles[battle_director.get_uid()] = battle_director
 
         @battle_director = battle_director
-        # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте. 
+        # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада
         if data[:is_ai_battle]
@@ -70,18 +70,19 @@ class Connection < EM::Connection
           opponent = PlayerFactory.get_connection(data[:id])
 
           opponent.send_message({
-            :battle_uid => battle_director.get_uid(), 
-            :invitation_from => @player.get_id()}, 
+            :battle_uid => battle_director.get_uid(),
+            :invitation_from => @player.get_id()},
             'invite_to_battle'
           )
         end
-        
+
       when :accept_battle
         MageLogger.instance.info "Player ID = #{@player.get_id()}, accepted battle UID = #{data[:battle_uid]}."
         @battle_director = $battles[data[:battle_uid]]
         @battle_director.set_opponent(self)
 
       when :request_battle_start
+
         @battle_director.set_opponent_ready(@player.get_id())
 
       when :request_battle_map_data
@@ -93,10 +94,13 @@ class Connection < EM::Connection
         send_message(response, action)
 
       when :request_spawn_unit
+
         @battle_director.spawn_unit(data[:unit_uid], @player.get_id())
 
       when :ping
+
         @latency = Time.now.to_f - data[:time]
+
       end
     end
   end
@@ -104,7 +108,7 @@ end
 
 EventMachine::run do
   host = '127.0.0.1'
-  port = 3005  
+  port = 3005
 
   MageLogger.instance.info "Starting MageServer on #{host}:#{port}..."
 
@@ -112,10 +116,10 @@ EventMachine::run do
   DBResources.load_resources
 
   EventMachine::start_server host, port, Connection
-  
+
   EM.tick_loop do
     $battles.each do |battle_uid, battle|
       battle.update_opponents() if battle.is_started?
-    end    
+    end
   end
 end

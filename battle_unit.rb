@@ -42,13 +42,13 @@ class BattleUnit
     data = {}
     if is_short
       data = {
-        :uid => @uid, 
-        :health_points => @health_points, 
-        :movement_speed => @movement_speed, 
+        :uid => @uid,
+        :health_points => @health_points,
+        :movement_speed => @movement_speed,
         :package => @unit_package
       }
     else
-      data = { 
+      data = {
         :position => @position,
         :status => @status
       }
@@ -71,10 +71,6 @@ class BattleUnit
     # Сила аттаки уменьшается в двое, если юнит имеет защиту от такого типа атак.
     resist_type = @unit_prototype[:resist_type]
     decrease_by *= 0.5 if resist_type and attack_type == resist_type
-
-    if resist_type and attack_type == resist_type
-      puts("#{@unit_prototype[:name]} resist")    
-    end
 
     @health_points -= decrease_by
   end
@@ -108,7 +104,7 @@ class BattleUnit
         @deferred_damage.delete_at(index)
       end
     end
-  end  
+  end
 
   def update(opponent, iteration_delta)
     case @status
@@ -125,7 +121,7 @@ class BattleUnit
 
           @status = UnitStatuses::DEFAULT
         when :range_attack
-          
+
           opponent_unit = get_target(opponent, @unit_prototype[:range_attack_range])
 
           unless opponent_unit.nil?
@@ -146,7 +142,7 @@ class BattleUnit
       if @unit_prototype[:melee_attack] and has_target?(opponent, @unit_prototype[:melee_attack_range])
 
         @status = UnitStatuses::START_ATTACK
-        
+
         @attack_type = :melee_attack
         @attack_period_time = @unit_prototype[:melee_attack_speed]
 
