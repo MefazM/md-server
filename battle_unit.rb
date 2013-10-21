@@ -59,14 +59,23 @@ class BattleUnit
     data
   end
 
-  def add_deffered_damage(attack_power, initial_position)
+  def add_deffered_damage(attack_power, initial_position, range_attack_damage_type)
     @deferred_damage << {
       :power => attack_power,
       :position => initial_position,
+      :range_attack_damage_type => range_attack_damage_type
     }
   end
 
-  def decrease_health_points(decrease_by)
+  def decrease_health_points(decrease_by, attack_type)
+    # Сила аттаки уменьшается в двое, если юнит имеет защиту от такого типа атак.
+    resist_type = @unit_prototype[:resist_type]
+    decrease_by *= 0.5 if resist_type and attack_type == resist_type
+
+    if resist_type and attack_type == resist_type
+      puts("#{@unit_prototype[:name]} resist")    
+    end
+
     @health_points -= decrease_by
   end
 
@@ -82,8 +91,8 @@ class BattleUnit
 
   def get_target(opponent, attack_distantion)
     opponent[:units_pool].each do |uid, opponent_unit|
-      distantion = opponent_unit.get_position() + @position and attack_distantion < 1.0
-      if distantion > 1.0 - attack_distantion
+      distantion = opponent_unit.get_position() + @position
+      if distantion > 1.0 - attack_distantion and attack_distantion < 1.0
         return opponent_unit
       end
     end
@@ -95,7 +104,7 @@ class BattleUnit
       deferred[:position] += iteration_delta * 0.4 #! This is magick, 0.4 is a arrow speed!!
 
       if (deferred[:position] + @position >= 1.0)
-        @health_points -= deferred[:power]
+        decrease_health_points(deferred[:power], deferred[:range_attack_damage_type])
         @deferred_damage.delete_at(index)
       end
     end
@@ -112,7 +121,7 @@ class BattleUnit
         when :melee_attack
 
           opponent_unit = get_target(opponent, @unit_prototype[:melee_attack_range])
-          opponent_unit.decrease_health_points(@melee_attack_power) unless opponent_unit.nil?
+          opponent_unit.decrease_health_points(@melee_attack_power, @unit_prototype[:melee_attack_damage_type]) unless opponent_unit.nil?
 
           @status = UnitStatuses::DEFAULT
         when :range_attack
@@ -120,7 +129,7 @@ class BattleUnit
           opponent_unit = get_target(opponent, @unit_prototype[:range_attack_range])
 
           unless opponent_unit.nil?
-            opponent_unit.add_deffered_damage(@range_attack_power, @position)
+            opponent_unit.add_deffered_damage(@range_attack_power, @position, @unit_prototype[:range_attack_damage_type])
             @attacked_unit = opponent_unit.get_uid()
           end
 

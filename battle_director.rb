@@ -79,7 +79,7 @@ class BattleDirector
     if current_time - @ping_time > Timings::PING_TIME
       @ping_time = current_time
 
-      broadcast_response({:time => current_time}, 'spawn_unit')
+      broadcast_response({:time => current_time}, 'ping')
     end
     # /Ping update
 
@@ -89,7 +89,7 @@ class BattleDirector
       @default_unit_spawn_time = current_time
       
       @opponents.each do |player_id, opponent|
-        unit_package = 'crusader'
+        unit_package = 'elf'
         
         spawn_data = add_unit_to_pool(opponent, unit_package)
         spawn_data[:owner_id] = player_id
