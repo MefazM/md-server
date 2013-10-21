@@ -24,7 +24,6 @@ class BattleDirector
     player_id = connection.get_player().get_id()
     
     @opponents[player_id] = { 
-      :player => connection.get_player(),
       :connection => connection,
       :is_ready => false, 
       :units_pool => {}
@@ -38,7 +37,6 @@ class BattleDirector
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) enable AI. UID = #{ai_uid} "
 
     @opponents[ai_uid] = {
-      :player => AiPlayer.new(),
       :connection => nil,
       :is_ready => true, 
       :units_pool => {}, 
@@ -91,7 +89,7 @@ class BattleDirector
       @default_unit_spawn_time = current_time
       
       @opponents.each do |player_id, opponent|
-        unit_package = opponent[:player].get_default_unit_package()
+        unit_package = 'crusader'
         
         spawn_data = add_unit_to_pool(opponent, unit_package)
         spawn_data[:owner_id] = player_id

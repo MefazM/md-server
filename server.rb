@@ -30,30 +30,27 @@ class Connection < EM::Connection
     @player = nil
     @battle_director = nil
     @latency = 0
-    # $log.info("New connection from #{get_peername[2,6].unpack("nC4")}")
   end
 
   def send_message(response, action)
-    # response[:timestamp] = Time.now.to_f
     response[:action] = action
     response[:latency] = (@latency * 1000.0).to_i
     send_data("__JSON__START__#{response.to_json}__JSON__END__")
-    # $log.debug("Send message: #{response}")
-    # puts("Send message: #{response}")
   end
 
   def receive_data(message)
     str_start, str_end = message.index('__JSON__START__'), message.index('__JSON__END__')
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
-      # puts("Receive message: #{json}")
+
       data = JSON.parse(json,:symbolize_names => true)
       action = data[:action]
+
       case action.to_sym
       when :request_player
+
         PlayerFactory.find_or_create(data[:login_data], self)
         send_message({:uid => @player.get_id(), :game_data => @player.get_game_data()}, action)
-        # $connections[@player.get_id()] = self
 
       when :request_new_battle
         # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
@@ -63,7 +60,6 @@ class Connection < EM::Connection
         $battles[battle_director.get_uid()] = battle_director
 
         @battle_director = battle_director
-
         # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте. 
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада

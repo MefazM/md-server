@@ -8,10 +8,6 @@ class MageLogger < Logger
   def initialize
     super LOG_FILE
 
-    # original_formatter = Formatter.new
-    # @formatter = proc { |severity, datetime, progname, msg|
-    #   original_formatter.call(severity, datetime, progname, msg.dump)
-    # }
     @default_formatter.datetime_format = "%Y-%m-%d %H:%M:%S"
   end
 end

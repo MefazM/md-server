@@ -10,7 +10,6 @@ class DBConnection
     begin
       @@connection = Mysql2::Client.new(:host => host, :username => username, :database => database)
 
-
     rescue Exception => e
       raise e
     end
@@ -29,5 +28,4 @@ class DBConnection
   def self.query(sql_query)
     @@connection.query(sql_query, {:symbolize_keys => true, :cast_booleans => true})
   end
-
 end
