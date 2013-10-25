@@ -18,9 +18,17 @@ class Player
 
   def to_hash()
     {:id => @id, :username => @username}
-  end 
+  end
 
   def get_default_unit_package()
     'crusader'
+  end
+
+  def get_units_data_for_battle()
+    DBResources.get_units(['stone_golem', 'mage', 'doghead', 'elf'])
+  end
+
+  def get_main_building()
+
   end
 end

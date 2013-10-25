@@ -75,23 +75,21 @@ class BattleUnit
     @health_points -= decrease_by
   end
 
-  def has_target?(opponent, attack_distantion)
-    opponent[:units_pool].each do |uid, opponent_unit|
-      distantion = opponent_unit.get_position() + @position
-      if distantion > 1.0 - attack_distantion and attack_distantion < 1.0
-        return true
-      end
-    end
-    return false
-  end
-
+  # Проверть есть ли на расстоянии атаки цель для этого юнита
   def get_target(opponent, attack_distantion)
+    # Цикл через всех юнитов противника
     opponent[:units_pool].each do |uid, opponent_unit|
       distantion = opponent_unit.get_position() + @position
       if distantion > 1.0 - attack_distantion and attack_distantion < 1.0
         return opponent_unit
       end
     end
+    # В последнюю очередь проверяем может ли юнит атаковать базу противника
+    distantion = opponent[:main_building].get_position() + @position
+    if distantion > 1.0 - attack_distantion and attack_distantion < 1.0
+      return opponent[:main_building]
+    end
+
     return nil
   end
 
@@ -139,14 +137,14 @@ class BattleUnit
       # @attack_type = nil
 
     when UnitStatuses::MOVE, UnitStatuses::DEFAULT
-      if @unit_prototype[:melee_attack] and has_target?(opponent, @unit_prototype[:melee_attack_range])
+      if @unit_prototype[:melee_attack] and get_target(opponent, @unit_prototype[:melee_attack_range])
 
         @status = UnitStatuses::START_ATTACK
 
         @attack_type = :melee_attack
         @attack_period_time = @unit_prototype[:melee_attack_speed]
 
-      elsif @unit_prototype[:range_attack] and has_target?(opponent, @unit_prototype[:range_attack_range])
+      elsif @unit_prototype[:range_attack] and get_target(opponent, @unit_prototype[:range_attack_range])
 
         @status = UnitStatuses::START_ATTACK
 

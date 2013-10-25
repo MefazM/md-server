@@ -4,7 +4,7 @@ require_relative 'mage_logger.rb'
 class DBConnection
 
   def self.connect(host = "localhost", username = "root", database = "game_cms")
-    
+
     MageLogger.instance.info "Connecting to DB..."
 
     begin

@@ -2,6 +2,7 @@ module BattleStatuses
   PENDING = 1
   READY_TO_START = 2
   IN_PROGRESS = 3
+  FINISHED = 4
 end
 
 module UnitStatuses

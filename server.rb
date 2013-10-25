@@ -11,9 +11,42 @@ require_relative 'db_resources.rb'
 require_relative 'player_factory.rb'
 require_relative 'mage_logger.rb'
 
-$battles = {}
+class DataCollector
+  @@battles = {}
+  @@connections = {}
+
+  def self.register_connection(connection, id)
+    @@connections[id] = connection
+  end
+
+  def self.get_connection(id)
+    @@connections[id]
+  end
+
+  def self.get_appropriate_players (id)
+    responce = []
+    @@connections.each do |p_id, conn|
+      responce << conn.get_player().to_hash() if p_id != id
+    end
+
+    responce
+  end
+
+  def self.register_battle(battle)
+    @@battles[battle.get_uid()] = battle
+  end
+
+  def self.get_battle(id)
+    @@battles[id]
+  end
+
+  def self.get_battles()
+    @@battles
+  end
+end
 
 class Connection < EM::Connection
+
   def get_player()
     @player
   end
@@ -49,28 +82,29 @@ class Connection < EM::Connection
       case action.to_sym
       when :request_player
 
-        PlayerFactory.find_or_create(data[:login_data], self)
+        @player = PlayerFactory.find_or_create(data[:login_data])
+
         send_message({:uid => @player.get_id(), :game_data => @player.get_game_data()}, action)
 
       when :request_new_battle
         # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
-        battle_director = BattleDirector.new()
-        battle_director.set_opponent(self)
+        @battle_director = BattleDirector.new()
+        @battle_director.set_opponent(self)
         # возможно добавлять battle_director только после согласия обоих игроков на бой?
-        $battles[battle_director.get_uid()] = battle_director
 
-        @battle_director = battle_director
+        DataCollector.register_battle(@battle_director)
         # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада
         if data[:is_ai_battle]
-          battle_director.enable_ai(data[:id])
+
+          @battle_director.enable_ai(data[:id])
 
         else
           opponent = PlayerFactory.get_connection(data[:id])
 
           opponent.send_message({
-            :battle_uid => battle_director.get_uid(),
+            :battle_uid => @battle_director.get_uid(),
             :invitation_from => @player.get_id()},
             'invite_to_battle'
           )
@@ -78,7 +112,7 @@ class Connection < EM::Connection
 
       when :accept_battle
         MageLogger.instance.info "Player ID = #{@player.get_id()}, accepted battle UID = #{data[:battle_uid]}."
-        @battle_director = $battles[data[:battle_uid]]
+        @battle_director = DataCollector.get_battle(data[:battle_uid])
         @battle_director.set_opponent(self)
 
       when :request_battle_start
@@ -88,7 +122,7 @@ class Connection < EM::Connection
       when :request_battle_map_data
         response = {}
 
-        response[:players] = PlayerFactory.get_appropriate_players(@player.get_id())
+        response[:players] = DataCollector.get_appropriate_players(@player.get_id())
         response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
 
         send_message(response, action)
@@ -110,6 +144,9 @@ EventMachine::run do
   host = '127.0.0.1'
   port = 3005
 
+  Signal.trap("INT")  { EventMachine.stop }
+  Signal.trap("TERM") { EventMachine.stop }
+
   MageLogger.instance.info "Starting MageServer on #{host}:#{port}..."
 
   DBConnection.connect
@@ -118,7 +155,7 @@ EventMachine::run do
   EventMachine::start_server host, port, Connection
 
   EM.tick_loop do
-    $battles.each do |battle_uid, battle|
+    DataCollector.get_battles().each do |battle_uid, battle|
       battle.update_opponents() if battle.is_started?
     end
   end

@@ -3,6 +3,7 @@ require 'pry'
 require_relative 'ai_player.rb'
 require_relative 'defines.rb'
 require_relative 'battle_unit.rb'
+require_relative 'battle_building.rb'
 
 class BattleDirector
 
@@ -25,8 +26,10 @@ class BattleDirector
 
     @opponents[player_id] = {
       :connection => connection,
+      :player => connection.get_player(),
       :is_ready => false,
-      :units_pool => {}
+      :units_pool => {},
+      :main_building => nil
     }
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) added opponent. ID = #{player_id}"
     # Если достаточное количество игроков чтобы начать бой
@@ -38,8 +41,10 @@ class BattleDirector
 
     @opponents[ai_uid] = {
       :connection => nil,
+      :player => AiPlayer.new(),
       :is_ready => true,
       :units_pool => {},
+      :main_building => nil
     }
     create_battle_at_clients()
   end
@@ -68,8 +73,7 @@ class BattleDirector
     iteration_delta = current_time - @iteration_time
     if (iteration_delta > Timings::ITERATION_TIME)
       @iteration_time = current_time
-
-      update_units(iteration_delta)
+      _update(iteration_delta)
     end
     # /World update
 
@@ -93,7 +97,6 @@ class BattleDirector
 
         spawn_data = add_unit_to_pool(opponent, unit_package)
         spawn_data[:owner_id] = player_id
-
         broadcast_response(spawn_data, 'spawn_unit')
       end
     end
@@ -126,7 +129,7 @@ private
     return unit.to_hash(true)
   end
 
-  def update_units(iteration_delta)
+  def _update(iteration_delta)
     @opponents.each do |player_id, player|
 
       opponent_uid = @opponents_indexes[player_id]
@@ -140,6 +143,15 @@ private
 
         response[uid] = unit.to_hash
         player[:units_pool].delete(uid) if unit.is_dead?
+      end
+
+      main_building = player[:main_building]
+      main_building.process_deffered_damage(iteration_delta)
+      response[main_building.get_uid()] = main_building.to_hash
+
+      if main_building.is_dead?
+
+        finish_battle(player_id)
       end
 
       broadcast_response({:units_data => response, :player_id => player_id}, 'sync_client')
@@ -160,7 +172,7 @@ private
 
   def ready_to_start?()
     @opponents.each_value { |opponent|
-      return opponent[:is_ready] unless opponent[:is_ready] # разве не if???
+      return opponent[:is_ready] unless opponent[:is_ready]
     }
     return true
   end
@@ -170,18 +182,43 @@ private
   def create_battle_at_clients()
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) has two opponents. Initialize battle on clients."
 
-    player_units = DBResources.get_units(['stone_golem', 'mage', 'doghead', 'elf'])
-
     _opponents_indexes = []
+
+    # Надо собрать данные о обоих сновных постойках игрока
+    opponents_main_buildings = []
+    @opponents.each do |player_id, opponent|
+      player_building = BattleBuilding.new( 'building_1', 0.1 )
+      opponent[:main_building] = player_building
+
+      player_building_data = player_building.to_hash()
+      player_building_data[:owner_id] = player_id
+
+      opponents_main_buildings << player_building_data
+    end
+    #
 
     @opponents.each do |player_id, opponent|
 
       _opponents_indexes << player_id
 
-      opponent[:connection].send_message({:battle_uid => @uid, :units => player_units}, 'request_new_battle') unless opponent[:connection].nil?
+      player_units = opponent[:player].get_units_data_for_battle()
+
+      opponent[:connection].send_message({
+        :battle_uid => @uid,
+        :units => player_units,
+        :buildings => opponents_main_buildings,
+      }, 'request_new_battle') unless opponent[:connection].nil?
     end
     # Хак, чтобы получить uid игрока, по uid'у его оппонента.
     @opponents_indexes[_opponents_indexes[0]] = _opponents_indexes[1]
     @opponents_indexes[_opponents_indexes[1]] = _opponents_indexes[0]
+  end
+
+  def finish_battle(loser_id)
+    MageLogger.instance.info "BattleDirector (UID=#{@uid}). Battle finished, player (#{loser_id} - lose."
+
+    @status = BattleStatuses::FINISHED
+
+    broadcast_response({:loser_id => loser_id}, 'finish_battle')
   end
 end
