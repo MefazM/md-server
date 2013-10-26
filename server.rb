@@ -10,6 +10,7 @@ require_relative 'db_connection.rb'
 require_relative 'db_resources.rb'
 require_relative 'player_factory.rb'
 require_relative 'mage_logger.rb'
+require_relative 'deferred_tasks.rb'
 
 class DataCollector
   @@battles = {}
@@ -118,7 +119,6 @@ class Connection < EM::Connection
       when :request_battle_start
 
         @battle_director.set_opponent_ready(@player.get_id())
-
       when :request_battle_map_data
         response = {}
 
@@ -126,15 +126,16 @@ class Connection < EM::Connection
         response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
 
         send_message(response, action)
-
       when :request_spawn_unit
 
         @battle_director.spawn_unit(data[:unit_uid], @player.get_id())
 
+      when :request_production_task
+        res = {:uid => data[:task_info][:uid], :type => :unit}
+        DeferredTasks.add(@player.get_id(), res[:uid], res[:type])
       when :ping
 
         @latency = Time.now.to_f - data[:time]
-
       end
     end
   end
@@ -155,8 +156,14 @@ EventMachine::run do
   EventMachine::start_server host, port, Connection
 
   EM.tick_loop do
+
+    current_time = Time.now.to_f
+
     DataCollector.get_battles().each do |battle_uid, battle|
-      battle.update_opponents() if battle.is_started?
+      battle.update_opponents(current_time) if battle.is_started?
     end
+
+    DeferredTasks.process_all(current_time)
+
   end
 end

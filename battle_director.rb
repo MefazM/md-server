@@ -14,8 +14,8 @@ class BattleDirector
     @uid = SecureRandom.hex(5)
 
     @opponents_indexes = {}
-    @iteration_time = get_timer()
-    @ping_time = get_timer()
+    @iteration_time = Time.now.to_f
+    @ping_time = Time.now.to_f
     @default_unit_spawn_time = 0
 
     MageLogger.instance.info "New BattleDirector initialize... UID = #{@uid}"
@@ -65,8 +65,7 @@ class BattleDirector
     @uid
   end
 
-  def update_opponents()
-    current_time = get_timer()
+  def update_opponents(current_time)
     #
     # World update
     #
@@ -111,10 +110,6 @@ class BattleDirector
   end
 
 private
-
-  def get_timer()
-    Time.now.to_f
-  end
 
   def broadcast_response(data, action)
     @opponents.each_value { |opponent|
@@ -165,8 +160,8 @@ private
 
     broadcast_response({:message => 'Let the battle begin!'}, 'start_battle')
 
-    @iteration_time = get_timer()
-    @ping_time = get_timer()
+    @iteration_time = Time.now.to_f
+    @ping_time = Time.now.to_f
     @default_unit_spawn_time = 0
   end
 
