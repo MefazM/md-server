@@ -23,14 +23,13 @@ class BattleUnit
     @movement_speed = @unit_prototype[:movement_speed]
 
     @attack_type = nil
-    @attacked_unit = nil
   end
 
   def get_uid()
     @uid
   end
 
-  def is_dead?()
+  def dead?()
     @status == UnitStatuses::DIE
   end
 
@@ -39,22 +38,12 @@ class BattleUnit
   end
 
   def to_hash is_short = false
-    data = {}
-    if is_short
-      data = {
-        :uid => @uid,
-        :health_points => @health_points,
-        :movement_speed => @movement_speed,
-        :package => @unit_package
-      }
-    else
-      data = {
-        :position => @position,
-        :status => @status
-      }
-      data[:sequence_name] = @attack_type unless @attack_type.nil?
-      data[:attacked_unit] = @attacked_unit unless @attacked_unit.nil?
-    end
+    data = {
+      :uid => @uid,
+      :health_points => @health_points,
+      :movement_speed => @movement_speed,
+      :package => @unit_package
+    }
 
     data
   end
@@ -105,51 +94,59 @@ class BattleUnit
   end
 
   def update(opponent, iteration_delta)
+
+    response = {}
+
     case @status
-    when UnitStatuses::START_ATTACK
+    when UnitStatuses::ATTACK
       @attack_period_time -= iteration_delta
 
       if @attack_period_time < 0
 
         case @attack_type
         when :melee_attack
-
           opponent_unit = get_target(opponent, @unit_prototype[:melee_attack_range])
-          opponent_unit.decrease_health_points(@melee_attack_power, @unit_prototype[:melee_attack_damage_type]) unless opponent_unit.nil?
 
-          @status = UnitStatuses::DEFAULT
+          opponent_unit.decrease_health_points(
+            @melee_attack_power,
+            @unit_prototype[:melee_attack_damage_type]
+          ) unless opponent_unit.nil?
+
         when :range_attack
-
           opponent_unit = get_target(opponent, @unit_prototype[:range_attack_range])
 
           unless opponent_unit.nil?
-            opponent_unit.add_deffered_damage(@range_attack_power, @position, @unit_prototype[:range_attack_damage_type])
-            @attacked_unit = opponent_unit.get_uid()
+            opponent_unit.add_deffered_damage(
+              @range_attack_power,
+              @position,
+              @unit_prototype[:range_attack_damage_type]
+            )
+            # спрайт для дистанционной аттаки
+            response[:projection] = {:cast_from => @uid, :cast_to => opponent_unit.get_uid()}
           end
-
-          @status = UnitStatuses::FINISH_ATTACK
         end
 
+        @status = UnitStatuses::DEFAULT
       end
-    when UnitStatuses::FINISH_ATTACK
-      @status = UnitStatuses::DEFAULT
-      # @attacked_unit = nil
-      # @attack_type = nil
 
     when UnitStatuses::MOVE, UnitStatuses::DEFAULT
       if @unit_prototype[:melee_attack] and get_target(opponent, @unit_prototype[:melee_attack_range])
 
-        @status = UnitStatuses::START_ATTACK
+        @status = UnitStatuses::ATTACK
 
         @attack_type = :melee_attack
         @attack_period_time = @unit_prototype[:melee_attack_speed]
 
+        response[:sequence_name] = :melee_attack
+
       elsif @unit_prototype[:range_attack] and get_target(opponent, @unit_prototype[:range_attack_range])
 
-        @status = UnitStatuses::START_ATTACK
+        @status = UnitStatuses::ATTACK
 
         @attack_type = :range_attack
         @attack_period_time = @unit_prototype[:range_attack_speed]
+
+        response[:sequence_name] = :range_attack
 
       else
 
@@ -167,5 +164,9 @@ class BattleUnit
       @position += iteration_delta * @unit_prototype[:movement_speed]
     end
 
+    response[:position] = @position
+    response[:status] = @status
+
+    response
   end
 end

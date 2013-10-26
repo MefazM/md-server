@@ -8,8 +8,7 @@ end
 module UnitStatuses
   MOVE = 1
   DIE = 3
-  START_ATTACK = 4
-  FINISH_ATTACK = 5
+  ATTACK = 4
   DEFAULT = 42
 end
 

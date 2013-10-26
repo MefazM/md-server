@@ -21,7 +21,7 @@ class BattleBuilding
     @uid
   end
 
-  def is_dead?()
+  def dead?()
     @health_points < 0
   end
 

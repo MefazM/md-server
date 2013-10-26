@@ -73,7 +73,7 @@ class BattleDirector
     iteration_delta = current_time - @iteration_time
     if (iteration_delta > Timings::ITERATION_TIME)
       @iteration_time = current_time
-      _update(iteration_delta)
+      update_opponent(iteration_delta)
     end
     # /World update
 
@@ -129,7 +129,7 @@ private
     return unit.to_hash(true)
   end
 
-  def _update(iteration_delta)
+  def update_opponent(iteration_delta)
     @opponents.each do |player_id, player|
 
       opponent_uid = @opponents_indexes[player_id]
@@ -139,17 +139,16 @@ private
 
       player[:units_pool].each do |uid, unit|
 
-        unit.update(opponent, iteration_delta)
+        response[uid] = unit.update(opponent, iteration_delta)
 
-        response[uid] = unit.to_hash
-        player[:units_pool].delete(uid) if unit.is_dead?
+        player[:units_pool].delete(uid) if unit.dead?
       end
 
       main_building = player[:main_building]
       main_building.process_deffered_damage(iteration_delta)
       response[main_building.get_uid()] = main_building.to_hash
 
-      if main_building.is_dead?
+      if main_building.dead?
 
         finish_battle(player_id)
       end
