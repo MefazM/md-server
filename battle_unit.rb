@@ -122,7 +122,7 @@ class BattleUnit
               @unit_prototype[:range_attack_damage_type]
             )
             # спрайт для дистанционной аттаки
-            response[:projection] = {:cast_from => @uid, :cast_to => opponent_unit.get_uid()}
+            response[:projection] = {:cast_to => opponent_unit.get_uid()}
           end
         end
 

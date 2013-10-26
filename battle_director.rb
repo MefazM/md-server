@@ -109,6 +109,7 @@ class BattleDirector
 
     broadcast_response(spawn_data, 'spawn_unit')
   end
+
 private
 
   def get_timer()
@@ -182,7 +183,6 @@ private
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) has two opponents. Initialize battle on clients."
 
     _opponents_indexes = []
-
     # Надо собрать данные о обоих сновных постойках игрока
     opponents_main_buildings = []
     @opponents.each do |player_id, opponent|
@@ -195,7 +195,6 @@ private
       opponents_main_buildings << player_building_data
     end
     #
-
     @opponents.each do |player_id, opponent|
 
       _opponents_indexes << player_id
