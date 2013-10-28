@@ -22,7 +22,7 @@ class DBResources
   end
 
   def self.get_unit(package)
-    @@units[package.to_sym].dup
+    @@units[package.to_sym]
   end
 
   # Этот метод должен быть в Player. Достает тех юнитов которые есть у игрока в данный момент.

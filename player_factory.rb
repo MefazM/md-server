@@ -5,18 +5,34 @@ require_relative 'mage_logger.rb'
 
 class PlayerFactory
 
+  @@players = {}
+
   def self.find_or_create(login_data)
     login_data.map {|k,v| login_data[k] = DBConnection.escape(v)}
 
     MageLogger.instance.info "Player login. Token = #{login_data[:token]}"
 
     player = get_player_by_token(login_data[:token])
+
     if !player
       MageLogger.instance.info " Not found. Create new..."
       player = create_player(login_data)
     end
 
     player
+  end
+
+  def self.get_player_by_id(player_id)
+    if @@players.key? player_id
+      @@players[player_id]
+    else
+      data = DBConnection.query("SELECT * FROM players WHERE id = '#{player_id}' ").first
+      player = Player.new(data[:id], data[:email], data[:username])
+
+      @@players[player.get_id()] = player
+
+      player
+    end
   end
 
 private
@@ -30,14 +46,6 @@ private
     end
 
     return player
-  end
-
-  def self.get_player_by_id(player_id)
-    data = DBConnection.query("SELECT * FROM players WHERE id = '#{player_id}' ").first
-    player = Player.new()
-    player.map_from_db(data)
-
-    player
   end
 
   def self.create_player(login_data)

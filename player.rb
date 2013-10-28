@@ -1,11 +1,24 @@
+
 require "securerandom"
 require 'pry'
 
+require_relative 'redis_connection.rb'
+
 class Player
-  def map_from_db(db_data)
-    @id = db_data[:id]
-    @email = db_data[:email]
-    @username = db_data[:username]
+
+  def initialize(id, email, username)
+    @id = id
+    @email = email
+    @username = username
+
+    @redis_player_key = "players:#{@id}"
+    @redis_units_key = "#{@redis_player_key}:units"
+
+    @units = {}
+
+    units_json = RedisConnection.instance.connection.hget(@redis_player_key, 'units')
+
+    @units = units_json.nil? ? {} : JSON.parse(units_json)
   end
 
   def get_game_data()
@@ -30,6 +43,28 @@ class Player
 
   def get_main_building()
 
+  end
+
+  def add_unit(unit_id, count = 1)
+    units_count = @units[unit_id] || 0
+
+    @units[unit_id] = units_count + count
+    serialize_units_to_redis()
+    # binding.pry
+  end
+
+  def units()
+    # RedisConnection.instance.connection.
+    # @redis_units_key
+  end
+
+private
+
+  def serialize_units_to_redis()
+
+    units_json = @units.to_json
+
+    RedisConnection.instance.connection.hset(@redis_player_key, 'units', units_json)
   end
 
 end

@@ -131,8 +131,10 @@ class Connection < EM::Connection
         @battle_director.spawn_unit(data[:unit_uid], @player.get_id())
 
       when :request_production_task
-        res = {:uid => data[:task_info][:uid], :type => :unit}
-        DeferredTasks.add(@player.get_id(), res[:uid], res[:type])
+
+        resource = DBResources.get_unit(data[:task_info][:uid])
+
+        DeferredTasks.instance.add_task_with_sequence(@player.get_id(), data[:task_info][:uid], 1, 10, 44)
       when :ping
 
         @latency = Time.now.to_f - data[:time]
@@ -163,7 +165,7 @@ EventMachine::run do
       battle.update_opponents(current_time) if battle.is_started?
     end
 
-    DeferredTasks.process_all(current_time)
+    DeferredTasks.instance.process_all(current_time)
 
   end
 end

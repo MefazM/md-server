@@ -25,6 +25,7 @@ GEM
     pry-stack_explorer (0.4.9.1)
       binding_of_caller (>= 0.7)
       pry (>= 0.9.11)
+    redis (3.0.5)
     slop (3.4.6)
 
 PLATFORMS
@@ -36,3 +37,4 @@ DEPENDENCIES
   pry
   pry-debugger
   pry-stack_explorer
+  redis (~> 3.0.5)
