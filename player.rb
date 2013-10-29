@@ -38,7 +38,7 @@ class Player
   end
 
   def get_units_data_for_battle()
-    DBResources.get_units(['stone_golem', 'mage', 'doghead', 'elf'])
+    @units.keys
   end
 
   def get_main_building()
@@ -50,7 +50,6 @@ class Player
 
     @units[unit_id] = units_count + count
     serialize_units_to_redis()
-    # binding.pry
   end
 
   def units()
