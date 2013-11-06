@@ -6,18 +6,17 @@ require_relative 'mage_logger.rb'
 class PlayerFactory
 
   @@players = {}
+  @@connections = {}
 
-  def self.find_or_create(login_data)
+  def self.find_or_create(login_data, connection = nil)
     login_data.map {|k,v| login_data[k] = DBConnection.escape(v)}
-
     MageLogger.instance.info "Player login. Token = #{login_data[:token]}"
-
     player = get_player_by_token(login_data[:token])
-
     if !player
       MageLogger.instance.info " Not found. Create new..."
       player = create_player(login_data)
     end
+    @@connections[player.get_id()] = connection unless connection.nil?
 
     player
   end
@@ -32,6 +31,15 @@ class PlayerFactory
       @@players[player.get_id()] = player
 
       player
+    end
+  end
+
+  def self.send_message(player_id, message, action)
+    connection = @@connections[player_id]
+    if connection
+      connection.send_message(message, action)
+    else
+      MageLogger.instance.info "PlayerFactory| Connection not found ##{player_id}"
     end
   end
 

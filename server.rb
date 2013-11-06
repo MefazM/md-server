@@ -9,6 +9,7 @@ require_relative 'battle_director.rb'
 require_relative 'db_connection.rb'
 require_relative 'db_resources.rb'
 require_relative 'player_factory.rb'
+require_relative 'buildings_factory.rb'
 require_relative 'mage_logger.rb'
 require_relative 'deferred_tasks.rb'
 
@@ -27,7 +28,7 @@ class DataCollector
   def self.get_appropriate_players (id)
     responce = []
     @@connections.each do |p_id, conn|
-      responce << conn.get_player().to_hash() if p_id != id
+      responce << conn.get_player().to_hash() #if p_id != id
     end
 
     responce
@@ -82,9 +83,7 @@ class Connection < EM::Connection
 
       case action.to_sym
       when :request_player
-
-        @player = PlayerFactory.find_or_create(data[:login_data])
-
+        @player = PlayerFactory.find_or_create(data[:login_data], self)
         send_message({:uid => @player.get_id(), :game_data => @player.get_game_data()}, action)
 
       when :request_new_battle
@@ -132,9 +131,26 @@ class Connection < EM::Connection
 
       when :request_production_task
 
-        resource = DBResources.get_unit(data[:task_info][:uid])
+        case data[:task_info][:type]
+        when 1 #unit
 
-        DeferredTasks.instance.add_task_with_sequence(@player.get_id(), data[:task_info][:uid], 1, 10, 44)
+          resource = DBResources.get_unit(data[:task_info][:uid])
+          DeferredTasks.instance.add_task_with_sequence(@player.get_id(), data[:task_info][:uid], 1, 10, 44)
+
+        when 2 #building
+
+          BuildingsFactory.instance.build_or_update(@player.get_id(), data[:task_info][:package])
+
+          # if player.nil?
+          #   MageLogger.instance.info "PlayerFactory| Can't add production task to uninitialized player."
+          # end
+          # if player.process_building data[:task_info][:package]
+          # end
+          # if @player.process_building data[:task_info][:package]
+          # end
+          # # binding.pry
+          # send_message(response, 'updating')
+        end
       when :ping
 
         @latency = Time.now.to_f - data[:time]
@@ -157,7 +173,7 @@ EventMachine::run do
 
   EventMachine::start_server host, port, Connection
 
-  EM.tick_loop do
+  EventMachine::PeriodicTimer.new(0.01) do
 
     current_time = Time.now.to_f
 
