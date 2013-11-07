@@ -3,9 +3,8 @@ require 'pry'
 require 'rubygems'
 require 'eventmachine'
 require 'json'
-require 'logger'
 
-require_relative 'battle_director.rb'
+require_relative 'battle_director_factory.rb'
 require_relative 'db_connection.rb'
 require_relative 'db_resources.rb'
 require_relative 'player_factory.rb'
@@ -13,57 +12,16 @@ require_relative 'buildings_factory.rb'
 require_relative 'mage_logger.rb'
 require_relative 'deferred_tasks.rb'
 
-class DataCollector
-  @@battles = {}
-  @@connections = {}
+require_relative 'settings.rb'
 
-  def self.register_connection(connection, id)
-    @@connections[id] = connection
-  end
-
-  def self.get_connection(id)
-    @@connections[id]
-  end
-
-  def self.get_appropriate_players (id)
-    responce = []
-    @@connections.each do |p_id, conn|
-      responce << conn.get_player().to_hash() #if p_id != id
-    end
-
-    responce
-  end
-
-  def self.register_battle(battle)
-    @@battles[battle.get_uid()] = battle
-  end
-
-  def self.get_battle(id)
-    @@battles[id]
-  end
-
-  def self.get_battles()
-    @@battles
-  end
-end
 
 class Connection < EM::Connection
-
-  def get_player()
-    @player
-  end
-
-  def set_player(player)
-    @player = player
-  end
 
   def get_latency()
     @latency
   end
 
   def post_init
-    @player = nil
-    @battle_director = nil
     @latency = 0
   end
 
@@ -83,73 +41,72 @@ class Connection < EM::Connection
 
       case action.to_sym
       when :request_player
-        @player = PlayerFactory.find_or_create(data[:login_data], self)
-        send_message({:uid => @player.get_id(), :game_data => @player.get_game_data()}, action)
-
+        @player_id = PlayerFactory.find_or_create(data[:login_data], self)
+        PlayerFactory.send_game_data(@player_id)
       when :request_new_battle
         # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
-        @battle_director = BattleDirector.new()
-        @battle_director.set_opponent(self)
         # возможно добавлять battle_director только после согласия обоих игроков на бой?
+        @battle_director_uid = BattleDirectorFactory.instance.create()
 
-        DataCollector.register_battle(@battle_director)
+        BattleDirectorFactory.instance.set_opponent(
+          @battle_director_uid,
+          self,
+          PlayerFactory.get_player_by_id(@player_id)
+        )
         # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада
         if data[:is_ai_battle]
-
-          @battle_director.enable_ai(data[:id])
-
+          BattleDirectorFactory.instance.enable_ai(
+            @battle_director_uid,
+            data[:id]
+          )
         else
-          opponent = PlayerFactory.get_connection(data[:id])
-
-          opponent.send_message({
-            :battle_uid => @battle_director.get_uid(),
-            :invitation_from => @player.get_id()},
+          # Send invite to opponent
+          opponent = PlayerFactory.send_message(
+            data[:id],
+            { :battle_uid => @battle_director_uid,
+              :invitation_from => @player_id },
             'invite_to_battle'
           )
         end
 
       when :accept_battle
-        MageLogger.instance.info "Player ID = #{@player.get_id()}, accepted battle UID = #{data[:battle_uid]}."
-        @battle_director = DataCollector.get_battle(data[:battle_uid])
-        @battle_director.set_opponent(self)
+        MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[:battle_uid]}."
+        @battle_director_uid = data[:battle_uid]
 
+        BattleDirectorFactory.instance.set_opponent(
+          @battle_director_uid,
+          self,
+          PlayerFactory.get_player_by_id(@player_id)
+        )
       when :request_battle_start
-
-        @battle_director.set_opponent_ready(@player.get_id())
+        BattleDirectorFactory.instance.set_opponent_ready(
+          @battle_director_uid,
+          @player_id
+        )
       when :request_battle_map_data
         response = {}
-
-        response[:players] = DataCollector.get_appropriate_players(@player.get_id())
+        response[:players] = {}#DataCollector.get_appropriate_players(@player_id)
         response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
-
         send_message(response, action)
+
       when :request_spawn_unit
 
-        @battle_director.spawn_unit(data[:unit_uid], @player.get_id())
-
+        BattleDirectorFactory.instance.spawn_unit(
+          @battle_director_uid,
+          data[:unit_uid],
+          @player_id
+        )
       when :request_production_task
 
         case data[:task_info][:type]
         when 1 #unit
-
           resource = DBResources.get_unit(data[:task_info][:uid])
-          DeferredTasks.instance.add_task_with_sequence(@player.get_id(), data[:task_info][:uid], 1, 10, 44)
+          DeferredTasks.instance.add_task_with_sequence(@player_id, data[:task_info][:uid], 1, 10, 44)
 
         when 2 #building
-
-          BuildingsFactory.instance.build_or_update(@player.get_id(), data[:task_info][:package])
-
-          # if player.nil?
-          #   MageLogger.instance.info "PlayerFactory| Can't add production task to uninitialized player."
-          # end
-          # if player.process_building data[:task_info][:package]
-          # end
-          # if @player.process_building data[:task_info][:package]
-          # end
-          # # binding.pry
-          # send_message(response, 'updating')
+          BuildingsFactory.instance.build_or_update(@player_id, data[:task_info][:package])
         end
       when :ping
 
@@ -160,15 +117,15 @@ class Connection < EM::Connection
 end
 
 EventMachine::run do
-  host = '127.0.0.1'
-  port = 3005
+  host = Settings::SERVER_HOST
+  port = Settings::SERVER_PORT
 
   Signal.trap("INT")  { EventMachine.stop }
   Signal.trap("TERM") { EventMachine.stop }
 
   MageLogger.instance.info "Starting MageServer on #{host}:#{port}..."
 
-  DBConnection.connect
+  DBConnection.connect(Settings::MYSQL_HOST, Settings::MYSQL_USER_NAME, Settings::MYSQL_DB_NAME, Settings::MYSQL_PASSWORD)
   DBResources.load_resources
 
   EventMachine::start_server host, port, Connection
@@ -177,10 +134,7 @@ EventMachine::run do
 
     current_time = Time.now.to_f
 
-    DataCollector.get_battles().each do |battle_uid, battle|
-      battle.update_opponents(current_time) if battle.is_started?
-    end
-
+    BattleDirectorFactory.instance.update(current_time)
     DeferredTasks.instance.process_all(current_time)
 
   end

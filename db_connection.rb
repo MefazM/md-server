@@ -3,12 +3,12 @@ require_relative 'mage_logger.rb'
 
 class DBConnection
 
-  def self.connect(host = "localhost", username = "root", database = "game_cms")
+  def self.connect(host, username, database, password)
 
     MageLogger.instance.info "Connecting to DB..."
 
     begin
-      @@connection = Mysql2::Client.new(:host => host, :username => username, :database => database)
+      @@connection = Mysql2::Client.new(:host => host, :username => username, :database => database, :password => password)
 
     rescue Exception => e
       raise e

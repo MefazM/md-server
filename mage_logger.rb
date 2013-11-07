@@ -1,5 +1,6 @@
 require 'singleton'
- 
+require 'logger'
+
 class MageLogger < Logger
   include Singleton
 

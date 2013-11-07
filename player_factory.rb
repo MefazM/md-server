@@ -18,7 +18,15 @@ class PlayerFactory
     end
     @@connections[player.get_id()] = connection unless connection.nil?
 
-    player
+    player.get_id()
+  end
+
+  def self.send_game_data(player_id, action = :request_player )
+    self.send_message(
+      player_id,
+      {:uid => player_id, :game_data => @@players[player_id].get_game_data() },
+      action
+    )
   end
 
   def self.get_player_by_id(player_id)

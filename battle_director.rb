@@ -21,12 +21,12 @@ class BattleDirector
     MageLogger.instance.info "New BattleDirector initialize... UID = #{@uid}"
   end
 
-  def set_opponent(connection)
-    player_id = connection.get_player().get_id()
+  def set_opponent(connection, player)
+    player_id = player.get_id()
 
     @opponents[player_id] = {
       :connection => connection,
-      :player => connection.get_player(),
+      :player => player,
       :is_ready => false,
       :units_pool => {},
       :main_building => nil
@@ -180,6 +180,7 @@ private
     _opponents_indexes = []
     # Надо собрать данные о обоих сновных постойках игрока
     opponents_main_buildings = []
+
     @opponents.each do |player_id, opponent|
       player_building = BattleBuilding.new( 'building_1', 0.1 )
       opponent[:main_building] = player_building
