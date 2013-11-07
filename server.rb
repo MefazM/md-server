@@ -89,6 +89,7 @@ class Connection < EM::Connection
         response = {}
         response[:players] = {}#DataCollector.get_appropriate_players(@player_id)
         response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
+
         send_message(response, action)
 
       when :request_spawn_unit

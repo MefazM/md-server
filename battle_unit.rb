@@ -37,7 +37,7 @@ class BattleUnit
     @position
   end
 
-  def to_hash is_short = false
+  def to_hash
     data = {
       :uid => @uid,
       :health_points => @health_points,

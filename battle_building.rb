@@ -52,6 +52,7 @@ class BattleBuilding
 
       if (deferred[:position] + @position >= 1.0)
         decrease_health_points(deferred[:power], deferred[:range_attack_damage_type])
+
         @deferred_damage.delete_at(index)
       end
     end

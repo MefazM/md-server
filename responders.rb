@@ -14,4 +14,12 @@ class Respond
     result
   end
 
+  def self.as_battle_initialize_at_clients(battle_uid, units, buildings)
+    {
+      :battle_uid => battle_uid,
+      :units => units,
+      :buildings => buildings,
+    }
+  end
+
 end
