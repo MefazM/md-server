@@ -22,4 +22,12 @@ class Respond
     }
   end
 
+  def self.as_battle_map(appropriate_players, appropriate_ai)
+    response = {}
+    response[:players] = appropriate_players
+    response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
+
+    response
+  end
+
 end

@@ -4,7 +4,7 @@ require 'pry'
 
 require_relative 'deferred_tasks.rb'
 require_relative 'redis_connection.rb'
-require_relative 'responders.rb'
+
 
 class Player
 
@@ -31,7 +31,9 @@ class Player
       buildings[package] = Respond.as_building(package, level, true)
     end
 
-    get_buildings_in_queue().each do |package, data|
+    buildings_in_queue = DeferredTasks.instance.get_buildings_in_queue(@id)
+
+    buildings_in_queue.each do |package, data|
       buildings[package] = data
     end
 
@@ -76,15 +78,6 @@ class Player
   end
 
 private
-
-  def get_buildings_in_queue()
-    buildings = {}
-    DBConnection.query("SELECT *, (finish_time - UNIX_TIMESTAMP()) AS time_left FROM deferred_tasks WHERE user_id = '#{@id}'").each do |task|
-      buildings[task[:package]] = Respond.as_building(task[:package], task[:level], false, task[:time_left], task[:production_time])
-    end
-
-    buildings
-  end
 
   def serialize_units_to_redis()
     units_json = @units.to_json

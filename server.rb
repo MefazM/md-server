@@ -11,6 +11,7 @@ require_relative 'player_factory.rb'
 require_relative 'buildings_factory.rb'
 require_relative 'mage_logger.rb'
 require_relative 'deferred_tasks.rb'
+require_relative 'responders.rb'
 
 require_relative 'settings.rb'
 
@@ -86,12 +87,12 @@ class Connection < EM::Connection
           @player_id
         )
       when :request_battle_map_data
-        response = {}
-        response[:players] = {}#DataCollector.get_appropriate_players(@player_id)
-        response[:ai] = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
-
-        send_message(response, action)
-
+        players = PlayerFactory.appropriate_players_for_battle(@player_id)
+        ai = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
+        send_message(
+          Respond.as_battle_map(players, ai),
+          action
+        )
       when :request_spawn_unit
 
         BattleDirectorFactory.instance.spawn_unit(
@@ -137,6 +138,5 @@ EventMachine::run do
 
     BattleDirectorFactory.instance.update(current_time)
     DeferredTasks.instance.process_all(current_time)
-
   end
 end

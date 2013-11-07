@@ -40,6 +40,15 @@ class DeferredTasks
     end
   end
 
+  def get_buildings_in_queue(player_id)
+    buildings = {}
+    DBConnection.query("SELECT *, (finish_time - UNIX_TIMESTAMP()) AS time_left FROM deferred_tasks WHERE user_id = '#{player_id}'").each do |task|
+      buildings[task[:package]] = Respond.as_building(task[:package], task[:level], false, task[:time_left], task[:production_time])
+    end
+
+    buildings
+  end
+
 private
 
   def process_tasks_with_sequences(current_time)
@@ -80,10 +89,14 @@ private
     tasks_to_delete = []
     DBConnection.query(sql).each do |task|
       tasks_to_delete << task[:id]
+
       player = PlayerFactory.get_player_by_id(task[:user_id])
       player.add_or_update_building(task[:package], task[:level])
+
       response = Respond.as_building(task[:package], task[:level], true)
+
       PlayerFactory.send_message(task[:user_id], response, 'updating')
+
       MageLogger.instance.info "Task ##{task[:id]} is ready."
     end
 

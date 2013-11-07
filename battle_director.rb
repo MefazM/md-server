@@ -4,7 +4,7 @@ require_relative 'ai_player.rb'
 require_relative 'defines.rb'
 require_relative 'battle_unit.rb'
 require_relative 'battle_building.rb'
-require_relative 'responders.rb'
+
 
 # Holds all battle logic and process all battle events.
 class BattleDirector

@@ -51,6 +51,16 @@ class PlayerFactory
     end
   end
 
+
+  def self.appropriate_players_for_battle(player_id)
+    players = []
+    @@connections.each_key do |id|
+      players << @@players[id].to_hash() unless id == player_id
+    end
+
+    players
+  end
+
 private
 
   def self.get_player_by_token(token)
