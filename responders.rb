@@ -30,4 +30,13 @@ class Respond
     response
   end
 
+  def self.as_unit_produce_add(unit_uid, producer_id, produce_time)
+    response = {}
+    response[:unit_uid] = unit_uid
+    response[:producer_id] = producer_id
+    response[:produce_time] = produce_time * 1000
+
+    response
+  end
+
 end

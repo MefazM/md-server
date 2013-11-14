@@ -7,8 +7,11 @@ require 'json'
 require_relative 'battle_director_factory.rb'
 require_relative 'db_connection.rb'
 require_relative 'db_resources.rb'
+
 require_relative 'player_factory.rb'
 require_relative 'buildings_factory.rb'
+require_relative 'units_factory.rb'
+
 require_relative 'mage_logger.rb'
 require_relative 'deferred_tasks.rb'
 require_relative 'responders.rb'
@@ -102,13 +105,14 @@ class Connection < EM::Connection
         )
       when :request_production_task
 
-        case data[:task_info][:type]
+        case data[:type]
         when 1 #unit
-          resource = DBResources.get_unit(data[:task_info][:uid])
-          DeferredTasks.instance.add_task_with_sequence(@player_id, data[:task_info][:uid], 1, 10, 44)
+          # resource = DBResources.get_unit(data[:package])
+          # DeferredTasks.instance.add_task_with_sequence(@player_id, data[:package], 1, 10, 44)
+          UnitsFactory.instance.add_production_task(@player_id, data[:package])
 
         when 2 #building
-          BuildingsFactory.instance.build_or_update(@player_id, data[:task_info][:package])
+          BuildingsFactory.instance.build_or_update(@player_id, data[:package])
         end
       when :ping
 
@@ -138,5 +142,9 @@ EventMachine::run do
 
     BattleDirectorFactory.instance.update(current_time)
     DeferredTasks.instance.process_all(current_time)
+  end
+
+  EventMachine::PeriodicTimer.new(0.5) do
+    UnitsFactory.instance.update_production_tasks()
   end
 end
