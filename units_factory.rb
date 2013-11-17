@@ -21,6 +21,8 @@ class UnitsFactory
         unit[:melee_attack_speed] = unit[:melee_attack_speed] * 0.001 if unit[:melee_attack_speed]
         unit[:range_attack_speed] = unit[:range_attack_speed] * 0.001 if unit[:range_attack_speed]
 
+        unit[:production_time] = 5
+
         @units_prototypes[unit[:package].to_sym] = unit
       end
     rescue Exception => e
@@ -32,10 +34,39 @@ class UnitsFactory
     MageLogger.instance.info "UnitsFactory| #{@units_prototypes.count} unit(s) - loaded."
   end
 
+  def units_in_queue(player_id)
+    current_time = Time.now.to_f
+    # @units_tasks[player_id]
+
+    queue = {}
+    unless @units_tasks[player_id].nil?
+      @units_tasks[player_id].each do |producer_id, producer|
+        queue[producer_id] = []
+
+        producer[:tasks].each do |uid, task|
+          task_info = {
+            :uid => uid,
+            :count => task[:count],
+            :production_time => task[:production_time]
+          }
+
+          if task[:started_at]
+            task_info[:started_at] = (( task[:finish_at] - current_time ) * 1000 ).to_i
+          end
+
+          queue[producer_id] << task_info
+        end
+      end
+    end
+
+    # binding.pry
+
+    queue
+  end
+
   def add_production_task(player_id, unit_uid)
     producer_id = @units_prototypes[unit_uid.to_sym][:depends_on_building_package]
-
-    production_time = 10
+    production_time = @units_prototypes[unit_uid.to_sym][:production_time]
 
     @units_tasks[player_id] = {} if @units_tasks[player_id].nil?
 
@@ -73,6 +104,7 @@ class UnitsFactory
 
             if task[:count] == 0
               producers_tasks[:tasks].delete(unit_uid)
+
             end
 
             MageLogger.instance.info "UnitsFactory| Production task finished for player##{player_id}, producer='#{producer_id}', unit added='#{unit_uid}'."
@@ -86,6 +118,7 @@ class UnitsFactory
 
             producers_tasks[:current_task] = task
 
+            PlayerFactory.send_message(player_id, {:producer_id => producer_id, :production_time => task[:production_time] * 1000}, 'start_unit_queue_task')
           end
         end
       end

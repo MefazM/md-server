@@ -24,7 +24,13 @@ class PlayerFactory
   def self.send_game_data(player_id, action = :request_player )
     self.send_message(
       player_id,
-      {:uid => player_id, :game_data => @@players[player_id].get_game_data() },
+      {
+        :uid => player_id,
+        :game_data => @@players[player_id].get_game_data(),
+        :queue => {
+          :units => UnitsFactory.instance.units_in_queue(player_id)
+        }
+      },
       action
     )
   end

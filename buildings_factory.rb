@@ -10,7 +10,6 @@ class BuildingsFactory
     @buildings_prototypes = {}
     sql = "SELECT * FROM buildings"
     building = DBConnection.query(sql).each do |building|
-      building[:production_time] = 10
       uid = building[:package]
       level = building[:level]
 

@@ -35,7 +35,7 @@ class DeferredTasks
     d_time = current_time - @iteration_time
     if d_time > Timings::DEFERRED_TASKS_PROCESS_TIME
       @iteration_time = current_time
-      process_tasks_with_sequences(d_time)
+      # process_tasks_with_sequences(d_time)
       process_tasks_with_no_sequences()
     end
   end
