@@ -24,6 +24,12 @@ I = Instrumental::Agent.new('a9bd7ba1905e5eadd0d03efe7505368f')
 $input_package_count = 0
 $output_package_count = 0
 
+$output_package_size_max = 0
+$output_package_size_pre_sec = 0
+
+$input_package_size_max = 0
+$input_package_size_pre_sec = 0
+
 class Connection < EM::Connection
 
   def get_latency()
@@ -39,10 +45,23 @@ class Connection < EM::Connection
     response[:latency] = (@latency * 1000.0).to_i
     $output_package_count += 1
     send_data("__JSON__START__#{response.to_json}__JSON__END__")
+
+    str_size = bytesize("__JSON__START__#{response.to_json}__JSON__END__")
+
+    str_size = str_size / 1000
+
+    $output_package_size_max = str_size if str_size > $output_package_size_max
+    $output_package_size_pre_sec += str_size
   end
 
   def receive_data(message)
     $input_package_count += 1
+
+    str_size = bytesize(message)
+    str_size = str_size / 1000
+
+    $input_package_size_max = str_size if str_size > $input_package_size_max
+    $input_package_size_pre_sec += str_size
 
     str_start, str_end = message.index('__JSON__START__'), message.index('__JSON__END__')
     if str_start and str_end
@@ -167,7 +186,25 @@ EventMachine::run do
     $input_package_count = 0
 
     I.gauge('em.d_output_package_count', $output_package_count)
-
     $output_package_count = 0
+
+
+    I.gauge('em.output_package_size_max', $output_package_size_max)
+    $output_package_size_max = 0
+
+    I.gauge('em.output_package_size_pre_sec', $output_package_size_pre_sec)
+    $output_package_size_pre_sec = 0
+
+    I.gauge('em.output_package_size_pre_avg', $output_package_size_pre_sec / $output_package_count)
+
+
+    I.gauge('em.input_package_size_max', $input_package_size_max)
+    $input_package_size_max = 0
+
+    I.gauge('em.input_package_size_pre_sec', $input_package_size_pre_sec)
+    $input_package_size_pre_sec = 0
+
+    I.gauge('em.input_package_size_pre_avg', $input_package_size_pre_sec / $input_package_count)
+
   end
 end
