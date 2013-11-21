@@ -21,6 +21,8 @@ require_relative 'settings.rb'
 require 'instrumental_agent'
 I = Instrumental::Agent.new('a9bd7ba1905e5eadd0d03efe7505368f')
 
+$input_package_count = 0
+$output_package_count = 0
 
 class Connection < EM::Connection
 
@@ -35,10 +37,13 @@ class Connection < EM::Connection
   def send_message(response, action)
     response[:action] = action
     response[:latency] = (@latency * 1000.0).to_i
+    $output_package_count += 1
     send_data("__JSON__START__#{response.to_json}__JSON__END__")
   end
 
   def receive_data(message)
+    $input_package_count += 1
+
     str_start, str_end = message.index('__JSON__START__'), message.index('__JSON__END__')
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
@@ -157,5 +162,12 @@ EventMachine::run do
     latency = current_time - last_em_ping
     I.gauge('em.latency', latency)
     last_em_ping = current_time
+
+    I.gauge('em.d_input_package_count', $input_package_count)
+    $input_package_count = 0
+
+    I.gauge('em.d_output_package_count', $output_package_count)
+
+    $output_package_count = 0
   end
 end
