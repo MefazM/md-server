@@ -30,6 +30,10 @@ $output_package_size_pre_sec = 0
 $input_package_size_max = 0
 $input_package_size_pre_sec = 0
 
+$longest_package_dump = ''
+
+$stat_by_action = {}
+
 class Connection < EM::Connection
 
   def get_latency()
@@ -47,16 +51,22 @@ class Connection < EM::Connection
     message = "__JSON__START__#{response.to_json}__JSON__END__"
     send_data(message)
 
-    str_size = message.bytesize / 1000
+    str_size = message.bytesize
 
-    $output_package_size_max = str_size if str_size > $output_package_size_max
+    $stat_by_action[action.to_sym] = 0 if $stat_by_action[action.to_sym].nil?
+    $stat_by_action[action.to_sym] += str_size
+
+    if str_size > $output_package_size_max
+      $output_package_size_max = str_size
+      $longest_package_dump = message
+    end
     $output_package_size_pre_sec += str_size
   end
 
   def receive_data(message)
     $input_package_count += 1
 
-    str_size = message.bytesize / 1000
+    str_size = message.bytesize
 
     $input_package_size_max = str_size if str_size > $input_package_size_max
     $input_package_size_pre_sec += str_size
@@ -161,7 +171,7 @@ EventMachine::run do
 
   EventMachine::start_server host, port, Connection
 
-  EventMachine::PeriodicTimer.new(0.01) do
+  EventMachine::PeriodicTimer.new(0.1) do
 
     current_time = Time.now.to_f
 
@@ -186,7 +196,6 @@ EventMachine::run do
     I.gauge('em.d_output_package_count', $output_package_count)
     $output_package_count = 0
 
-
     I.gauge('em.output_package_size_max', $output_package_size_max)
     $output_package_size_max = 0
 
@@ -206,6 +215,18 @@ EventMachine::run do
     if $input_package_count > 0
       I.gauge('em.input_package_size_pre_avg', $input_package_size_pre_sec / $input_package_count)
     end
+    # puts("\n=========================================")
+    # $stat_by_action.each do |k, v|
+    #   puts("#{k} = #{v}")
+    #   $stat_by_action[k] = 0
+    # end
+
+    # if $longest_package_dump != '' 
+    #   puts("=========================================LONGEST PACKAGE \n\n\n")
+    #   puts($longest_package_dump )
+
+    #   puts("\n\n\n/LONGEST PACKAGE")
+    # end
 
   end
 end

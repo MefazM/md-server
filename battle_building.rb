@@ -10,7 +10,7 @@ class BattleBuilding
       :health_points => 200
     }
     @package = package
-    @uid = SecureRandom.hex(5)
+    @uid = SecureRandom.hex(3)
     # additional params
     @position = position
     @deferred_damage = []

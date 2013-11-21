@@ -8,7 +8,7 @@ class BattleUnit
     # initialization unit by prototype
     @unit_prototype = DBResources.get_unit(unit_package)
     @unit_package = unit_package
-    @uid = SecureRandom.hex(5)
+    @uid = SecureRandom.hex(4)
     # additional params
     @status = UnitStatuses::MOVE
     @attack_period_time = 0
@@ -122,7 +122,7 @@ class BattleUnit
               @unit_prototype[:range_attack_damage_type]
             )
             # спрайт для дистанционной аттаки
-            response[:projection] = {:cast_to => opponent_unit.get_uid()}
+            response[:pr] = {:c => opponent_unit.get_uid()}
           end
         end
 
@@ -137,7 +137,7 @@ class BattleUnit
         @attack_type = :melee_attack
         @attack_period_time = @unit_prototype[:melee_attack_speed]
 
-        response[:sequence_name] = :melee_attack
+        response[:sq] = :melee_attack
 
       elsif @unit_prototype[:range_attack] and get_target(opponent, @unit_prototype[:range_attack_range])
 
@@ -146,7 +146,7 @@ class BattleUnit
         @attack_type = :range_attack
         @attack_period_time = @unit_prototype[:range_attack_speed]
 
-        response[:sequence_name] = :range_attack
+        response[:sq] = :range_attack
 
       else
 
@@ -164,8 +164,8 @@ class BattleUnit
       @position += iteration_delta * @unit_prototype[:movement_speed]
     end
 
-    response[:position] = @position
-    response[:status] = @status
+    response[:p] = @position.round(3)
+    response[:s] = @status
 
     response
   end
