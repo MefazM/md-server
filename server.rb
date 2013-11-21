@@ -195,8 +195,9 @@ EventMachine::run do
     I.gauge('em.output_package_size_pre_sec', $output_package_size_pre_sec)
     $output_package_size_pre_sec = 0
 
-    I.gauge('em.output_package_size_pre_avg', $output_package_size_pre_sec / $output_package_count)
-
+    if $output_package_count > 0
+      I.gauge('em.output_package_size_pre_avg', $output_package_size_pre_sec / $output_package_count)
+    end
 
     I.gauge('em.input_package_size_max', $input_package_size_max)
     $input_package_size_max = 0
@@ -204,7 +205,9 @@ EventMachine::run do
     I.gauge('em.input_package_size_pre_sec', $input_package_size_pre_sec)
     $input_package_size_pre_sec = 0
 
-    I.gauge('em.input_package_size_pre_avg', $input_package_size_pre_sec / $input_package_count)
+    if $input_package_count > 0
+      I.gauge('em.input_package_size_pre_avg', $input_package_size_pre_sec / $input_package_count)
+    end
 
   end
 end
