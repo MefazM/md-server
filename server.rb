@@ -44,11 +44,10 @@ class Connection < EM::Connection
     response[:action] = action
     response[:latency] = (@latency * 1000.0).to_i
     $output_package_count += 1
-    send_data("__JSON__START__#{response.to_json}__JSON__END__")
+    message = "__JSON__START__#{response.to_json}__JSON__END__"
+    send_data(message)
 
-    str_size = bytesize("__JSON__START__#{response.to_json}__JSON__END__")
-
-    str_size = str_size / 1000
+    str_size = message.bytesize / 1000
 
     $output_package_size_max = str_size if str_size > $output_package_size_max
     $output_package_size_pre_sec += str_size
@@ -57,8 +56,7 @@ class Connection < EM::Connection
   def receive_data(message)
     $input_package_count += 1
 
-    str_size = bytesize(message)
-    str_size = str_size / 1000
+    str_size = message.bytesize / 1000
 
     $input_package_size_max = str_size if str_size > $input_package_size_max
     $input_package_size_pre_sec += str_size
