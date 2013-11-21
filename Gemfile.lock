@@ -13,6 +13,7 @@ GEM
     debugger-linecache (1.2.0)
     debugger-ruby_core_source (1.2.3)
     eventmachine (1.0.3)
+    instrumental_agent (0.12.5)
     method_source (0.8.2)
     mysql2 (0.3.13)
     pry (0.9.12.2)
@@ -33,6 +34,7 @@ PLATFORMS
 
 DEPENDENCIES
   eventmachine (~> 1.0.3)
+  instrumental_agent
   mysql2
   pry
   pry-debugger

@@ -1,5 +1,5 @@
 source 'https://rubygems.org'
-
+gem 'instrumental_agent'
 gem "mysql2"
 
 gem "redis", "~> 3.0.5"

@@ -18,6 +18,9 @@ require_relative 'responders.rb'
 
 require_relative 'settings.rb'
 
+require 'instrumental_agent'
+I = Instrumental::Agent.new('a9bd7ba1905e5eadd0d03efe7505368f')
+
 
 class Connection < EM::Connection
 
@@ -146,5 +149,13 @@ EventMachine::run do
 
   EventMachine::PeriodicTimer.new(0.5) do
     UnitsFactory.instance.update_production_tasks()
+  end
+
+  last_em_ping = Time.now.to_f
+  EM::PeriodicTimer.new(1) do
+    current_time = Time.now.to_f
+    latency = current_time - last_em_ping
+    I.gauge('em.latency', latency)
+    last_em_ping = current_time
   end
 end
