@@ -20,18 +20,13 @@ require_relative 'settings.rb'
 
 require 'instrumental_agent'
 I = Instrumental::Agent.new('a9bd7ba1905e5eadd0d03efe7505368f')
-
 $input_package_count = 0
 $output_package_count = 0
-
 $output_package_size_max = 0
 $output_package_size_pre_sec = 0
-
 $input_package_size_max = 0
 $input_package_size_pre_sec = 0
-
 $longest_package_dump = ''
-
 $stat_by_action = {}
 
 class Connection < EM::Connection
@@ -221,7 +216,7 @@ EventMachine::run do
     #   $stat_by_action[k] = 0
     # end
 
-    # if $longest_package_dump != '' 
+    # if $longest_package_dump != ''
     #   puts("=========================================LONGEST PACKAGE \n\n\n")
     #   puts($longest_package_dump )
 

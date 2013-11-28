@@ -107,6 +107,9 @@ class UnitsFactory
 
             end
 
+            player = PlayerFactory.get_player_by_id(player_id)
+            player.add_unit(unit_uid)
+
             MageLogger.instance.info "UnitsFactory| Production task finished for player##{player_id}, producer='#{producer_id}', unit added='#{unit_uid}'."
           end
         else
