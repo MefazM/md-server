@@ -18,8 +18,8 @@ class UnitsFactory
     begin
       DBConnection.query("SELECT * FROM units").each do |unit|
         # Convert ms to seconds
-        unit[:melee_attack_speed] = unit[:melee_attack_speed] * 0.001 if unit[:melee_attack_speed]
-        unit[:range_attack_speed] = unit[:range_attack_speed] * 0.001 if unit[:range_attack_speed]
+        unit[:melee_attack_speed] *= 0.001 if unit[:melee_attack_speed]
+        unit[:range_attack_speed] *= 0.001 if unit[:range_attack_speed]
 
         unit[:production_time] = 5
 
@@ -83,7 +83,6 @@ class UnitsFactory
     end
 
     @units_tasks[player_id][producer_id][:tasks][unit_uid.to_sym] = task
-
     responce = Respond.as_unit_produce_add(unit_uid, producer_id, production_time)
 
     PlayerFactory.send_message(player_id, responce, 'push_unit_queue')

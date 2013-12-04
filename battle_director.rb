@@ -4,7 +4,7 @@ require_relative 'ai_player.rb'
 require_relative 'defines.rb'
 require_relative 'battle_unit.rb'
 require_relative 'battle_building.rb'
-
+require_relative 'spells_lib.rb'
 
 # Holds all battle logic and process all battle events.
 class BattleDirector
@@ -37,7 +37,8 @@ class BattleDirector
       :player => player,
       :is_ready => false,
       :units_pool => {},
-      :main_building => nil
+      :main_building => nil,
+      :spells => []
     }
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) added opponent. ID = #{player_id}"
     # Если достаточное количество игроков чтобы начать бой
@@ -55,7 +56,8 @@ class BattleDirector
       :player => AiPlayer.new(),
       :is_ready => true,
       :units_pool => {},
-      :main_building => nil
+      :main_building => nil,
+      :spells => []
     }
     create_battle_at_clients()
   end
@@ -74,7 +76,7 @@ class BattleDirector
   end
 
   # Battle uid.
-  def get_uid()
+  def uid()
     @uid
   end
 
@@ -128,6 +130,22 @@ class BattleDirector
     broadcast_response(spawn_data, 'spawn_unit')
   end
 
+  # Cast the spell to target area.
+  # target_area - in percentage
+  def cast_spell(opponent_uid, target_area, spell_uid)
+    spell = Spells.instance.spell_battle_params(spell_uid.to_sym)
+
+    unless spell.nil? # and player know this spell and has enough mana
+      reaction_time = Time.now.to_f + spell[:reaction_time]
+      @opponents[opponent_uid][:spells] << {
+        :time => reaction_time,
+        :uid => spell_uid
+      }
+
+      broadcast_response({:s => spell_uid, :t => target_area, :p => opponent_uid}, 'cast_spell')
+    end
+  end
+
 private
   # Send message to all opponents is this battle
   def broadcast_response(data, action)
@@ -171,6 +189,14 @@ private
       end
 
       broadcast_response({:units_data => response, :player_id => player_id}, 'sync_client')
+      # process spells
+      player[:spells].each_with_index do |spell, index|
+        if spell[:time] < @iteration_time then
+          puts('SPELL REMOVED')
+          player[:spells].delete_at(index)
+        end
+      end
+
     end
   end
   # Start the battle.

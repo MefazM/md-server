@@ -4,9 +4,9 @@ require_relative 'ai_player.rb'
 require_relative 'defines.rb'
 
 class BattleUnit
-  def initialize(unit_package, position = 0.1)
+  def initialize(unit_package, position = 0.0)
     # initialization unit by prototype
-    @unit_prototype = DBResources.get_unit(unit_package)
+    @unit_prototype = UnitsFactory.instance.units(unit_package)
     @unit_package = unit_package
     @uid = SecureRandom.hex(4)
     # additional params

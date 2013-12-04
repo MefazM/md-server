@@ -6,7 +6,6 @@ require 'json'
 
 require_relative 'battle_director_factory.rb'
 require_relative 'db_connection.rb'
-require_relative 'db_resources.rb'
 
 require_relative 'player_factory.rb'
 require_relative 'buildings_factory.rb'
@@ -80,21 +79,15 @@ class Connection < EM::Connection
       when :request_new_battle
         # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
         # возможно добавлять battle_director только после согласия обоих игроков на бой?
-        @battle_director_uid = BattleDirectorFactory.instance.create()
+        @battle_director = BattleDirectorFactory.instance.create()
 
-        BattleDirectorFactory.instance.set_opponent(
-          @battle_director_uid,
-          self,
-          PlayerFactory.get_player_by_id(@player_id)
-        )
+        @battle_director.set_opponent(self, PlayerFactory.get_player_by_id(@player_id))
+
         # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада
         if data[:is_ai_battle]
-          BattleDirectorFactory.instance.enable_ai(
-            @battle_director_uid,
-            data[:id]
-          )
+          @battle_director.enable_ai(data[:id])
         else
           # Send invite to opponent
           opponent = PlayerFactory.send_message(
@@ -107,18 +100,15 @@ class Connection < EM::Connection
 
       when :accept_battle
         MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[:battle_uid]}."
-        @battle_director_uid = data[:battle_uid]
-
-        BattleDirectorFactory.instance.set_opponent(
-          @battle_director_uid,
+        @battle_director = BattleDirectorFactory.get(data[:battle_uid])
+        @battle_director.set_opponent(
           self,
-          PlayerFactory.get_player_by_id(@player_id)
+          PlayerFactory.get_player_by_id(@player_id) # maybe remove this? and get player
+                                                     # after intit?
         )
+
       when :request_battle_start
-        BattleDirectorFactory.instance.set_opponent_ready(
-          @battle_director_uid,
-          @player_id
-        )
+        @battle_director.set_opponent_ready(@player_id)
       when :request_battle_map_data
         players = PlayerFactory.appropriate_players_for_battle(@player_id)
         ai = [{:id => 13123, :title => 'someshit'}, {:id => 334, :title => '111min'}]
@@ -127,14 +117,8 @@ class Connection < EM::Connection
           action
         )
       when :request_spawn_unit
-
-        BattleDirectorFactory.instance.spawn_unit(
-          @battle_director_uid,
-          data[:unit_uid],
-          @player_id
-        )
+        @battle_director.spawn_unit(data[:unit_uid], @player_id)
       when :request_production_task
-
         case data[:type]
         when 1 #unit
           # resource = DBResources.get_unit(data[:package])
@@ -144,10 +128,18 @@ class Connection < EM::Connection
         when 2 #building
           BuildingsFactory.instance.build_or_update(@player_id, data[:package])
         end
+
+      when :request_spell_cast
+        @battle_director.cast_spell(
+          @player_id,
+          data[:target_area],
+          data[:spell_uid]
+        )
       when :ping
 
         @latency = Time.now.to_f - data[:time]
       end
+
     end
   end
 end
@@ -162,7 +154,7 @@ EventMachine::run do
   MageLogger.instance.info "Starting MageServer on #{host}:#{port}..."
 
   DBConnection.connect(Settings::MYSQL_HOST, Settings::MYSQL_USER_NAME, Settings::MYSQL_DB_NAME, Settings::MYSQL_PASSWORD)
-  DBResources.load_resources
+  # DBResources.load_resources
 
   EventMachine::start_server host, port, Connection
 
@@ -178,50 +170,50 @@ EventMachine::run do
     UnitsFactory.instance.update_production_tasks()
   end
 
-  last_em_ping = Time.now.to_f
-  EM::PeriodicTimer.new(1) do
-    current_time = Time.now.to_f
-    latency = current_time - last_em_ping
-    I.gauge('em.latency', latency)
-    last_em_ping = current_time
+  # last_em_ping = Time.now.to_f
+  # EM::PeriodicTimer.new(1) do
+  #   current_time = Time.now.to_f
+  #   latency = current_time - last_em_ping
+  #   I.gauge('em.latency', latency)
+  #   last_em_ping = current_time
 
-    I.gauge('em.d_input_package_count', $input_package_count)
-    $input_package_count = 0
+  #   I.gauge('em.d_input_package_count', $input_package_count)
+  #   $input_package_count = 0
 
-    I.gauge('em.d_output_package_count', $output_package_count)
-    $output_package_count = 0
+  #   I.gauge('em.d_output_package_count', $output_package_count)
+  #   $output_package_count = 0
 
-    I.gauge('em.output_package_size_max', $output_package_size_max)
-    $output_package_size_max = 0
+  #   I.gauge('em.output_package_size_max', $output_package_size_max)
+  #   $output_package_size_max = 0
 
-    I.gauge('em.output_package_size_pre_sec', $output_package_size_pre_sec)
-    $output_package_size_pre_sec = 0
+  #   I.gauge('em.output_package_size_pre_sec', $output_package_size_pre_sec)
+  #   $output_package_size_pre_sec = 0
 
-    if $output_package_count > 0
-      I.gauge('em.output_package_size_pre_avg', $output_package_size_pre_sec / $output_package_count)
-    end
+  #   if $output_package_count > 0
+  #     I.gauge('em.output_package_size_pre_avg', $output_package_size_pre_sec / $output_package_count)
+  #   end
 
-    I.gauge('em.input_package_size_max', $input_package_size_max)
-    $input_package_size_max = 0
+  #   I.gauge('em.input_package_size_max', $input_package_size_max)
+  #   $input_package_size_max = 0
 
-    I.gauge('em.input_package_size_pre_sec', $input_package_size_pre_sec)
-    $input_package_size_pre_sec = 0
+  #   I.gauge('em.input_package_size_pre_sec', $input_package_size_pre_sec)
+  #   $input_package_size_pre_sec = 0
 
-    if $input_package_count > 0
-      I.gauge('em.input_package_size_pre_avg', $input_package_size_pre_sec / $input_package_count)
-    end
-    # puts("\n=========================================")
-    # $stat_by_action.each do |k, v|
-    #   puts("#{k} = #{v}")
-    #   $stat_by_action[k] = 0
-    # end
+  #   if $input_package_count > 0
+  #     I.gauge('em.input_package_size_pre_avg', $input_package_size_pre_sec / $input_package_count)
+  #   end
+  #   # puts("\n=========================================")
+  #   # $stat_by_action.each do |k, v|
+  #   #   puts("#{k} = #{v}")
+  #   #   $stat_by_action[k] = 0
+  #   # end
 
-    # if $longest_package_dump != ''
-    #   puts("=========================================LONGEST PACKAGE \n\n\n")
-    #   puts($longest_package_dump )
+  #   # if $longest_package_dump != ''
+  #   #   puts("=========================================LONGEST PACKAGE \n\n\n")
+  #   #   puts($longest_package_dump )
 
-    #   puts("\n\n\n/LONGEST PACKAGE")
-    # end
+  #   #   puts("\n\n\n/LONGEST PACKAGE")
+  #   # end
 
-  end
+  # end
 end
