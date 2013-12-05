@@ -100,7 +100,7 @@ class Connection < EM::Connection
 
       when :accept_battle
         MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[:battle_uid]}."
-        @battle_director = BattleDirectorFactory.get(data[:battle_uid])
+        @battle_director = BattleDirectorFactory.instance.get(data[:battle_uid])
         @battle_director.set_opponent(
           self,
           PlayerFactory.get_player_by_id(@player_id) # maybe remove this? and get player
