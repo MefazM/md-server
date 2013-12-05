@@ -92,7 +92,7 @@ class Connection < EM::Connection
           # Send invite to opponent
           opponent = PlayerFactory.send_message(
             data[:id],
-            { :battle_uid => @battle_director_uid,
+            { :battle_uid => @battle_director.uid,
               :invitation_from => @player_id },
             'invite_to_battle'
           )
