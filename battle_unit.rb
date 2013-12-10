@@ -48,6 +48,10 @@ class BattleUnit
     data
   end
 
+  def to_a
+    [@uid, @health_points, @movement_speed, @unit_package]
+  end
+
   def add_deffered_damage(attack_power, initial_position, range_attack_damage_type)
     @deferred_damage << {
       :power => attack_power,
@@ -95,7 +99,8 @@ class BattleUnit
 
   def update(opponent, iteration_delta)
 
-    response = {}
+    # response = {}
+    opponent_unit_id = nil
 
     case @status
     when UnitStatuses::ATTACK
@@ -121,8 +126,10 @@ class BattleUnit
               @position,
               @unit_prototype[:range_attack_damage_type]
             )
+
+            opponent_unit_id = opponent_unit.get_uid()
             # спрайт для дистанционной аттаки
-            response[:pr] = {:c => opponent_unit.get_uid()}
+            # response[:pr] = {:c => opponent_unit.get_uid()}
           end
         end
 
@@ -137,7 +144,7 @@ class BattleUnit
         @attack_type = :melee_attack
         @attack_period_time = @unit_prototype[:melee_attack_speed]
 
-        response[:sq] = :melee_attack
+        # response[:sq] = :melee_attack
 
       elsif @unit_prototype[:range_attack] and get_target(opponent, @unit_prototype[:range_attack_range])
 
@@ -146,7 +153,7 @@ class BattleUnit
         @attack_type = :range_attack
         @attack_period_time = @unit_prototype[:range_attack_speed]
 
-        response[:sq] = :range_attack
+        # response[:sq] = :range_attack
 
       else
 
@@ -164,8 +171,13 @@ class BattleUnit
       @position += iteration_delta * @unit_prototype[:movement_speed]
     end
 
-    response[:p] = @position.round(3)
-    response[:s] = @status
+    # response[:p] = @position.round(3)
+    # response[:s] = @status
+
+    response = [@uid, @status, @position.round(3)]
+
+    response << @attack_type if @status == UnitStatuses::ATTACK
+    response << opponent_unit_id unless opponent_unit_id.nil?
 
     response
   end

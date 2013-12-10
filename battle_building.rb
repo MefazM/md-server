@@ -33,6 +33,10 @@ class BattleBuilding
     {:uid => @uid, :package => @package, :position => @position, :health_points => @health_points}
   end
 
+  def to_a
+    [@uid, @package, @position, @health_points]
+  end
+
   def add_deffered_damage(attack_power, initial_position, range_attack_damage_type)
     @deferred_damage << {
       :power => attack_power,

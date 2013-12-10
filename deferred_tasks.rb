@@ -94,7 +94,7 @@ private
 
       response = Respond.as_building(task[:package], task[:level], true)
 
-      PlayerFactory.send_message(task[:user_id], response, 'updating')
+      # PlayerFactory.send_message(task[:user_id], response, 'updating')
 
       MageLogger.instance.info "Task ##{task[:id]} is ready."
     end

@@ -31,7 +31,7 @@ class BuildingsFactory
     time = building_to_construct[:production_time]
     response = Respond.as_building(package, update_level, false, time, time)
 
-    PlayerFactory.send_message(player_id, response, 'updating')
+    # PlayerFactory.send_message(player_id, response, 'updating')
   end
 
 end

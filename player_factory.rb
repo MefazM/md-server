@@ -22,17 +22,11 @@ class PlayerFactory
   end
 
   def self.send_game_data(player_id, action = :request_player )
-    self.send_message(
-      player_id,
-      {
-        :uid => player_id,
-        :game_data => @@players[player_id].get_game_data(),
-        :queue => {
-          :units => UnitsFactory.instance.units_in_queue(player_id)
-        }
-      },
-      action
-    )
+    connection = self.connection(player_id)
+    connection.send_game_data({
+      :uid => player_id,
+      :game_data => @@players[player_id].get_game_data(),
+    })
   end
 
   def self.get_player_by_id(player_id)
@@ -48,20 +42,20 @@ class PlayerFactory
     end
   end
 
-  def self.send_message(player_id, message, action)
+  def self.connection(player_id)
     connection = @@connections[player_id]
-    if connection
-      connection.send_message(message, action)
-    else
+    if connection.nil?
       MageLogger.instance.info "PlayerFactory| Connection not found ##{player_id}"
     end
+
+    connection
   end
 
 
   def self.appropriate_players_for_battle(player_id)
     players = []
     @@connections.each_key do |id|
-      players << @@players[id].to_hash() unless id == player_id
+      players << @@players[id].to_i unless id == player_id
     end
 
     players

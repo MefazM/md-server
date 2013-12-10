@@ -99,24 +99,21 @@ class BattleDirector
     #
     # Ping update
     #
-    if current_time - @ping_time > Timings::PING_TIME
-      @ping_time = current_time
+    # if current_time - @ping_time > Timings::PING_TIME
+    #   @ping_time = current_time
 
-      broadcast_response({:time => current_time}, 'ping')
-    end
+    #   broadcast_response({:time => current_time}, 'ping')
+    # end
     # /Ping update
 
     #
     # Default unit spawn
     if current_time - @default_unit_spawn_time > Timings::DEFAULT_UNITS_SPAWN_TIME
       @default_unit_spawn_time = current_time
-      @opponents.each do |player_id, opponent|
+      @opponents_indexes.each do |player_index|
         # players should have different default units
         unit_package = 'crusader'
-
-        spawn_data = add_unit_to_pool(opponent, unit_package)
-        spawn_data[:owner_id] = player_id
-        broadcast_response(spawn_data, 'spawn_unit')
+        add_unit_to_pool(player_id, unit_package)
       end
     end
     # /Default unit spawn
@@ -124,10 +121,7 @@ class BattleDirector
 
   # Additional units spawning. here should be a validation.
   def spawn_unit (unit_uid, player_id)
-    spawn_data = add_unit_to_pool(@opponents[player_id], unit_uid)
-    spawn_data[:owner_id] = player_id
-
-    broadcast_response(spawn_data, 'spawn_unit')
+    add_unit_to_pool(player_id, unit_uid)
   end
 
   # Cast the spell to target area.
@@ -142,27 +136,35 @@ class BattleDirector
         :uid => spell_uid
       }
 
-      broadcast_response({:s => spell_uid, :t => target_area, :p => opponent_uid}, 'cast_spell')
+      @opponents.each_value { |opponent|
+        opponent[:connection].send_spell_cast(
+          spell_uid, target_area, opponent_uid
+        ) unless opponent[:connection].nil?
+      }
     end
   end
 
 private
   # Send message to all opponents is this battle
-  def broadcast_response(data, action)
-    @opponents.each_value { |opponent|
-      opponent[:connection].send_message(data, action) unless opponent[:connection].nil?
-    }
-  end
+  # def broadcast_response(*args)
+  #   @opponents.each_value { |opponent|
+  #     opponent[:connection].send_message(args) unless opponent[:connection].nil?
+  #   }
+  # end
 
   # Separate opponent units in different hashes.
   # each unit has uniq id, generated on spawning
   # unit uniq id is a hash key.
-  def add_unit_to_pool(opponent, unit_package)
-    unit = BattleUnit.new(unit_package)
+  def add_unit_to_pool(owner_id, unit_uid)
+    unit = BattleUnit.new(unit_uid)
     uid = unit.get_uid()
-    opponent[:units_pool][uid] = unit
-    # return back a unit data stored in hash
-    return unit.to_hash
+    @opponents[owner_id][:units_pool][uid] = unit
+
+    @opponents.each_value { |opponent|
+      opponent[:connection].send_unit_spawning(
+        uid, unit_uid, owner_id
+      ) unless opponent[:connection].nil?
+    }
   end
 
   def update_opponent(iteration_delta)
@@ -170,25 +172,30 @@ private
 
       opponent_uid = @opponents_indexes[player_id]
       opponent = @opponents[opponent_uid]
-
-      response = {}
+      units_sync_data = []
+      buildings_sync_data = []
       # update each unit and collect unit response
       player[:units_pool].each do |uid, unit|
-        response[uid] = unit.update(opponent, iteration_delta)
+        # response[uid] = unit.update(opponent, iteration_delta)
+        units_sync_data << unit.update(opponent, iteration_delta)
         player[:units_pool].delete(uid) if unit.dead?
       end
       # Main building - is a main game trigger.
       # If it destroyed - player loses
       main_building = player[:main_building]
       main_building.process_deffered_damage(iteration_delta)
-      response[main_building.get_uid()] = main_building.to_hash
+      buildings_sync_data << main_building.to_a
 
       if main_building.dead?
         # finish battle, current player is a loser!
         finish_battle(player_id)
       end
 
-      broadcast_response({:units_data => response, :player_id => player_id}, 'sync_client')
+      @opponents.each_value { |opponent|
+        opponent[:connection].send_sync(
+          units_sync_data, buildings_sync_data, player_id
+        ) unless opponent[:connection].nil?
+      }
       # process spells
       player[:spells].each_with_index do |spell, index|
         if spell[:time] < @iteration_time then
@@ -203,7 +210,10 @@ private
   def start()
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) is started!"
     @status = BattleStatuses::IN_PROGRESS
-    broadcast_response({:message => 'Let the battle begin!'}, 'start_battle')
+
+    @opponents.each_value { |opponent|
+      opponent[:connection].send_start_battle() unless opponent[:connection].nil?
+    }
 
     @iteration_time = Time.now.to_f
     @ping_time = Time.now.to_f
@@ -231,8 +241,8 @@ private
       player_building = BattleBuilding.new( 'building_1', 0.1 )
       opponent[:main_building] = player_building
 
-      player_building_data = player_building.to_hash()
-      player_building_data[:owner_id] = player_id
+      player_building_data = player_building.to_a
+      player_building_data << player_id
 
       opponents_main_buildings << player_building_data
     end
@@ -242,12 +252,13 @@ private
       _opponents_indexes << player_id
       # Opponent additional units info.
       player_units = opponent[:player].get_units_data_for_battle()
-      response = Respond.as_battle_initialize_at_clients(
-        @uid,
-        player_units,
-        opponents_main_buildings,
-      )
-      opponent[:connection].send_message( response, 'request_new_battle') unless opponent[:connection].nil?
+
+      unless opponent[:connection].nil?
+        opponent[:connection].send_message([
+          NETWORK_SEND_DATA::SEND_REQUEST_NEW_BATTLE_ACTION,
+          @uid, player_units, opponents_main_buildings
+        ])
+      end
     end
     # hack to get user id by its opponent id.
     @opponents_indexes[_opponents_indexes[0]] = _opponents_indexes[1]
@@ -260,6 +271,8 @@ private
 
     @status = BattleStatuses::FINISHED
 
-    broadcast_response({:loser_id => loser_id}, 'finish_battle')
+    @opponents.each_value { |opponent|
+      opponent[:connection].send_finish_battle(loser_id) unless opponent[:connection].nil?
+    }
   end
 end

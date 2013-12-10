@@ -37,7 +37,13 @@ class Player
       buildings[package] = data
     end
 
-    return {:buildings => buildings, :technologies => {}, :units => {}}
+    units_queue = UnitsFactory.instance.units_in_queue(@id)
+
+    return {
+      :buildings => buildings,
+      :units => {
+        :queue => units_queue
+    }}
   end
 
   def get_id()
@@ -46,6 +52,10 @@ class Player
 
   def to_hash()
     {:id => @id, :username => @username}
+  end
+
+  def to_i
+    [@id, @username]
   end
 
   def get_building_level(package)
