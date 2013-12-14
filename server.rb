@@ -71,12 +71,10 @@ class Connection < EM::Connection
         end
 
       when RECEIVE_ACCEPT_BATTLE_ACTION
-        MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[:battle_uid]}."
-        @battle_director = BattleDirectorFactory.instance.get(data[:battle_uid])
+        MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[0]}."
+        @battle_director = BattleDirectorFactory.instance.get(data[0])
         @battle_director.set_opponent(
-          self,
-          PlayerFactory.get_player_by_id(@player_id) # maybe remove this? and get player
-                                                     # after intit?
+          self, PlayerFactory.get_player_by_id(@player_id)
         )
 
       when RECEIVE_BATTLE_START_ACTION
