@@ -90,9 +90,14 @@ private
       tasks_to_delete << task[:id]
 
       player = PlayerFactory.get_player_by_id(task[:user_id])
-      player.add_or_update_building(task[:package], task[:level])
+      # player.add_or_update_building(task[:package], task[:level])
 
-      response = Respond.as_building(task[:package], task[:level], true)
+      # response = Respond.as_building(task[:package], task[:level], true)
+
+      connection = PlayerFactory.connection(task[:user_id])
+      unless connection.nil?
+        connection.send_sync_building_state(task[:package], task[:level], true)
+      end
 
       # PlayerFactory.send_message(task[:user_id], response, 'updating')
 

@@ -10,22 +10,26 @@ class BattleBuilding
       :health_points => 200
     }
     @package = package
-    @uid = SecureRandom.hex(3)
+    @uid = SecureRandom.hex(4)
     # additional params
     @position = position
     @deferred_damage = []
     @health_points = @unit_prototype[:health_points]
   end
 
-  def get_uid()
+  def uid()
     @uid
+  end
+
+  def health_points()
+    @health_points
   end
 
   def dead?()
     @health_points < 0
   end
 
-  def get_position()
+  def position()
     @position
   end
 

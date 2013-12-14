@@ -29,9 +29,12 @@ class BuildingsFactory
     end
     task_id = DeferredTasks.instance.add_task_with_no_sequence(player_id, building_to_construct)
     time = building_to_construct[:production_time]
-    response = Respond.as_building(package, update_level, false, time, time)
-
-    # PlayerFactory.send_message(player_id, response, 'updating')
+    #convert to ms
+    time *= 1000
+    connection = PlayerFactory.connection(player_id)
+    unless connection.nil?
+      connection.send_sync_building_state(package, update_level, false, time)
+    end
   end
 
 end

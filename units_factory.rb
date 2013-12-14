@@ -36,7 +36,6 @@ class UnitsFactory
 
   def units_in_queue(player_id)
     current_time = Time.now.to_f
-    # @units_tasks[player_id]
 
     queue = {}
     unless @units_tasks[player_id].nil?
@@ -58,9 +57,6 @@ class UnitsFactory
         end
       end
     end
-
-    # binding.pry
-
     queue
   end
 
@@ -85,7 +81,9 @@ class UnitsFactory
     @units_tasks[player_id][producer_id][:tasks][unit_uid.to_sym] = task
 
     connection = PlayerFactory.connection(player_id)
-    connection.send_lobby_data(unit_uid, producer_id, production_time)
+    unless connection.nil?
+      connection.send_unit_queue(unit_uid, producer_id, production_time)
+    end
   end
 
   def update_production_tasks()
@@ -121,9 +119,12 @@ class UnitsFactory
             connection = PlayerFactory.connection(player_id)
             #convert to ms
             production_time_in_ms = task[:production_time] * 1000
-            connection.send_start_task_in_unit_queue(producer_id, production_time_in_ms)
+            unless connection.nil?
+              connection.send_start_task_in_unit_queue(producer_id, production_time_in_ms)
+            end
           end
         end
+
       end
     end
   end

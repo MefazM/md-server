@@ -41,35 +41,36 @@ class Connection < EM::Connection
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
 
-      data = JSON.parse(json,:symbolize_names => true)
-      action = data[:action]
+      action, *data = JSON.parse(json,:symbolize_names => true)
 
-      case action.to_sym
-      when :request_player
-        @player_id = PlayerFactory.find_or_create(data[:login_data], self)
+      puts("ACTION:#{action}, DATA:#{data.inspect}")
+
+      case action
+      when RECEIVE_PLAYER_ACTION
+        @player_id = PlayerFactory.find_or_create(data[0], self)
         PlayerFactory.send_game_data(@player_id)
-      when :request_new_battle
+      when RECEIVE_NEW_BATTLE_ACTION
         # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
         # возможно добавлять battle_director только после согласия обоих игроков на бой?
         @battle_director = BattleDirectorFactory.instance.create()
-
         @battle_director.set_opponent(self, PlayerFactory.get_player_by_id(@player_id))
-
         # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада
-        # data[:id] - opponent or AI uid.
-        opponent_id = data[:id]
-
-        if data[:is_ai_battle]
+        # data[0] - opponent or AI uid.
+        opponent_id = data[0]
+        # Is ai battle?
+        if data[1] == true
           @battle_director.enable_ai(opponent_id)
         else
           # Send invite to opponent
           connection = PlayerFactory.connection(opponent_id)
-          connection.send_invite_to_battle(@battle_director.uid, @player_id)
+          unless connection.nil?
+            connection.send_invite_to_battle(@battle_director.uid, @player_id)
+          end
         end
 
-      when :accept_battle
+      when RECEIVE_ACCEPT_BATTLE_ACTION
         MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[:battle_uid]}."
         @battle_director = BattleDirectorFactory.instance.get(data[:battle_uid])
         @battle_director.set_opponent(
@@ -78,34 +79,32 @@ class Connection < EM::Connection
                                                      # after intit?
         )
 
-      when :request_battle_start
+      when RECEIVE_BATTLE_START_ACTION
         @battle_director.set_opponent_ready(@player_id)
-      when :request_battle_map_data
+      when RECEIVE_LOBBY_DATA_ACTION
+        # Collect data for user battle lobby
         appropriate_players = PlayerFactory.appropriate_players_for_battle(@player_id)
         appropriate_ai = [[13123, 'someshit'], [334, '111min']]
 
-        connection = PlayerFactory.connection(opponent_id)
-        connection.send_lobby_data(appropriate_players, appropriate_ai)
-      when :request_spawn_unit
-        @battle_director.spawn_unit(data[:unit_uid], @player_id)
-      when :request_production_task
-        case data[:type]
-        when 1 #unit
-          # resource = DBResources.get_unit(data[:package])
-          # DeferredTasks.instance.add_task_with_sequence(@player_id, data[:package], 1, 10, 44)
-          UnitsFactory.instance.add_production_task(@player_id, data[:package])
-
-        when 2 #building
-          BuildingsFactory.instance.build_or_update(@player_id, data[:package])
+        connection = PlayerFactory.connection(@player_id)
+        unless connection.nil?
+          connection.send_lobby_data(appropriate_players, appropriate_ai)
         end
+      when RECEIVE_SPAWN_UNIT_ACTION
+        @battle_director.spawn_unit(data[0], @player_id)
 
-      when :request_spell_cast
-        @battle_director.cast_spell(
-          @player_id,
-          data[:target_area],
-          data[:spell_uid]
-        )
-      when :ping
+      when RECEIVE_UNIT_PRODUCTION_TASK_ACTION
+
+        UnitsFactory.instance.add_production_task(@player_id, data[0])
+
+      when RECEIVE_BUILDING_PRODUCTION_TASK_ACTION
+
+        BuildingsFactory.instance.build_or_update(@player_id, data[0])
+
+      when RECEIVE_SPELL_CAST_ACTION
+        #
+        @battle_director.cast_spell(@player_id, data[0], data[1])
+      when RECEIVE_PING_ACTION
 
         @latency = Time.now.to_f - data[:time]
       end

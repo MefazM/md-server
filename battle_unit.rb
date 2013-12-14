@@ -10,7 +10,7 @@ class BattleUnit
     @unit_package = unit_package
     @uid = SecureRandom.hex(4)
     # additional params
-    @status = UnitStatuses::MOVE
+    @status = UnitStatuses::IDLE
     @attack_period_time = 0
     @position = position
 
@@ -25,7 +25,11 @@ class BattleUnit
     @attack_type = nil
   end
 
-  def get_uid()
+  def package
+    @unit_package
+  end
+
+  def uid()
     @uid
   end
 
@@ -33,7 +37,7 @@ class BattleUnit
     @status == UnitStatuses::DIE
   end
 
-  def get_position()
+  def position()
     @position
   end
 
@@ -68,24 +72,6 @@ class BattleUnit
     @health_points -= decrease_by
   end
 
-  # Проверть есть ли на расстоянии атаки цель для этого юнита
-  def get_target(opponent, attack_distantion)
-    # Цикл через всех юнитов противника
-    opponent[:units_pool].each do |uid, opponent_unit|
-      distantion = opponent_unit.get_position() + @position
-      if distantion > 1.0 - attack_distantion and attack_distantion < 1.0
-        return opponent_unit
-      end
-    end
-    # В последнюю очередь проверяем может ли юнит атаковать базу противника
-    distantion = opponent[:main_building].get_position() + @position
-    if distantion > 1.0 - attack_distantion and attack_distantion < 1.0
-      return opponent[:main_building]
-    end
-
-    return nil
-  end
-
   def process_deffered_damage(iteration_delta)
     @deferred_damage.each_with_index do |deferred, index|
       deferred[:position] += iteration_delta * 0.4 #! This is magick, 0.4 is a arrow speed!!
@@ -97,88 +83,64 @@ class BattleUnit
     end
   end
 
-  def update(opponent, iteration_delta)
+  def attack?(opponent_position, attack_type)
+    # If unit has not such kind of attack
+    # return false
+    return false unless @unit_prototype[attack_type]
+    # Calculate distance
+    attack_range = @unit_prototype["#{attack_type}_range".to_sym]
+    distantion = opponent_position + @position
 
-    # response = {}
-    opponent_unit_id = nil
+    return distantion > (1.0 - attack_range) # and distantion < 1.0
+  end
 
-    case @status
-    when UnitStatuses::ATTACK
-      @attack_period_time -= iteration_delta
+  def attack(opponent_unit, attack_type)
+    case attack_type
+    when :melee_attack
+      opponent_unit.decrease_health_points(
+        @melee_attack_power,
+        @unit_prototype[:melee_attack_damage_type]
+      )
 
-      if @attack_period_time < 0
+      @attack_period_time = @unit_prototype[:melee_attack_speed]
+      @status = UnitStatuses::ATTACK_MELEE
 
-        case @attack_type
-        when :melee_attack
-          opponent_unit = get_target(opponent, @unit_prototype[:melee_attack_range])
+    when :range_attack
+      opponent_unit.add_deffered_damage(
+        @range_attack_power,
+        @position,
+        @unit_prototype[:range_attack_damage_type]
+      )
 
-          opponent_unit.decrease_health_points(
-            @melee_attack_power,
-            @unit_prototype[:melee_attack_damage_type]
-          ) unless opponent_unit.nil?
-
-        when :range_attack
-          opponent_unit = get_target(opponent, @unit_prototype[:range_attack_range])
-
-          unless opponent_unit.nil?
-            opponent_unit.add_deffered_damage(
-              @range_attack_power,
-              @position,
-              @unit_prototype[:range_attack_damage_type]
-            )
-
-            opponent_unit_id = opponent_unit.get_uid()
-            # спрайт для дистанционной аттаки
-            # response[:pr] = {:c => opponent_unit.get_uid()}
-          end
-        end
-
-        @status = UnitStatuses::DEFAULT
-      end
-
-    when UnitStatuses::MOVE, UnitStatuses::DEFAULT
-      if @unit_prototype[:melee_attack] and get_target(opponent, @unit_prototype[:melee_attack_range])
-
-        @status = UnitStatuses::ATTACK
-
-        @attack_type = :melee_attack
-        @attack_period_time = @unit_prototype[:melee_attack_speed]
-
-        # response[:sq] = :melee_attack
-
-      elsif @unit_prototype[:range_attack] and get_target(opponent, @unit_prototype[:range_attack_range])
-
-        @status = UnitStatuses::ATTACK
-
-        @attack_type = :range_attack
-        @attack_period_time = @unit_prototype[:range_attack_speed]
-
-        # response[:sq] = :range_attack
-
-      else
-
-        @status = UnitStatuses::MOVE
-      end
+      @attack_period_time = @unit_prototype[:range_attack_speed]
+      @status = UnitStatuses::ATTACK_RANGE
     end
+  end
+
+  def status
+    @status
+  end
+
+  def can_attack?
+    return @status == UnitStatuses::MOVE || @status == UnitStatuses::IDLE
+  end
+
+  def update(iteration_delta)
 
     process_deffered_damage(iteration_delta)
 
-    if @health_points < 0.0
-      @status = UnitStatuses::DIE
-      # opponent[:units_pool].delete(uid)
-    elsif @status == UnitStatuses::MOVE
-
+    case @status
+    when UnitStatuses::MOVE
       @position += iteration_delta * @unit_prototype[:movement_speed]
+
+    when UnitStatuses::ATTACK_MELEE, UnitStatuses::ATTACK_RANGE
+      @attack_period_time -= iteration_delta
+      @status = UnitStatuses::IDLE if @attack_period_time < 0
+
+    when UnitStatuses::IDLE
+      @status = UnitStatuses::MOVE
+
     end
-
-    # response[:p] = @position.round(3)
-    # response[:s] = @status
-
-    response = [@uid, @status, @position.round(3)]
-
-    response << @attack_type if @status == UnitStatuses::ATTACK
-    response << opponent_unit_id unless opponent_unit_id.nil?
-
-    response
+    @status = UnitStatuses::DIE if @health_points < 0.0
   end
 end

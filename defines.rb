@@ -1,15 +1,15 @@
-module BattleStatuses
-  PENDING = 1
-  READY_TO_START = 2
-  IN_PROGRESS = 3
-  FINISHED = 4
-end
-
 module UnitStatuses
+  # MOVE = 1
+  # DIE = 3
+  # ATTACK = 4
+  # DEFAULT = 42
+
   MOVE = 1
   DIE = 3
-  ATTACK = 4
-  DEFAULT = 42
+  ATTACK_MELEE = 4
+  ATTACK_RANGE = 5
+  IDLE = 42
+
 end
 
 module Timings
@@ -24,16 +24,4 @@ module PlayerStates
   IN_WORLD = 2
   IN_BATTLE = 3
   READY_TO_FIGHT = 4
-end
-
-module NetWorkingActions
-  REQUEST_PLAYER = 1
-  REQUEST_NEW_BATTLE = 2
-  REQUEST_BATTLE_START = 3
-  REQUEST_BATTLE_MAP_DATA = 4
-  REQUEST_SPAWN_UNIT = 5
-  REQUEST_PRODUCTION_TASK = 6
-  REQUEST_SPELL_CAST = 7
-  ACCEPT_BATTLE = 8
-  PING = 9
 end

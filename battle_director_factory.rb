@@ -23,7 +23,15 @@ class BattleDirectorFactory
 
   def update(current_time)
     @battles.each do |battle_uid, battle|
-      battle.update_opponents(current_time) if battle.is_started?
+
+      case battle.status
+      when BattleDirector::FINISHED
+        @battles.delete(battle)
+
+      when BattleDirector::IN_PROGRESS
+        battle.update_opponents(current_time)
+
+      end
     end
   end
 

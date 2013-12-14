@@ -8,13 +8,17 @@ require_relative 'spells_lib.rb'
 
 # Holds all battle logic and process all battle events.
 class BattleDirector
+  # Battle director statuses
+  PENDING = 1
+  READY_TO_START = 2
+  IN_PROGRESS = 3
+  FINISHED = 4
 
   def initialize()
     # Battle director save two players connection
     # Here stores connections and battle data
     @opponents = {}
-
-    @status = BattleStatuses::PENDING
+    @status = PENDING
     @uid = SecureRandom.hex(5)
 
     @opponents_indexes = {}
@@ -24,6 +28,10 @@ class BattleDirector
     @default_unit_spawn_time = 0
 
     MageLogger.instance.info "New BattleDirector initialize... UID = #{@uid}"
+  end
+
+  def status
+    @status
   end
   # Add player opponent snapshot and his connection.
   # If opponents > 2 - start the battle
@@ -36,7 +44,7 @@ class BattleDirector
       :connection => connection,
       :player => player,
       :is_ready => false,
-      :units_pool => {},
+      :units_pool => [],
       :main_building => nil,
       :spells => []
     }
@@ -55,7 +63,7 @@ class BattleDirector
       :connection => nil,
       :player => AiPlayer.new(),
       :is_ready => true,
-      :units_pool => {},
+      :units_pool => [],
       :main_building => nil,
       :spells => []
     }
@@ -72,7 +80,7 @@ class BattleDirector
   end
 
   def is_started?()
-    @status == BattleStatuses::IN_PROGRESS
+    @status == IN_PROGRESS
   end
 
   # Battle uid.
@@ -90,10 +98,10 @@ class BattleDirector
     # World update
     #
     iteration_delta = current_time - @iteration_time
-    if (iteration_delta > Timings::ITERATION_TIME)
+    # if (iteration_delta > Timings::ITERATION_TIME)
       @iteration_time = current_time
       update_opponent(iteration_delta)
-    end
+    # end
     # /World update
 
     #
@@ -110,10 +118,10 @@ class BattleDirector
     # Default unit spawn
     if current_time - @default_unit_spawn_time > Timings::DEFAULT_UNITS_SPAWN_TIME
       @default_unit_spawn_time = current_time
-      @opponents_indexes.each do |player_index|
+      @opponents_indexes.each_value do |player_index|
         # players should have different default units
         unit_package = 'crusader'
-        add_unit_to_pool(player_id, unit_package)
+        add_unit_to_pool(player_index, unit_package)
       end
     end
     # /Default unit spawn
@@ -145,71 +153,127 @@ class BattleDirector
   end
 
 private
-  # Send message to all opponents is this battle
-  # def broadcast_response(*args)
-  #   @opponents.each_value { |opponent|
-  #     opponent[:connection].send_message(args) unless opponent[:connection].nil?
-  #   }
-  # end
-
   # Separate opponent units in different hashes.
   # each unit has uniq id, generated on spawning
   # unit uniq id is a hash key.
   def add_unit_to_pool(owner_id, unit_uid)
     unit = BattleUnit.new(unit_uid)
-    uid = unit.get_uid()
-    @opponents[owner_id][:units_pool][uid] = unit
-
+    @opponents[owner_id][:units_pool] << unit
     @opponents.each_value { |opponent|
       opponent[:connection].send_unit_spawning(
-        uid, unit_uid, owner_id
+        unit.uid, unit_uid, owner_id
       ) unless opponent[:connection].nil?
     }
+  end
+  # Recursively find attack target
+  def find_attack(opponent, attacker, opponent_unit_id)
+    # opponent_unit_id user only for share out attack to
+    # opponent units. Don't affect buildings.
+    opponent_unit = opponent[:units_pool][opponent_unit_id]
+
+    if opponent_unit.nil? == false
+      [:melee_attack, :range_attack].each do |type|
+        # has target for opponent unit with current opponent_unit_id
+        if attacker.attack?(opponent_unit.position(), type)
+
+          attacker.attack(opponent_unit, type)
+
+          return opponent_unit_id
+        end
+      end
+      # If target not found, and opponent_unit_id if zero
+      # Try to find target from nearest units
+      unless opponent_unit_id == 0
+        return find_attack(opponent, attacker, 0)
+
+      end
+    elsif opponent_unit.nil? and opponent_unit_id != 0
+      # If unit at opponent_unit_id nol exist
+      # and opponent_unit_id == 0
+      # Try to find target from nearest units
+      return find_attack(opponent, attacker, 0)
+    end
+
+    # At last check unit attack opponent main bulding
+    [:melee_attack, :range_attack].each do |type|
+      if attacker.attack?(opponent[:main_building].position(), type)
+        attacker.attack(opponent[:main_building], type)
+      end
+    end
+
+    # Always retur current opponent id
+    return opponent_unit_id
   end
 
   def update_opponent(iteration_delta)
     @opponents.each do |player_id, player|
-
       opponent_uid = @opponents_indexes[player_id]
       opponent = @opponents[opponent_uid]
+      # First need to sort opponent units by distance
+      opponent[:units_pool].sort_by!{|v| v.position}.reverse!
+
       units_sync_data = []
       buildings_sync_data = []
+      # To prevent units attack one opponent unit, and share out attacks
+      # use opponent_unit_id, it will itereate after each unit attack
+      # and become zero if attack is not possible
+      opponent_unit_id = 0
+
       # update each unit and collect unit response
-      player[:units_pool].each do |uid, unit|
-        # response[uid] = unit.update(opponent, iteration_delta)
-        units_sync_data << unit.update(opponent, iteration_delta)
-        player[:units_pool].delete(uid) if unit.dead?
+      player[:units_pool].each_with_index do |unit, index|
+
+        unit_status = unit.status
+        # Unit state allow attacks?
+        if unit.can_attack?
+          opponent_unit_id = find_attack(opponent, unit, opponent_unit_id)
+        end
+        #
+        unit.update(iteration_delta)
+        # collect updates only if unit status change
+        if (unit_status != unit.status)
+          units_sync_data << [unit.uid(), unit.status(), unit.position.round(3)]
+        end
+
+        if unit.dead?
+          player[:units_pool].delete_at(index)
+          unit = nil
+        end
       end
       # Main building - is a main game trigger.
       # If it destroyed - player loses
       main_building = player[:main_building]
       main_building.process_deffered_damage(iteration_delta)
-      buildings_sync_data << main_building.to_a
+      units_sync_data << [main_building.uid(), main_building.health_points()]
+
+      # puts(buildings_sync_data.inspect)
 
       if main_building.dead?
         # finish battle, current player is a loser!
         finish_battle(player_id)
-      end
+      else
 
-      @opponents.each_value { |opponent|
-        opponent[:connection].send_sync(
-          units_sync_data, buildings_sync_data, player_id
-        ) unless opponent[:connection].nil?
-      }
-      # process spells
-      player[:spells].each_with_index do |spell, index|
-        if spell[:time] < @iteration_time then
-          puts('SPELL REMOVED')
-          player[:spells].delete_at(index)
+        # Send updated data to clients
+        @opponents.each_value { |opponent|
+          opponent[:connection].send_battle_sync(
+            units_sync_data, buildings_sync_data
+          ) unless opponent[:connection].nil?
+        }
+
+        # process spells
+        player[:spells].each_with_index do |spell, index|
+          if spell[:time] < @iteration_time then
+            puts('SPELL REMOVED')
+            player[:spells].delete_at(index)
+          end
         end
-      end
 
+      end
     end
   end
   # Start the battle.
   def start()
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) is started!"
-    @status = BattleStatuses::IN_PROGRESS
+    @status = IN_PROGRESS
 
     @opponents.each_value { |opponent|
       opponent[:connection].send_start_battle() unless opponent[:connection].nil?
@@ -227,7 +291,6 @@ private
     }
     return true
   end
-
   # If each opponent is ready, It is a time to initialize battle on clients
   # Also here server should send all additional info about resources
   # so client can prechache them.
@@ -252,12 +315,10 @@ private
       _opponents_indexes << player_id
       # Opponent additional units info.
       player_units = opponent[:player].get_units_data_for_battle()
-
       unless opponent[:connection].nil?
-        opponent[:connection].send_message([
-          NETWORK_SEND_DATA::SEND_REQUEST_NEW_BATTLE_ACTION,
+        opponent[:connection].send_create_new_battle_on_client(
           @uid, player_units, opponents_main_buildings
-        ])
+        )
       end
     end
     # hack to get user id by its opponent id.
@@ -269,10 +330,18 @@ private
   def finish_battle(loser_id)
     MageLogger.instance.info "BattleDirector (UID=#{@uid}). Battle finished, player (#{loser_id} - lose."
 
-    @status = BattleStatuses::FINISHED
+    @status = FINISHED
 
     @opponents.each_value { |opponent|
-      opponent[:connection].send_finish_battle(loser_id) unless opponent[:connection].nil?
+
+      opponent[:units_pool] = nil
+      opponent[:main_building] = nil
+
+      if opponent[:connection].nil?
+        opponent[:player] = nil
+      else
+        opponent[:connection].send_finish_battle(loser_id)
+      end
     }
   end
 end
