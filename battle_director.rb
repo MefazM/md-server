@@ -152,6 +152,18 @@ class BattleDirector
     end
   end
 
+  def destroy()
+    @opponents.each_value { |opponent|
+      opponent[:units_pool] = nil
+      opponent[:main_building] = nil
+      if opponent[:connection].nil?
+        opponent[:player] = nil
+      else
+        opponent[:connection].send_finish_battle(loser_id)
+      end
+    }
+  end
+
 private
   # Separate opponent units in different hashes.
   # each unit has uniq id, generated on spawning
@@ -322,21 +334,8 @@ private
     @opponents_indexes[_opponents_indexes[1]] = _opponents_indexes[0]
   end
   # Simple finish battle.
-  # Free memory, and mark object to delete.
   def finish_battle(loser_id)
     MageLogger.instance.info "BattleDirector (UID=#{@uid}). Battle finished, player (#{loser_id} - lose."
     @status = FINISHED
-  end
-
-  def destroy()
-    @opponents.each_value { |opponent|
-      opponent[:units_pool] = nil
-      opponent[:main_building] = nil
-      if opponent[:connection].nil?
-        opponent[:player] = nil
-      else
-        opponent[:connection].send_finish_battle(loser_id)
-      end
-    }
   end
 end
