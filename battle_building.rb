@@ -1,7 +1,6 @@
 require "securerandom"
 require 'pry'
 require_relative 'ai_player.rb'
-require_relative 'defines.rb'
 
 class BattleBuilding
   def initialize(package, position = 0.1)

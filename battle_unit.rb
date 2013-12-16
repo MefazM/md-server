@@ -1,16 +1,21 @@
 require "securerandom"
 require 'pry'
 require_relative 'ai_player.rb'
-require_relative 'defines.rb'
 
 class BattleUnit
+  # Unit statuses
+  MOVE = 1
+  DIE = 3
+  ATTACK_MELEE = 4
+  ATTACK_RANGE = 5
+  IDLE = 42
   def initialize(unit_package, position = 0.0)
     # initialization unit by prototype
     @unit_prototype = UnitsFactory.instance.units(unit_package)
     @unit_package = unit_package
     @uid = SecureRandom.hex(4)
     # additional params
-    @status = UnitStatuses::IDLE
+    @status = IDLE
     @attack_period_time = 0
     @position = position
 
@@ -34,7 +39,7 @@ class BattleUnit
   end
 
   def dead?()
-    @status == UnitStatuses::DIE
+    @status == DIE
   end
 
   def position()
@@ -107,7 +112,7 @@ class BattleUnit
       )
 
       @attack_period_time = @unit_prototype[:melee_attack_speed]
-      @status = UnitStatuses::ATTACK_MELEE
+      @status = ATTACK_MELEE
 
     when :range_attack
       opponent_unit.add_deffered_damage(
@@ -117,7 +122,7 @@ class BattleUnit
       )
 
       @attack_period_time = @unit_prototype[:range_attack_speed]
-      @status = UnitStatuses::ATTACK_RANGE
+      @status = ATTACK_RANGE
     end
   end
 
@@ -126,7 +131,7 @@ class BattleUnit
   end
 
   def can_attack?
-    return @status == UnitStatuses::MOVE || @status == UnitStatuses::IDLE
+    return @status == MOVE || @status == IDLE
   end
 
   def update(iteration_delta)
@@ -134,17 +139,17 @@ class BattleUnit
     process_deffered_damage(iteration_delta)
 
     case @status
-    when UnitStatuses::MOVE
+    when MOVE
       @position += iteration_delta * @unit_prototype[:movement_speed]
 
-    when UnitStatuses::ATTACK_MELEE, UnitStatuses::ATTACK_RANGE
+    when ATTACK_MELEE, ATTACK_RANGE
       @attack_period_time -= iteration_delta
-      @status = UnitStatuses::IDLE if @attack_period_time < 0
+      @status = IDLE if @attack_period_time < 0
 
-    when UnitStatuses::IDLE
-      @status = UnitStatuses::MOVE
+    when IDLE
+      @status = MOVE
 
     end
-    @status = UnitStatuses::DIE if @health_points < 0.0
+    @status = DIE if @health_points < 0.0
   end
 end

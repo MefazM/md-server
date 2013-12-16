@@ -7,6 +7,8 @@ require_relative 'player_factory.rb'
 class DeferredTasks
   include Singleton
 
+  DEFERRED_TASKS_PROCESS_TIME = 0.1
+
   def initialize
     @iteration_time = Time.now.to_f
     @current_tasks_ids = []
@@ -33,7 +35,7 @@ class DeferredTasks
 
   def process_all(current_time)
     d_time = current_time - @iteration_time
-    if d_time > Timings::DEFERRED_TASKS_PROCESS_TIME
+    if d_time > DEFERRED_TASKS_PROCESS_TIME
       @iteration_time = current_time
       process_tasks_with_no_sequences()
     end
@@ -42,7 +44,13 @@ class DeferredTasks
   def get_buildings_in_queue(player_id)
     buildings = {}
     DBConnection.query("SELECT *, (finish_time - UNIX_TIMESTAMP()) AS time_left FROM deferred_tasks WHERE user_id = '#{player_id}'").each do |task|
-      buildings[task[:package]] = Respond.as_building(task[:package], task[:level], false, task[:time_left], task[:production_time])
+      buildings[task[:package]] = {
+        :level => task[:level],
+        :ready => false,
+        :package => task[:package],
+        :finish_time => task[:time_left] * 1000,
+        :production_time => task[:production_time] * 1000
+      }
     end
 
     buildings
@@ -52,7 +60,7 @@ private
 
   def process_tasks_with_sequences(current_time)
     d_time = current_time - @iteration_time
-    if d_time > Timings::DEFERRED_TASKS_PROCESS_TIME
+    if d_time > DEFERRED_TASKS_PROCESS_TIME
       @iteration_time = current_time
       sql = 'SELECT id FROM deferred_tasks_with_sequences GROUP BY producer_id'
       cur_tasks_ids = []

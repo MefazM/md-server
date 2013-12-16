@@ -1,7 +1,6 @@
 require "securerandom"
 require 'pry'
 require_relative 'ai_player.rb'
-require_relative 'defines.rb'
 require_relative 'battle_unit.rb'
 require_relative 'battle_building.rb'
 require_relative 'spells_lib.rb'
@@ -13,6 +12,9 @@ class BattleDirector
   READY_TO_START = 2
   IN_PROGRESS = 3
   FINISHED = 4
+  # Timings
+  DEFAULT_UNITS_SPAWN_TIME = 5.0
+  PING_TIME = 0.5
 
   def initialize()
     # Battle director save two players connection
@@ -99,11 +101,11 @@ class BattleDirector
     @iteration_time = current_time
 
     # Default unit spawn
-    is_default_unit_spawn_time = current_time - @default_unit_spawn_time > Timings::DEFAULT_UNITS_SPAWN_TIME
+    is_default_unit_spawn_time = current_time - @default_unit_spawn_time > DEFAULT_UNITS_SPAWN_TIME
     @default_unit_spawn_time = current_time if is_default_unit_spawn_time
 
     # Ping update
-    is_ping_time = current_time - @ping_time > Timings::PING_TIME
+    is_ping_time = current_time - @ping_time > PING_TIME
     @ping_time = current_time if is_ping_time
 
 

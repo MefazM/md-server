@@ -6,25 +6,17 @@ require 'json'
 
 require_relative 'battle_director_factory.rb'
 require_relative 'db_connection.rb'
-
 require_relative 'player_factory.rb'
 require_relative 'buildings_factory.rb'
 require_relative 'units_factory.rb'
-
 require_relative 'mage_logger.rb'
 require_relative 'deferred_tasks.rb'
-require_relative 'responders.rb'
-
 require_relative 'settings.rb'
-
-require_relative 'network_responder.rb'
-
-
-
+require_relative 'networking.rb'
 
 class Connection < EM::Connection
 
-  include NETWORK_SEND_DATA
+  include NETWORKING
 
   def post_init
     @latency = 0
@@ -34,11 +26,8 @@ class Connection < EM::Connection
     str_start, str_end = message.index('__JSON__START__'), message.index('__JSON__END__')
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
-
       action, *data = JSON.parse(json,:symbolize_names => true)
-
-      puts("ACTION:#{action}, DATA:#{data.inspect}")
-
+      # puts("ACTION:#{action}, DATA:#{data.inspect}")
       case action
       when RECEIVE_PLAYER_ACTION
         @player_id = PlayerFactory.find_or_create(data[0], self)

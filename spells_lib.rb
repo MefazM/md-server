@@ -1,12 +1,5 @@
 require 'singleton'
-
-# require_relative 'units_factory.rb'
-# require_relative 'responders.rb'
-# require_relative 'mage_logger.rb'
-# require_relative 'player_factory.rb'
-
 require 'pry'
-# require_relative 'db_connection.rb'
 
 class Spells
   include Singleton

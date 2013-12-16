@@ -1,8 +1,6 @@
 #
 # Network responder
-#
-
-module NETWORK_SEND_DATA
+module NETWORKING
 
   RECEIVE_PLAYER_ACTION = 1
   RECEIVE_NEW_BATTLE_ACTION = 2
@@ -32,7 +30,7 @@ module NETWORK_SEND_DATA
   SEND_PING_ACTION = 555
 
   def send_message(message_arr)
-    puts("SEND: #{message_arr.inspect}")
+    # puts("SEND: #{message_arr.inspect}")
     message = "__JSON__START__#{message_arr.to_json}__JSON__END__"
     send_data(message)
   end

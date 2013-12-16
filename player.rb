@@ -28,7 +28,7 @@ class Player
     buildings = {}
 
     @buildings.each do |package, level|
-      buildings[package] = Respond.as_building(package, level, true)
+      buildings[package] = {:level => level, :ready => true, :package => package}
     end
 
     buildings_in_queue = DeferredTasks.instance.get_buildings_in_queue(@id)
