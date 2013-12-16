@@ -30,7 +30,7 @@ module NETWORKING
   SEND_PING_ACTION = 555
 
   def send_message(message_arr)
-    # puts("SEND: #{message_arr.inspect}")
+    puts("#{message_arr[0]} SEND: #{message_arr.inspect}")
     message = "__JSON__START__#{message_arr.to_json}__JSON__END__"
     send_data(message)
   end

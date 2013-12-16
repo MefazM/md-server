@@ -108,6 +108,7 @@ class BattleDirector
     is_ping_time = current_time - @ping_time > PING_TIME
     @ping_time = current_time if is_ping_time
 
+    is_ping_time  = false
 
     # update(iteration_delta)
     @opponents.each do |player_id, player|
@@ -132,7 +133,7 @@ class BattleDirector
         #
         unit.update(iteration_delta)
         # collect updates only if unit status change
-        if (unit_status != unit.status)
+        if (unit_status != unit.status and unit.status != 42)
           sync_data_arr << [unit.uid(), unit.status(), unit.position.round(3)]
         end
 
@@ -144,8 +145,9 @@ class BattleDirector
       # Main building - is a main game trigger.
       # If it destroyed - player loses
       main_building = player[:main_building]
+      main_building.update(iteration_delta)
       # Send main bulding updates only if has changes
-      if main_building.update(iteration_delta)
+      if main_building.changed?
         sync_data_arr << [main_building.uid(), main_building.health_points()]
       end
 
