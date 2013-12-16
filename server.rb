@@ -26,15 +26,9 @@ class Connection < EM::Connection
 
   include NETWORK_SEND_DATA
 
-  def get_latency()
-    @latency
-  end
-
   def post_init
     @latency = 0
   end
-
-
 
   def receive_data(message)
     str_start, str_end = message.index('__JSON__START__'), message.index('__JSON__END__')
@@ -104,7 +98,7 @@ class Connection < EM::Connection
         @battle_director.cast_spell(@player_id, data[0], data[1])
       when RECEIVE_PING_ACTION
 
-        @latency = Time.now.to_f - data[:time]
+        @latency = Time.now.to_f - data[0]
       end
 
     end
@@ -121,7 +115,6 @@ EventMachine::run do
   MageLogger.instance.info "Starting MageServer on #{host}:#{port}..."
 
   DBConnection.connect(Settings::MYSQL_HOST, Settings::MYSQL_USER_NAME, Settings::MYSQL_DB_NAME, Settings::MYSQL_PASSWORD)
-  # DBResources.load_resources
 
   EventMachine::start_server host, port, Connection
 

@@ -62,7 +62,14 @@ class BattleBuilding
         decrease_health_points(deferred[:power], deferred[:range_attack_damage_type])
 
         @deferred_damage.delete_at(index)
+        return true
       end
     end
+
+    return false
+  end
+
+  def update(iteration_delta)
+    return process_deffered_damage(iteration_delta)
   end
 end

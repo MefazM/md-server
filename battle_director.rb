@@ -82,7 +82,6 @@ class BattleDirector
   def is_started?()
     @status == IN_PROGRESS
   end
-
   # Battle uid.
   def uid()
     @uid
@@ -96,35 +95,91 @@ class BattleDirector
   def update_opponents(current_time)
     #
     # World update
-    #
     iteration_delta = current_time - @iteration_time
-    # if (iteration_delta > Timings::ITERATION_TIME)
-      @iteration_time = current_time
-      update(iteration_delta)
-    # end
-    # /World update
+    @iteration_time = current_time
 
-    #
-    # Ping update
-    #
-    # if current_time - @ping_time > Timings::PING_TIME
-    #   @ping_time = current_time
-
-    #   broadcast_response({:time => current_time}, 'ping')
-    # end
-    # /Ping update
-
-    #
     # Default unit spawn
-    if current_time - @default_unit_spawn_time > Timings::DEFAULT_UNITS_SPAWN_TIME
-      @default_unit_spawn_time = current_time
-      @opponents_indexes.each_value do |player_index|
-        # players should have different default units
-        unit_package = 'crusader'
-        add_unit_to_pool(player_index, unit_package)
+    is_default_unit_spawn_time = current_time - @default_unit_spawn_time > Timings::DEFAULT_UNITS_SPAWN_TIME
+    @default_unit_spawn_time = current_time if is_default_unit_spawn_time
+
+    # Ping update
+    is_ping_time = current_time - @ping_time > Timings::PING_TIME
+    @ping_time = current_time if is_ping_time
+
+
+    # update(iteration_delta)
+    @opponents.each do |player_id, player|
+      opponent_uid = @opponents_indexes[player_id]
+      opponent = @opponents[opponent_uid]
+      # First need to sort opponent units by distance
+      opponent[:units_pool].sort_by!{|v| v.position}.reverse!
+
+      sync_data_arr = []
+      # To prevent units attack one opponent unit, and share out attacks
+      # use opponent_unit_id, it will itereate after each unit attack
+      # and become zero if attack is not possible
+      opponent_unit_id = 0
+      # update each unit and collect unit response
+      player[:units_pool].each_with_index do |unit, index|
+
+        unit_status = unit.status
+        # Unit state allow attacks?
+        if unit.can_attack?
+          opponent_unit_id = find_attack(opponent, unit, opponent_unit_id)
+        end
+        #
+        unit.update(iteration_delta)
+        # collect updates only if unit status change
+        if (unit_status != unit.status)
+          sync_data_arr << [unit.uid(), unit.status(), unit.position.round(3)]
+        end
+
+        if unit.dead?
+          player[:units_pool].delete_at(index)
+          unit = nil
+        end
       end
+      # Main building - is a main game trigger.
+      # If it destroyed - player loses
+      main_building = player[:main_building]
+      # Send main bulding updates only if has changes
+      if main_building.update(iteration_delta)
+        sync_data_arr << [main_building.uid(), main_building.health_points()]
+      end
+
+      if main_building.dead?
+        # finish battle, current player is a loser!
+        finish_battle(player_id)
+        return
+      else
+        unless sync_data_arr.empty?
+          # Send updated data to clients
+          @opponents.each_value { |opponent|
+            opponent[:connection].send_battle_sync(
+              sync_data_arr
+            ) unless opponent[:connection].nil?
+          }
+        end
+        # Default units spawn
+        unit_package = 'crusader'
+        add_unit_to_pool(player_id, unit_package) if is_default_unit_spawn_time
+        # Process spells
+        player[:spells].each_with_index do |spell, index|
+          if spell[:time] < @iteration_time then
+            puts('SPELL REMOVED')
+            player[:spells].delete_at(index)
+          end
+        end
+        # Ping update
+        @opponents.each_value { |opponent|
+          opponent[:connection].send_ping(
+            current_time
+          ) unless opponent[:connection].nil?
+        } if is_ping_time
+      end
+      # /LOOP
     end
-    # /Default unit spawn
+    # /update
   end
 
   # Additional units spawning. here should be a validation.
@@ -136,7 +191,6 @@ class BattleDirector
   # target_area - in percentage
   def cast_spell(opponent_uid, target_area, spell_uid)
     spell = Spells.instance.spell_battle_params(spell_uid.to_sym)
-
     unless spell.nil? # and player know this spell and has enough mana
       reaction_time = Time.now.to_f + spell[:reaction_time]
       @opponents[opponent_uid][:spells] << {
@@ -203,68 +257,6 @@ private
 
     # Always retur current opponent id
     return opponent_unit_id
-  end
-
-  def update(iteration_delta)
-    @opponents.each do |player_id, player|
-      opponent_uid = @opponents_indexes[player_id]
-      opponent = @opponents[opponent_uid]
-      # First need to sort opponent units by distance
-      opponent[:units_pool].sort_by!{|v| v.position}.reverse!
-
-      units_sync_data = []
-      buildings_sync_data = []
-      # To prevent units attack one opponent unit, and share out attacks
-      # use opponent_unit_id, it will itereate after each unit attack
-      # and become zero if attack is not possible
-      opponent_unit_id = 0
-      # update each unit and collect unit response
-      player[:units_pool].each_with_index do |unit, index|
-
-        unit_status = unit.status
-        # Unit state allow attacks?
-        if unit.can_attack?
-          opponent_unit_id = find_attack(opponent, unit, opponent_unit_id)
-        end
-        #
-        unit.update(iteration_delta)
-        # collect updates only if unit status change
-        if (unit_status != unit.status)
-          units_sync_data << [unit.uid(), unit.status(), unit.position.round(3)]
-        end
-
-        if unit.dead?
-          player[:units_pool].delete_at(index)
-          unit = nil
-        end
-      end
-      # Main building - is a main game trigger.
-      # If it destroyed - player loses
-      main_building = player[:main_building]
-      main_building.process_deffered_damage(iteration_delta)
-      units_sync_data << [main_building.uid(), main_building.health_points()]
-
-      if main_building.dead?
-        # finish battle, current player is a loser!
-        finish_battle(player_id)
-        return
-      else
-        # Send updated data to clients
-        @opponents.each_value { |opponent|
-          opponent[:connection].send_battle_sync(
-            units_sync_data, buildings_sync_data
-          ) unless opponent[:connection].nil?
-        }
-        # process spells
-        player[:spells].each_with_index do |spell, index|
-          if spell[:time] < @iteration_time then
-            puts('SPELL REMOVED')
-            player[:spells].delete_at(index)
-          end
-        end
-
-      end
-    end
   end
   # Start the battle.
   def start()
