@@ -16,6 +16,7 @@ class BattleUnit
     @uid = SecureRandom.hex(4)
     # additional params
     @status = IDLE
+    @prev_status = IDLE
     @attack_period_time = 0
     @position = position
 
@@ -28,6 +29,16 @@ class BattleUnit
     @movement_speed = @unit_prototype[:movement_speed]
 
     @attack_type = nil
+  end
+
+  def changed?
+    is_changed = false
+    unless @status == IDLE
+      is_changed = @status != @prev_status
+      @prev_status = @status
+    end
+
+    is_changed
   end
 
   def package

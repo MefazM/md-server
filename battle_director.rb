@@ -108,8 +108,6 @@ class BattleDirector
     is_ping_time = current_time - @ping_time > PING_TIME
     @ping_time = current_time if is_ping_time
 
-    is_ping_time  = false
-
     # update(iteration_delta)
     @opponents.each do |player_id, player|
       opponent_uid = @opponents_indexes[player_id]
@@ -133,7 +131,8 @@ class BattleDirector
         #
         unit.update(iteration_delta)
         # collect updates only if unit status change
-        if (unit_status != unit.status and unit.status != 42)
+        # if (unit_status != unit.status and unit.status != 42)
+        if unit.changed?
           sync_data_arr << [unit.uid(), unit.status(), unit.position.round(3)]
         end
 
