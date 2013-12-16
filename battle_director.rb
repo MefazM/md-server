@@ -100,7 +100,7 @@ class BattleDirector
     iteration_delta = current_time - @iteration_time
     # if (iteration_delta > Timings::ITERATION_TIME)
       @iteration_time = current_time
-      update_opponent(iteration_delta)
+      update(iteration_delta)
     # end
     # /World update
 
@@ -205,7 +205,7 @@ private
     return opponent_unit_id
   end
 
-  def update_opponent(iteration_delta)
+  def update(iteration_delta)
     @opponents.each do |player_id, player|
       opponent_uid = @opponents_indexes[player_id]
       opponent = @opponents[opponent_uid]
@@ -218,7 +218,6 @@ private
       # use opponent_unit_id, it will itereate after each unit attack
       # and become zero if attack is not possible
       opponent_unit_id = 0
-
       # update each unit and collect unit response
       player[:units_pool].each_with_index do |unit, index|
 
@@ -245,20 +244,17 @@ private
       main_building.process_deffered_damage(iteration_delta)
       units_sync_data << [main_building.uid(), main_building.health_points()]
 
-      # puts(buildings_sync_data.inspect)
-
       if main_building.dead?
         # finish battle, current player is a loser!
         finish_battle(player_id)
+        return
       else
-
         # Send updated data to clients
         @opponents.each_value { |opponent|
           opponent[:connection].send_battle_sync(
             units_sync_data, buildings_sync_data
           ) unless opponent[:connection].nil?
         }
-
         # process spells
         player[:spells].each_with_index do |spell, index|
           if spell[:time] < @iteration_time then
@@ -329,14 +325,13 @@ private
   # Free memory, and mark object to delete.
   def finish_battle(loser_id)
     MageLogger.instance.info "BattleDirector (UID=#{@uid}). Battle finished, player (#{loser_id} - lose."
-
     @status = FINISHED
+  end
 
+  def destroy()
     @opponents.each_value { |opponent|
-
       opponent[:units_pool] = nil
       opponent[:main_building] = nil
-
       if opponent[:connection].nil?
         opponent[:player] = nil
       else
