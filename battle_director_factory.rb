@@ -26,7 +26,6 @@ class BattleDirectorFactory
       case battle.status
       when BattleDirector::FINISHED
 
-        battle.destroy()
         @battles.delete(battle_uid)
 
       when BattleDirector::IN_PROGRESS
