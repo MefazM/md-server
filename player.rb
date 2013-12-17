@@ -50,10 +50,6 @@ class Player
     return @id
   end
 
-  def to_hash()
-    {:id => @id, :username => @username}
-  end
-
   def to_i
     [@id, @username]
   end

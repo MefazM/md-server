@@ -19,26 +19,14 @@ class BattleUnit
     @prev_status = IDLE
     @attack_period_time = 0
     @position = position
-
     @range_attack_power = rand(@unit_prototype[:range_attack_power_min]..@unit_prototype[:range_attack_power_max]) if @unit_prototype[:range_attack]
     @melee_attack_power = rand(@unit_prototype[:melee_attack_power_min]..@unit_prototype[:melee_attack_power_max]) if @unit_prototype[:melee_attack]
-
     @deferred_damage = []
-
     @health_points = @unit_prototype[:health_points]
     @movement_speed = @unit_prototype[:movement_speed]
-
     @attack_type = nil
-  end
-
-  def changed?
-    is_changed = false
-    unless @status == IDLE
-      is_changed = @status != @prev_status
-      @prev_status = @status
-    end
-
-    is_changed
+    @target_unit_uid = nil
+    @force_sync = false
   end
 
   def package
@@ -57,19 +45,11 @@ class BattleUnit
     @position
   end
 
-  def to_hash
-    data = {
-      :uid => @uid,
-      :health_points => @health_points,
-      :movement_speed => @movement_speed,
-      :package => @unit_package
-    }
+  def sync_data
+    data = [@uid, @status, @position.round(3)]
+    data << @target_unit_uid if @status == ATTACK_RANGE
 
     data
-  end
-
-  def to_a
-    [@uid, @health_points, @movement_speed, @unit_package]
   end
 
   def add_deffered_damage(attack_power, initial_position, range_attack_damage_type)
@@ -131,9 +111,15 @@ class BattleUnit
         @position,
         @unit_prototype[:range_attack_damage_type]
       )
-
       @attack_period_time = @unit_prototype[:range_attack_speed]
       @status = ATTACK_RANGE
+      # Save target unit id
+      if @target_unit_uid != opponent_unit.uid
+        @target_unit_uid = opponent_unit.uid
+        # force sync, to change range attack target
+        @force_sync = true
+        # puts("FORCE TO #{@target_unit_uid}")
+      end
     end
   end
 
@@ -146,9 +132,7 @@ class BattleUnit
   end
 
   def update(iteration_delta)
-
     process_deffered_damage(iteration_delta)
-
     case @status
     when MOVE
       @position += iteration_delta * @unit_prototype[:movement_speed]
@@ -159,8 +143,19 @@ class BattleUnit
 
     when IDLE
       @status = MOVE
-
+      @target_unit_uid = nil
     end
     @status = DIE if @health_points < 0.0
+    # Processing sync
+    has_changes = @force_sync
+    unless @status == IDLE
+      has_changes = @status != @prev_status
+      @prev_status = @status
+    end
+
+    has_changes = true if @force_sync
+    @force_sync = false
+
+    return has_changes
   end
 end

@@ -13,8 +13,8 @@ class BattleDirector
   IN_PROGRESS = 3
   FINISHED = 4
   # Timings
-  DEFAULT_UNITS_SPAWN_TIME = 5.0
-  PING_TIME = 0.5
+  DEFAULT_UNITS_SPAWN_TIME = 15.0
+  PING_TIME = 99999990.5
 
   def initialize()
     # Battle director save two players connection
@@ -108,7 +108,6 @@ class BattleDirector
     is_ping_time = current_time - @ping_time > PING_TIME
     @ping_time = current_time if is_ping_time
 
-    # update(iteration_delta)
     @opponents.each do |player_id, player|
       opponent_uid = @opponents_indexes[player_id]
       opponent = @opponents[opponent_uid]
@@ -122,18 +121,13 @@ class BattleDirector
       opponent_unit_id = 0
       # update each unit and collect unit response
       player[:units_pool].each_with_index do |unit, index|
-
-        unit_status = unit.status
         # Unit state allow attacks?
         if unit.can_attack?
-          opponent_unit_id = find_attack(opponent, unit, opponent_unit_id)
+          opponent_unit_id = make_attack(opponent, unit, opponent_unit_id)
         end
-        #
-        unit.update(iteration_delta)
-        # collect updates only if unit status change
-        # if (unit_status != unit.status and unit.status != 42)
-        if unit.changed?
-          sync_data_arr << [unit.uid(), unit.status(), unit.position.round(3)]
+        # collect updates only if unit has change
+        if unit.update(iteration_delta)
+          sync_data_arr << unit.sync_data()
         end
 
         if unit.dead?
@@ -169,7 +163,7 @@ class BattleDirector
         # Process spells
         player[:spells].each_with_index do |spell, index|
           if spell[:time] < @iteration_time then
-            puts('SPELL REMOVED')
+            # puts('SPELL REMOVED')
             player[:spells].delete_at(index)
           end
         end
@@ -223,7 +217,7 @@ private
     }
   end
   # Recursively find attack target
-  def find_attack(opponent, attacker, opponent_unit_id)
+  def make_attack(opponent, attacker, opponent_unit_id)
     # opponent_unit_id user only for share out attack to
     # opponent units. Don't affect buildings.
     opponent_unit = opponent[:units_pool][opponent_unit_id]
@@ -241,14 +235,14 @@ private
       # If target not found, and opponent_unit_id if zero
       # Try to find target from nearest units
       unless opponent_unit_id == 0
-        return find_attack(opponent, attacker, 0)
+        return make_attack(opponent, attacker, 0)
 
       end
     elsif opponent_unit.nil? and opponent_unit_id != 0
       # If unit at opponent_unit_id nol exist
       # and opponent_unit_id == 0
       # Try to find target from nearest units
-      return find_attack(opponent, attacker, 0)
+      return make_attack(opponent, attacker, 0)
     end
 
     # At last check unit attack opponent main bulding

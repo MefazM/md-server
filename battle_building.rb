@@ -41,10 +41,6 @@ class BattleBuilding
     @position
   end
 
-  def to_hash()
-    {:uid => @uid, :package => @package, :position => @position, :health_points => @health_points}
-  end
-
   def to_a
     [@uid, @package, @position, @health_points]
   end
