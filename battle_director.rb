@@ -13,8 +13,8 @@ class BattleDirector
   IN_PROGRESS = 3
   FINISHED = 4
   # Timings
-  DEFAULT_UNITS_SPAWN_TIME = 15.0
-  PING_TIME = 99999990.5
+  DEFAULT_UNITS_SPAWN_TIME = 5.0
+  PING_TIME = 0.5
 
   def initialize()
     # Battle director save two players connection
