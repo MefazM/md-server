@@ -158,8 +158,8 @@ class BattleDirector
           }
         end
         # Default units spawn
-        unit_package = 'crusader'
-        add_unit_to_pool(player_id, unit_package) if is_default_unit_spawn_time
+        unit_uid = 'crusader'
+        add_unit_to_pool(player_id, unit_uid) if is_default_unit_spawn_time
         # Process spells
         player[:spells].each_with_index do |spell, index|
           if spell[:time] < @iteration_time then

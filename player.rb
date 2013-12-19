@@ -27,14 +27,14 @@ class Player
   def get_game_data()
     buildings = {}
 
-    @buildings.each do |package, level|
-      buildings[package] = {:level => level, :ready => true, :package => package}
+    @buildings.each do |uid, level|
+      buildings[uid] = {:level => level, :ready => true, :uid => uid}
     end
 
     buildings_in_queue = DeferredTasks.instance.get_buildings_in_queue(@id)
 
-    buildings_in_queue.each do |package, data|
-      buildings[package] = data
+    buildings_in_queue.each do |uid, data|
+      buildings[uid] = data
     end
 
     units_queue = UnitsFactory.instance.units_in_queue(@id)
@@ -54,12 +54,12 @@ class Player
     [@id, @username]
   end
 
-  def get_building_level(package)
-    level = @buildings[package.to_sym] || 0
+  def get_building_level(uid)
+    level = @buildings[uid.to_sym] || 0
     level
   end
 
-  def get_default_unit_package()
+  def get_default_unit_uid()
     'crusader'
   end
 

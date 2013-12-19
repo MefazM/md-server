@@ -10,7 +10,7 @@ class UnitsFactory
         # Convert attack speed in ms to server seconds
         unit[:melee_attack_speed] *= 0.001 if unit[:melee_attack_speed]
         unit[:range_attack_speed] *= 0.001 if unit[:range_attack_speed]
-        @units_prototypes[unit[:package].to_sym] = unit
+        @units_prototypes[unit[:uid].to_sym] = unit
       end
     rescue Exception => e
       raise e
@@ -47,7 +47,7 @@ class UnitsFactory
   end
   # Create new unit production task
   def add_production_task(player_id, unit_uid)
-    producer_id = @units_prototypes[unit_uid.to_sym][:depends_on_building_package]
+    producer_id = @units_prototypes[unit_uid.to_sym][:depends_on_building_uid]
     production_time = @units_prototypes[unit_uid.to_sym][:production_time]
     # If player has no production tasks create it
     @units_productions_tasks[player_id] = {} if @units_productions_tasks[player_id].nil?
@@ -120,8 +120,8 @@ class UnitsFactory
       end
     end
   end
-  # Get unit info by package name
-  def units(package)
-    @units_prototypes[package.to_sym]
+  # Get unit info by uid name
+  def units(uid)
+    @units_prototypes[uid.to_sym]
   end
 end

@@ -25,7 +25,8 @@ class PlayerFactory
     connection = self.connection(player_id)
     connection.send_game_data({
       :uid => player_id,
-      :game_data => @@players[player_id].get_game_data(),
+      :player_data => @@players[player_id].get_game_data(),
+      :game_data => GameData.instance.collected_data
     })
   end
 

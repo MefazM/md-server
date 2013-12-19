@@ -19,9 +19,9 @@ class DeferredTasks
   end
 
   def add_task_with_no_sequence(player_id, building)
-    resource_id, package, level, production_time = building[:id], building[:package], building[:level],  building[:production_time]
+    resource_id, uid, level, production_time = building[:id], building[:uid], building[:level],  building[:production_time]
     DBConnection.query(
-      "INSERT INTO deferred_tasks (user_id, resource_id, finish_time, production_time, package, level) VALUES (#{player_id}, '#{resource_id}', UNIX_TIMESTAMP() + #{production_time}, #{production_time}, '#{package}', #{level})"
+      "INSERT INTO deferred_tasks (user_id, resource_id, finish_time, production_time, uid, level) VALUES (#{player_id}, '#{resource_id}', UNIX_TIMESTAMP() + #{production_time}, #{production_time}, '#{uid}', #{level})"
     )
 
     DBConnection.last_inser_id
@@ -44,10 +44,10 @@ class DeferredTasks
   def get_buildings_in_queue(player_id)
     buildings = {}
     DBConnection.query("SELECT *, (finish_time - UNIX_TIMESTAMP()) AS time_left FROM deferred_tasks WHERE user_id = '#{player_id}'").each do |task|
-      buildings[task[:package]] = {
+      buildings[task[:uid]] = {
         :level => task[:level],
         :ready => false,
-        :package => task[:package],
+        :uid => task[:uid],
         :finish_time => task[:time_left] * 1000,
         :production_time => task[:production_time] * 1000
       }
@@ -98,13 +98,13 @@ private
       tasks_to_delete << task[:id]
 
       player = PlayerFactory.get_player_by_id(task[:user_id])
-      # player.add_or_update_building(task[:package], task[:level])
+      # player.add_or_update_building(task[:uid], task[:level])
 
-      # response = Respond.as_building(task[:package], task[:level], true)
+      # response = Respond.as_building(task[:uid], task[:level], true)
 
       connection = PlayerFactory.connection(task[:user_id])
       unless connection.nil?
-        connection.send_sync_building_state(task[:package], task[:level], true)
+        connection.send_sync_building_state(task[:uid], task[:level], true)
       end
 
       # PlayerFactory.send_message(task[:user_id], response, 'updating')

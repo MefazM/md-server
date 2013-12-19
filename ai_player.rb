@@ -6,7 +6,7 @@ class AiPlayer < Player
 
   end
 
-  def get_default_unit_package()
+  def get_default_unit_uid()
     'crusader'
   end
 

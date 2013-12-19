@@ -13,6 +13,7 @@ require_relative 'mage_logger.rb'
 require_relative 'deferred_tasks.rb'
 require_relative 'settings.rb'
 require_relative 'networking.rb'
+require_relative 'game_data.rb'
 
 class Connection < EM::Connection
 

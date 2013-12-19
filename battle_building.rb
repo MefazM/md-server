@@ -3,12 +3,12 @@ require 'pry'
 require_relative 'ai_player.rb'
 
 class BattleBuilding
-  def initialize(package, position = 0.1)
+  def initialize(uid, position = 0.1)
     # initialization unit by prototype
     @unit_prototype = {
       :health_points => 200
     }
-    @package = package
+    @uid = uid
     @uid = SecureRandom.hex(4)
     # additional params
     @position = position
@@ -42,7 +42,7 @@ class BattleBuilding
   end
 
   def to_a
-    [@uid, @package, @position, @health_points]
+    [@uid, @uid, @position, @health_points]
   end
 
   def add_deffered_damage(attack_power, initial_position, range_attack_damage_type)

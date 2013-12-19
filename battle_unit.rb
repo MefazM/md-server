@@ -9,10 +9,10 @@ class BattleUnit
   ATTACK_MELEE = 4
   ATTACK_RANGE = 5
   IDLE = 42
-  def initialize(unit_package, position = 0.0)
+  def initialize(unit_uid, position = 0.0)
     # initialization unit by prototype
-    @unit_prototype = UnitsFactory.instance.units(unit_package)
-    @unit_package = unit_package
+    @unit_prototype = UnitsFactory.instance.units(unit_uid)
+    @unit_uid = unit_uid
     @uid = SecureRandom.hex(4)
     # additional params
     @status = IDLE
@@ -29,8 +29,8 @@ class BattleUnit
     @force_sync = false
   end
 
-  def package
-    @unit_package
+  def uid
+    @unit_uid
   end
 
   def uid()
