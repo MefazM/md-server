@@ -1,11 +1,7 @@
 
 require "securerandom"
 require 'pry'
-
-require_relative 'deferred_tasks.rb'
 require_relative 'redis_connection.rb'
-
-
 class Player
 
   def initialize(id, email, username)
