@@ -76,8 +76,7 @@ class UnitsFactory
     end
   end
   # Tasks processing
-  def update_production_tasks()
-    current_time = Time.now.to_f
+  def update_production_tasks current_time
     # Iterate trought all tasks
     @units_productions_tasks.each do |player_id, producers|
       producers.each do |producer_id, producers_tasks|
@@ -101,7 +100,7 @@ class UnitsFactory
             MageLogger.instance.info "UnitsFactory| Production task finished for player##{player_id}, producer='#{producer_id}', unit added='#{unit_uid}'."
           end
         else
-          # If get next tasks if current task is empty
+          # Get next tasks if current task is empty
           unit_uid, task = producers_tasks[:tasks].first
           # Start new task if exist
           unless task.nil?

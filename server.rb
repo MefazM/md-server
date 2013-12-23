@@ -81,11 +81,12 @@ class Connection < EM::Connection
 
       when RECEIVE_BUILDING_PRODUCTION_TASK_ACTION
 
-        BuildingsFactory.instance.build_or_update(@player_id, data[0])
+        BuildingsFactory.instance.add_production_task(@player_id, data[0])
 
       when RECEIVE_SPELL_CAST_ACTION
-        #
+
         @battle_director.cast_spell(@player_id, data[0], data[1])
+
       when RECEIVE_PING_ACTION
 
         @latency = Time.now.to_f - data[0]
@@ -109,14 +110,11 @@ EventMachine::run do
   EventMachine::start_server host, port, Connection
 
   EventMachine::PeriodicTimer.new(0.1) do
-
-    current_time = Time.now.to_f
-
-    BattleDirectorFactory.instance.update(current_time)
-    DeferredTasks.instance.process_all(current_time)
+    BattleDirectorFactory.instance.update(Time.now.to_f)
   end
-
   EventMachine::PeriodicTimer.new(0.5) do
-    UnitsFactory.instance.update_production_tasks()
+    current_time = Time.now.to_f
+    UnitsFactory.instance.update_production_tasks(current_time)
+    BuildingsFactory.instance.update_production_tasks(current_time)
   end
 end

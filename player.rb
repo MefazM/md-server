@@ -31,10 +31,12 @@ class Player
       buildings[uid] = {:level => level, :ready => true, :uid => uid}
     end
 
-    buildings_in_queue = DeferredTasks.instance.get_buildings_in_queue(@id)
+    buildings_queue = BuildingsFactory.instance.buildings_in_queue(@id)
 
-    buildings_in_queue.each do |uid, data|
+    buildings_queue.each do |uid, data|
       buildings[uid] = data
+      # mark as not ready building in queue
+      buildings[uid][:ready] = false
     end
 
     units_queue = UnitsFactory.instance.units_in_queue(@id)
@@ -47,7 +49,7 @@ class Player
   end
 
   def get_id()
-    return @id
+    @id
   end
 
   def to_i
