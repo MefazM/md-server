@@ -34,7 +34,7 @@ class BuildingsFactory
     end
 
     @buildings_productions_tasks[player_id] = [] if @buildings_productions_tasks[player_id].nil?
-    production_time = 5#building_to_construct[:production_time]
+    production_time = building_to_construct[:production_time]
     # check player can add task
     # price = @buildings_prototypes[uid][current_level].price
     # player.has_resources? price
