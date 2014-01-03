@@ -65,7 +65,7 @@ class Connection < EM::Connection
       when RECEIVE_LOBBY_DATA_ACTION
         # Collect data for user battle lobby
         appropriate_players = PlayerFactory.appropriate_players_for_battle(@player_id)
-        appropriate_ai = [[13123, 'someshit'], [334, '111min']]
+        appropriate_ai = [[13123, 'Boy_1'], [334, 'Boy_2']]
 
         connection = PlayerFactory.connection(@player_id)
         unless connection.nil?
