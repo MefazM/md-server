@@ -1,8 +1,8 @@
-require 'singleton'
+# require 'singleton'
 require 'logger'
 
 class MageLogger < Logger
-  include singleton
+  include Singleton
 
   LOG_FILE = STDOUT#File.open("server.log", "a")
 

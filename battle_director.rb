@@ -168,11 +168,11 @@ class BattleDirector
           end
         end
         # Ping update
-        @opponents.each_value { |opponent|
-          opponent[:connection].send_ping(
-            current_time
-          ) unless opponent[:connection].nil?
-        } if is_ping_time
+        # @opponents.each_value { |opponent|
+        #   opponent[:connection].send_ping(
+        #     current_time
+        #   ) unless opponent[:connection].nil?
+        # } if is_ping_time
       end
       # /LOOP
     end

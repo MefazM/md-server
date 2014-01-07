@@ -62,6 +62,12 @@ class PlayerFactory
     players
   end
 
+  def self.brodcast_ping( current_time )
+    @@connections.each do |key, connection|
+      connection.send_ping( current_time )
+    end
+  end
+
 private
 
   def self.get_player_by_token(token)

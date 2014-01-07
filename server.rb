@@ -3,13 +3,14 @@ require 'pry'
 require 'rubygems'
 require 'eventmachine'
 require 'json'
+require 'singleton'
 
+require_relative 'mage_logger.rb'
 require_relative 'battle_director_factory.rb'
 require_relative 'db_connection.rb'
 require_relative 'player_factory.rb'
 require_relative 'buildings_factory.rb'
 require_relative 'units_factory.rb'
-require_relative 'mage_logger.rb'
 require_relative 'settings.rb'
 require_relative 'networking.rb'
 require_relative 'game_data.rb'
@@ -20,6 +21,10 @@ class Connection < EM::Connection
 
   def post_init
     @latency = 0
+  end
+
+  def unbind
+    MageLogger.instance.info "Connection closed for player ID = #{@player_id}."
   end
 
   def receive_data(message)
@@ -107,13 +112,16 @@ EventMachine::run do
   DBConnection.connect(Settings::MYSQL_HOST, Settings::MYSQL_USER_NAME, Settings::MYSQL_DB_NAME, Settings::MYSQL_PASSWORD)
 
   EventMachine::start_server host, port, Connection
-
+  # This timer update battles.
   EventMachine::PeriodicTimer.new(0.1) do
     BattleDirectorFactory.instance.update(Time.now.to_f)
   end
+  # This timer update production queue and send ping actions(is alive?)
   EventMachine::PeriodicTimer.new(0.5) do
     current_time = Time.now.to_f
     UnitsFactory.instance.update_production_tasks(current_time)
     BuildingsFactory.instance.update_production_tasks(current_time)
+
+    PlayerFactory.brodcast_ping(current_time)
   end
 end

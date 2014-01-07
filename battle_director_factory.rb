@@ -1,6 +1,6 @@
-require 'singleton'
 
-require_relative 'mage_logger.rb'
+
+# require_relative 'mage_logger.rb'
 require_relative 'battle_director.rb'
 
 class BattleDirectorFactory
