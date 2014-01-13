@@ -91,6 +91,10 @@ class Connection < EM::Connection
 
         @battle_director.cast_spell(@player_id, data[0], data[1])
 
+      when RECEIVE_DO_HARVESTING_ACTION
+
+        PlayerFactory.harvest_coins(@player_id)
+
       when RECEIVE_PING_ACTION
 
         @latency = Time.now.to_f - data[0]

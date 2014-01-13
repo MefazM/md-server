@@ -18,9 +18,27 @@ class Player
     buildings_json = RedisConnection.instance.connection.hget(@redis_player_key, 'buildings')
     @buildings = buildings_json.nil? ? {} : JSON.parse(buildings_json, {:symbolize_names => true})
 
+    #Resources
+    prod_building_level = 1
+
+    @amount = 200 #per second
+    @last_harvest = RedisConnection.instance.connection.hget(@redis_player_key, 'last_harvest_time')
+    raise 'last_harvest_time in nil. Broken player.' if @last_harvest.nil?
+
   end
 
-  def get_game_data()
+  def harvest
+    curent_time = Time.now.to_i
+    d_time = curent_time - @last_harvest.to_i
+    earned = d_time * @amount
+
+    @last_harvest = curent_time
+    RedisConnection.instance.connection.hset("players:#{@id}:resources", "last_harvest_time", curent_time)
+
+    earned
+  end
+
+  def get_game_data
     buildings = {}
 
     @buildings.each do |uid, level|
@@ -44,7 +62,7 @@ class Player
     }}
   end
 
-  def get_id()
+  def get_id
     @id
   end
 
@@ -57,15 +75,15 @@ class Player
     level
   end
 
-  def get_default_unit_uid()
+  def get_default_unit_uid
     'crusader'
   end
 
-  def get_units_data_for_battle()
+  def get_units_data_for_battle
     @units.keys
   end
 
-  def get_main_building()
+  def get_main_building
 
   end
 
@@ -81,14 +99,35 @@ class Player
     serialize_buildings_to_redis()
   end
 
+
+  def self.create(login_data)
+    DBConnection.query(
+      "INSERT INTO players (email, username)
+      VALUES ('#{login_data[:email]}', '#{login_data[:name]}')"
+    )
+
+    player_id = DBConnection.last_inser_id
+
+    DBConnection.query(
+      "INSERT INTO authentications (player_id, provider, token)
+      VALUES (#{player_id}, '#{login_data[:provider]}', '#{login_data[:token]}')"
+    )
+
+    MageLogger.instance.info "New player created. id = #{player_id}"
+
+    RedisConnection.instance.connection.hset("players:#{player_id}", "last_harvest_time", Time.now.to_i)
+
+    return player_id
+  end
+
 private
 
-  def serialize_units_to_redis()
+  def serialize_units_to_redis
     units_json = @units.to_json
     RedisConnection.instance.connection.hset(@redis_player_key, 'units', units_json)
   end
 
-  def serialize_buildings_to_redis()
+  def serialize_buildings_to_redis
     buildings_json = @buildings.to_json
     RedisConnection.instance.connection.hset(@redis_player_key, 'buildings', buildings_json)
   end

@@ -8,17 +8,26 @@ class PlayerFactory
   @@players = {}
   @@connections = {}
 
-  def self.find_or_create(login_data, connection = nil)
+  def self.find_or_create(login_data, connection)
     login_data.map {|k,v| login_data[k] = DBConnection.escape(v)}
     MageLogger.instance.info "Player login. Token = #{login_data[:token]}"
     player = get_player_by_token(login_data[:token])
+
     if !player
-      MageLogger.instance.info " Not found. Create new..."
+      MageLogger.instance.info "Player not found. Create new..."
       player = create_player(login_data)
     end
-    @@connections[player.get_id()] = connection unless connection.nil?
 
-    player.get_id()
+    player_id = player.get_id()
+
+    unless @@connections[player_id].nil?
+      @@connections[player_id].close_connection
+      @@connections[player_id] = nil
+    end
+    # assign connection
+    @@connections[player_id] = connection
+
+    player_id
   end
 
   def self.send_game_data(player_id, action = :request_player )
@@ -35,11 +44,13 @@ class PlayerFactory
       @@players[player_id]
     else
       data = DBConnection.query("SELECT * FROM players WHERE id = '#{player_id}' ").first
-      player = Player.new(data[:id], data[:email], data[:username])
 
+      return nil if data.nil?
+
+      player = Player.new(data[:id], data[:email], data[:username])
       @@players[player.get_id()] = player
 
-      player
+      return player
     end
   end
 
@@ -62,10 +73,19 @@ class PlayerFactory
     players
   end
 
-  def self.brodcast_ping( current_time )
+  def self.brodcast_ping(current_time)
     @@connections.each do |key, connection|
       connection.send_ping( current_time )
     end
+  end
+
+  def self.harvest_coins(player_id)
+    player = get_player_by_id(player_id)
+
+    earned_coins = player.harvest
+
+    connection = self.connection(player_id)
+    connection.send_harvesting_results(earned_coins)
   end
 
 private
@@ -82,20 +102,7 @@ private
   end
 
   def self.create_player(login_data)
-    DBConnection.query(
-      "INSERT INTO players (email, username)
-      VALUES ('#{login_data[:email]}', '#{login_data[:name]}')"
-    )
-
-    player_id = DBConnection.last_inser_id
-
-    DBConnection.query(
-      "INSERT INTO authentications (player_id, provider, token)
-      VALUES (#{player_id}, '#{login_data[:provider]}', '#{login_data[:token]}')"
-    )
-
-    MageLogger.instance.info "New player created. id = #{player_id}"
-
+    player_id = Player.create(login_data)
     get_player_by_id(player_id)
   end
 
