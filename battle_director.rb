@@ -40,7 +40,7 @@ class BattleDirector
   # :player - should contains all battle data. Refactor this shit.
   # Use this method when other play accept battle.
   def set_opponent(connection, player)
-    player_id = player.get_id()
+    player_id = player.id()
 
     @opponents[player_id] = {
       :connection => connection,
@@ -299,7 +299,7 @@ private
       # Players indexes.
       _opponents_indexes << player_id
       # Opponent additional units info.
-      player_units = opponent[:player].get_units_data_for_battle()
+      player_units = opponent[:player].units_data_for_battle()
       unless opponent[:connection].nil?
         opponent[:connection].send_create_new_battle_on_client(
           @uid, player_units, opponents_main_buildings

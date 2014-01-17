@@ -6,11 +6,11 @@ class AiPlayer < Player
 
   end
 
-  def get_default_unit_uid()
+  def default_unit_uid()
     'crusader'
   end
 
-  def get_units_data_for_battle()
+  def units_data_for_battle()
     ['stone_golem', 'mage', 'doghead', 'elf']
   end
 

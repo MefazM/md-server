@@ -35,13 +35,13 @@ class Connection < EM::Connection
       # puts("ACTION:#{action}, DATA:#{data.inspect}")
       case action
       when RECEIVE_PLAYER_ACTION
-        @player_id = PlayerFactory.find_or_create(data[0], self)
-        PlayerFactory.send_game_data(@player_id)
+        @player_id = PlayerFactory.instance.find_or_create(data[0], self)
+        PlayerFactory.instance.send_game_data(@player_id)
       when RECEIVE_NEW_BATTLE_ACTION
         # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
         # возможно добавлять battle_director только после согласия обоих игроков на бой?
         @battle_director = BattleDirectorFactory.instance.create()
-        @battle_director.set_opponent(self, PlayerFactory.get_player_by_id(@player_id))
+        @battle_director.set_opponent(self, PlayerFactory.instance.get_player_by_id(@player_id))
         # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
         # и ждем запрос для начала боя.
         # Тутже надо добавить список ресурсов для прелоада
@@ -52,7 +52,7 @@ class Connection < EM::Connection
           @battle_director.enable_ai(opponent_id)
         else
           # Send invite to opponent
-          connection = PlayerFactory.connection(opponent_id)
+          connection = PlayerFactory.instance.connection(opponent_id)
           unless connection.nil?
             connection.send_invite_to_battle(@battle_director.uid, @player_id)
           end
@@ -62,17 +62,17 @@ class Connection < EM::Connection
         MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[0]}."
         @battle_director = BattleDirectorFactory.instance.get(data[0])
         @battle_director.set_opponent(
-          self, PlayerFactory.get_player_by_id(@player_id)
+          self, PlayerFactory.instance.get_player_by_id(@player_id)
         )
 
       when RECEIVE_BATTLE_START_ACTION
         @battle_director.set_opponent_ready(@player_id)
       when RECEIVE_LOBBY_DATA_ACTION
         # Collect data for user battle lobby
-        appropriate_players = PlayerFactory.appropriate_players_for_battle(@player_id)
+        appropriate_players = PlayerFactory.instance.appropriate_players_for_battle(@player_id)
         appropriate_ai = [[13123, 'Boy_1'], [334, 'Boy_2']]
 
-        connection = PlayerFactory.connection(@player_id)
+        connection = PlayerFactory.instance.connection(@player_id)
         unless connection.nil?
           connection.send_lobby_data(appropriate_players, appropriate_ai)
         end
@@ -85,7 +85,8 @@ class Connection < EM::Connection
 
       when RECEIVE_BUILDING_PRODUCTION_TASK_ACTION
 
-        BuildingsFactory.instance.add_production_task(@player_id, data[0])
+        PlayerFactory.instance.try_update_building(@player_id, data[0])
+        # BuildingsFactory.instance.add_production_task(@player_id, data[0])
 
       when RECEIVE_SPELL_CAST_ACTION
 
@@ -93,7 +94,7 @@ class Connection < EM::Connection
 
       when RECEIVE_DO_HARVESTING_ACTION
 
-        PlayerFactory.harvest_coins(@player_id)
+        PlayerFactory.instance.harvest_coins(@player_id)
 
       when RECEIVE_PING_ACTION
 
@@ -126,6 +127,6 @@ EventMachine::run do
     UnitsFactory.instance.update_production_tasks(current_time)
     BuildingsFactory.instance.update_production_tasks(current_time)
 
-    PlayerFactory.brodcast_ping(current_time)
+    PlayerFactory.instance.brodcast_ping(current_time)
   end
 end

@@ -1,4 +1,5 @@
 require 'singleton'
+require 'json'
 
 class GameData
   include Singleton
@@ -8,7 +9,32 @@ class GameData
 
     units = DBConnection.query("SELECT * FROM units")
     buildings = DBConnection.query("SELECT * FROM buildings")
+    # Process game settings
+    coins_production_data = {}
+    coins_production = DBConnection.query("SELECT * FROM game_settings")
+    coins_production.each do |option|
+      coins_production_data[option[:key].to_sym] = option[:value]
+    end
+    # Convert JSON data.
+    [:storage_capacity_per_level, :coins_generation_per_level].each do |type|
+      coins_production_data[type] = JSON.parse(coins_production_data[type])
+    end
+    @coins_generation_per_level = []
+    coins_production_data[:coins_generation_per_level].each do |data|
+      @coins_generation_per_level << {
+        :amount => data['amount'].to_f,
+        :harvest_capacity => data['harvest_capacity'].to_i
+      }
+    end
 
+    @storage_capacity_per_level = []
+    coins_production_data[:storage_capacity_per_level].each do |data|
+      @storage_capacity_per_level << data['amount'].to_i
+    end
+
+    @coin_generator_uid = coins_production_data[:coin_generator_uid].to_sym
+    @storage_building_uid = coins_production_data[:storage_building_uid].to_sym
+    # Collect and process game objects
     @collected_data = {
       :buildings_production => export_buildings_production(units) ,
       :units_data => export_units(units),
@@ -18,6 +44,22 @@ class GameData
 
   def collected_data
     @collected_data
+  end
+
+  def coin_amount level
+    @coins_generation_per_level[level]
+  end
+
+  def storage_capacity level
+    @storage_capacity_per_level[level]
+  end
+
+  def coin_generator_uid
+    @coin_generator_uid
+  end
+
+  def storage_building_uid
+    @storage_building_uid
   end
 
   private
@@ -82,7 +124,8 @@ class GameData
       buildings_data[uid][:actions] = {
         :build => updateable?(building[:uid], building[:level]),
         :info => true,
-        :units => produce_units?(building[:uid], building[:level])
+        :units => produce_units?(building[:uid], building[:level]),
+        :harvest_collect => @coin_generator_uid == building[:uid].to_sym
       }
     end
 
@@ -97,6 +140,6 @@ class GameData
 
   def produce_units? uid, level
     units = DBConnection.query("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
-    return units.nil? == false
+    return units.count > 0
   end
 end

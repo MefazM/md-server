@@ -8,7 +8,8 @@ class DBConnection
     MageLogger.instance.info "Connecting to DB..."
 
     begin
-      @@connection = Mysql2::Client.new(:host => host, :username => username, :database => database, :password => password)
+      @@connection = Mysql2::Client.new(:host => host, :username => username,
+        :database => database, :password => password)
 
     rescue Exception => e
       raise e

@@ -141,9 +141,10 @@ module NETWORKING
     send_message(message)
   end
 
-  def send_harvesting_results(earned_coins)
+  def send_harvesting_results(earned_coins, storage_capacity)
     message = [SEND_HARVESTING_RESULTS_ACTION, @latency]
     message << earned_coins
+    message << storage_capacity
 
     send_message(message)
   end

@@ -70,7 +70,7 @@ class UnitsFactory
     # Save tasts queue
     @units_productions_tasks[player_id][producer_id][:tasks][unit_uid.to_sym] = task
     # Responce to client
-    connection = PlayerFactory.connection(player_id)
+    connection = PlayerFactory.instance.connection(player_id)
     unless connection.nil?
       connection.send_unit_queue(unit_uid, producer_id, production_time)
     end
@@ -94,7 +94,7 @@ class UnitsFactory
               producers_tasks[:tasks].delete(unit_uid)
             end
             # Process complited task
-            player = PlayerFactory.get_player_by_id(player_id)
+            player = PlayerFactory.instance.get_player_by_id(player_id)
             player.add_unit(unit_uid)
 
             MageLogger.instance.info "UnitsFactory| Production task finished for player##{player_id}, producer='#{producer_id}', unit added='#{unit_uid}'."
@@ -108,7 +108,7 @@ class UnitsFactory
             task[:finish_at] = current_time + task[:production_time]
             producers_tasks[:current_task] = task
             # Notify client about task start
-            connection = PlayerFactory.connection(player_id)
+            connection = PlayerFactory.instance.connection(player_id)
             # Convert to client ms
             production_time_in_ms = task[:production_time] * 1000
             unless connection.nil?
