@@ -17,15 +17,13 @@ class BuildingsFactory
     MageLogger.instance.info "BuildingsFactory| #{@buildings_prototypes.count} building(s) - loaded."
   end
 
+  def price uid, level
+    @buildings_prototypes[uid][level][:price]
+  end
+
   def add_production_task(player_id, uid, level_building)
     current_time = Time.now.to_f
-
-    # player = PlayerFactory.instance.get_player_by_id(player_id)
     # # if player already construct this building, current_level > 0
-    # current_level = player.building_level(uid)
-
-    # next_level_building = current_level + 1
-
     building_to_construct = @buildings_prototypes[uid][level_building]
     # return false if no building at this level
     if building_to_construct.nil?

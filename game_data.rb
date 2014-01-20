@@ -23,7 +23,7 @@ class GameData
     coins_production_data[:coins_generation_per_level].each do |data|
       @coins_generation_per_level << {
         :amount => data['amount'].to_f,
-        :harvest_capacity => data['harvest_capacity'].to_i
+        :harvester_capacity => data['harvest_capacity'].to_i
       }
     end
 
@@ -46,7 +46,7 @@ class GameData
     @collected_data
   end
 
-  def coin_amount level
+  def harvester level
     @coins_generation_per_level[level]
   end
 
@@ -112,7 +112,8 @@ class GameData
   def export_buildings buildings
     buildings_data = {}
     buildings.each do |building|
-      uid = "#{building[:uid].to_sym}_#{building[:level]}"
+      building_uid = building[:uid].to_sym
+      uid = "#{building_uid}_#{building[:level]}"
       # buildings_data[uid] = [] if buildings_data[uid].nil?
 
       buildings_data[uid] = {}
@@ -123,9 +124,10 @@ class GameData
 
       buildings_data[uid][:actions] = {
         :build => updateable?(building[:uid], building[:level]),
-        :info => true,
+        :info => @coin_generator_uid != building_uid,
         :units => produce_units?(building[:uid], building[:level]),
-        :harvest_collect => @coin_generator_uid == building[:uid].to_sym
+        :harvest_collect => @coin_generator_uid == building_uid,
+        :harvest_info => @coin_generator_uid == building_uid
       }
     end
 

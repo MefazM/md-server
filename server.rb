@@ -81,12 +81,11 @@ class Connection < EM::Connection
 
       when RECEIVE_UNIT_PRODUCTION_TASK_ACTION
 
-        UnitsFactory.instance.add_production_task(@player_id, data[0])
+        PlayerFactory.instance.try_to_train_unit(@player_id, data[0].to_sym)
 
       when RECEIVE_BUILDING_PRODUCTION_TASK_ACTION
 
         PlayerFactory.instance.try_update_building(@player_id, data[0])
-        # BuildingsFactory.instance.add_production_task(@player_id, data[0])
 
       when RECEIVE_SPELL_CAST_ACTION
 
@@ -98,9 +97,15 @@ class Connection < EM::Connection
 
       when RECEIVE_PING_ACTION
 
-        @latency = Time.now.to_f - data[0]
-      end
+        @latency = (Time.now.to_f - data[0]).round(3)
 
+      when RECEIVE_REQUEST_STORAGE_DATA
+        player = PlayerFactory.instance.get_player_by_id(@player_id)
+        send_mine_capacity(
+          player.mine_amount(Time.now.to_f),
+          player.harvester_capacity
+        )
+      end
     end
   end
 end
@@ -128,5 +133,10 @@ EventMachine::run do
     BuildingsFactory.instance.update_production_tasks(current_time)
 
     PlayerFactory.instance.brodcast_ping(current_time)
+  end
+  # Send gold mine storage capacity to each connected player.
+  EventMachine::PeriodicTimer.new(2) do
+    current_time = Time.now.to_f
+    PlayerFactory.instance.brodcast_mine_capacity(current_time)
   end
 end

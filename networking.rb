@@ -13,6 +13,7 @@ module NETWORKING
   RECEIVE_PING_ACTION = 9
   RECEIVE_BUILDING_PRODUCTION_TASK_ACTION = 10
   RECEIVE_DO_HARVESTING_ACTION = 11
+  RECEIVE_REQUEST_STORAGE_DATA = 12
 
   SEND_SPELL_CAST_ACTION = 101
   SEND_SPAWN_UNIT_ACTION = 102
@@ -28,6 +29,7 @@ module NETWORKING
   SEND_SYNC_BUILDING_STATE_ACTION = 112
   SEND_CREATE_NEW_BATTLE_ON_CLIENT_ACTION = 113
   SEND_HARVESTING_RESULTS_ACTION = 114
+  SEND_MINE_CAPACITY = 115
 
   SEND_PING_ACTION = 555
 
@@ -145,6 +147,14 @@ module NETWORKING
     message = [SEND_HARVESTING_RESULTS_ACTION, @latency]
     message << earned_coins
     message << storage_capacity
+
+    send_message(message)
+  end
+
+  def send_mine_capacity(current_amount, capacity)
+    message = [SEND_MINE_CAPACITY, @latency]
+    message << current_amount
+    message << capacity
 
     send_message(message)
   end

@@ -35,7 +35,8 @@ class PlayerFactory
     connection.send_game_data({
       :uid => player_id,
       :player_data => @players[player_id].game_data(),
-      :game_data => GameData.instance.collected_data
+      :game_data => GameData.instance.collected_data,
+      :server_version => Settings::SERVER_VERSION
     }) unless connection.nil?
   end
 
@@ -79,13 +80,49 @@ class PlayerFactory
     end
   end
 
+  def brodcast_mine_capacity(current_time)
+    @connections.each do |key, connection|
+      connection.send_mine_capacity(
+        @players[key].mine_amount(current_time),
+        @players[key].harvester_capacity
+      )
+    end
+  end
+
   def harvest_coins(player_id)
     player = get_player_by_id(player_id)
-    amount_in_storage = player.harvest
+    unless player.storage_full?
+      player.harvest
+      connection = connection(player_id)
+      unless connection.nil?
+        connection.send_harvesting_results(
+          player.coins_in_storage,
+          player.storage_capacity
+        )
+      end
+    end
+  end
 
-    connection = connection(player_id)
-    unless connection.nil?
-      connection.send_harvesting_results(amount_in_storage, player.storage_capacity)
+  #
+  # UNITS
+  def try_to_train_unit(player_id, unit_uid)
+    player = @players[player_id]
+    return false if player.nil?
+
+    price = UnitsFactory.instance.price(unit_uid)
+    if player.make_payment(price)
+      task_data = UnitsFactory.instance.add_production_task(player_id, unit_uid)
+      # Responce to client
+      connection = connection(player_id)
+      unless connection.nil?
+        connection.send_unit_queue(*task_data)
+        # Send new coins amount
+        connection.send_harvesting_results(
+          player.coins_in_storage,
+          player.storage_capacity
+        )
+      end
+
     end
   end
 
@@ -97,13 +134,25 @@ class PlayerFactory
     # if player already construct this building, current_level > 0
     target_level = player.building_level(building_uid) + 1
 
-    task_data = BuildingsFactory.instance.add_production_task(player_id, building_uid, target_level)
-    # Notify client about task start
-    connection = connection(player_id)
-    # Convert to client ms
-    production_time_in_ms = task_data[:production_time] * 1000
-    unless connection.nil?
-      connection.send_sync_building_state(building_uid, target_level, false, production_time_in_ms)
+    price = BuildingsFactory.instance.price(building_uid, target_level)
+
+    if player.make_payment(price)
+
+      task_data = BuildingsFactory.instance.add_production_task(player_id, building_uid, target_level)
+      # Notify client about task start
+      connection = connection(player_id)
+      # Convert to client ms
+      production_time_in_ms = task_data[:production_time] * 1000
+      unless connection.nil?
+        # Send new started task data
+        connection.send_sync_building_state(building_uid, target_level, false, production_time_in_ms)
+        # Send new coins amount
+        connection.send_harvesting_results(
+          player.coins_in_storage,
+          player.storage_capacity
+        )
+      end
+
     end
   end
 
@@ -118,15 +167,14 @@ class PlayerFactory
       connection.send_sync_building_state(building_uid, level, true)
       # Handle special after-update rule for
       # storage and gold generator buildings
-      # binding.pry
       if building_uid.to_sym == @storage_building_uid
         player.compute_storage_capacity()
         #Send new values
-        connection.send_harvesting_results(player.amount_in_storage, player.storage_capacity)
+        connection.send_harvesting_results(player.coins_in_storage, player.storage_capacity)
       elsif building_uid.to_sym == @coin_generator_uid
         player.compute_coins_gain()
         #Send new values
-        connection.send_harvesting_results(player.amount_in_storage, player.storage_capacity)
+        connection.send_harvesting_results(player.coins_in_storage, player.storage_capacity)
       end
     end
   end

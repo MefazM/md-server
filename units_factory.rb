@@ -19,6 +19,11 @@ class UnitsFactory
     @units_productions_tasks = {}
     MageLogger.instance.info "UnitsFactory| #{@units_prototypes.count} unit(s) - loaded."
   end
+
+  def price uid
+    @units_prototypes[uid][:price]
+  end
+
   # Get units in queue by player id
   def units_in_queue(player_id)
     current_time = Time.now.to_f
@@ -53,7 +58,7 @@ class UnitsFactory
     @units_productions_tasks[player_id] = {} if @units_productions_tasks[player_id].nil?
     # If player has no producer tasks from producer_id create it
     if @units_productions_tasks[player_id][producer_id].nil?
-      # current_task - curent processing task
+      # current_task - current processing task
       # tasks array of tasks grouped by unit uid key
       @units_productions_tasks[player_id][producer_id] = {:current_task => nil, :tasks => {}}
     end
@@ -69,11 +74,12 @@ class UnitsFactory
     end
     # Save tasts queue
     @units_productions_tasks[player_id][producer_id][:tasks][unit_uid.to_sym] = task
-    # Responce to client
-    connection = PlayerFactory.instance.connection(player_id)
-    unless connection.nil?
-      connection.send_unit_queue(unit_uid, producer_id, production_time)
-    end
+    # # Responce to client
+    # connection = PlayerFactory.instance.connection(player_id)
+    # unless connection.nil?
+    #   connection.send_unit_queue(unit_uid, producer_id, production_time)
+    # end
+    [unit_uid, producer_id, production_time]
   end
   # Tasks processing
   def update_production_tasks current_time
