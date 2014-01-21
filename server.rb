@@ -100,11 +100,8 @@ class Connection < EM::Connection
         @latency = (Time.now.to_f - data[0]).round(3)
 
       when RECEIVE_REQUEST_STORAGE_DATA
-        player = PlayerFactory.instance.get_player_by_id(@player_id)
-        send_mine_capacity(
-          player.mine_amount(Time.now.to_f),
-          player.harvester_capacity
-        )
+        coins_gain_info = PlayerFactory.instance.coins_gain_info(@player_id)
+        send_custom_event(:currentMineAmount, coins_gain_info)
       end
     end
   end
@@ -134,9 +131,9 @@ EventMachine::run do
 
     PlayerFactory.instance.brodcast_ping(current_time)
   end
-  # Send gold mine storage capacity to each connected player.
+  # Process notifications about gold mine storage filling.
   EventMachine::PeriodicTimer.new(2) do
-    current_time = Time.now.to_f
+    current_time = Time.now.to_i
     PlayerFactory.instance.brodcast_mine_capacity(current_time)
   end
 end

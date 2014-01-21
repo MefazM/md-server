@@ -82,11 +82,25 @@ class PlayerFactory
 
   def brodcast_mine_capacity(current_time)
     @connections.each do |key, connection|
-      connection.send_mine_capacity(
-        @players[key].mine_amount(current_time),
-        @players[key].harvester_capacity
-      )
+      amount = @players[key].mine_amount(current_time)
+      capacity = @players[key].harvester_capacity
+      # Send notification about gold mine overflow
+      if amount >= capacity
+        connection.send_custom_event(:goldMineStorageFull)
+      end
     end
+  end
+
+  def coins_gain_info(player_id)
+    player = @players[player_id]
+    unless player.nil?
+      amount = player.mine_amount(Time.now.to_i)
+      capacity = player.harvester_capacity
+      gain = player.coins_gain_per_second
+
+      return [amount, capacity, gain]
+    end
+    return nil
   end
 
   def harvest_coins(player_id)

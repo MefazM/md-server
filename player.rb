@@ -77,6 +77,10 @@ class Player
     @harvester_capacity
   end
 
+  def coins_gain_per_second
+    @coins_gain
+  end
+
   def mine_amount current_time
     d_time = current_time - @last_harvest_time.to_i
     earned = (d_time * @coins_gain).to_i + @harvester_storage
