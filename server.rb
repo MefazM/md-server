@@ -6,6 +6,7 @@ require 'json'
 require 'singleton'
 
 require_relative 'mage_logger.rb'
+require_relative 'player.rb'
 require_relative 'battle_director_factory.rb'
 require_relative 'db_connection.rb'
 require_relative 'player_factory.rb'
@@ -38,32 +39,49 @@ class Connection < EM::Connection
         @player_id = PlayerFactory.instance.find_or_create(data[0], self)
         PlayerFactory.instance.send_game_data(@player_id)
       when RECEIVE_NEW_BATTLE_ACTION
-        # Тут нужна проверка, может ли игрок в данное время нападать на это AI или игрока.
-        # возможно добавлять battle_director только после согласия обоих игроков на бой?
-        @battle_director = BattleDirectorFactory.instance.create()
-        @battle_director.set_opponent(self, PlayerFactory.instance.get_player_by_id(@player_id))
-        # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
-        # и ждем запрос для начала боя.
-        # Тутже надо добавить список ресурсов для прелоада
-        # data[0] - opponent or AI uid.
-        opponent_id = data[0]
-        # Is ai battle?
-        if data[1] == true
-          @battle_director.enable_ai(opponent_id)
-        else
-          # Send invite to opponent
-          connection = PlayerFactory.instance.connection(opponent_id)
-          unless connection.nil?
-            connection.send_invite_to_battle(@battle_director.uid, @player_id)
-          end
-        end
+        # Cancel battle invite if
+        # - opponen already in battle
+        # - by timeout
+        # - if opponen don't accept battle
 
-      when RECEIVE_ACCEPT_BATTLE_ACTION
-        MageLogger.instance.info "Player ID = #{@player_id}, accepted battle UID = #{data[0]}."
-        @battle_director = BattleDirectorFactory.instance.get(data[0])
-        @battle_director.set_opponent(
-          self, PlayerFactory.instance.get_player_by_id(@player_id)
-        )
+        BattleDirectorFactory.instance.invite(@player_id, data[0])
+
+        # opponent = PlayerFactory.instance.get_player_by_id(@player_id)
+        # if opponent.frozen?
+
+        # else
+
+        # end
+
+        # @battle_director = BattleDirectorFactory.instance.create()
+
+        # @battle_director.set_opponent(self, opponent)
+        # # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
+        # # и ждем запрос для начала боя.
+        # # Тутже надо добавить список ресурсов для прелоада
+        # # data[0] - opponent or AI uid.
+        # opponent_id = data[0]
+        # # Is ai battle?
+        # if data[1] == true
+        #   @battle_director.enable_ai(opponent_id)
+        # else
+        #   # Send invite to opponent
+        #   connection = PlayerFactory.instance.connection(opponent_id)
+        #   unless connection.nil?
+        #     connection.send_invite_to_battle(@battle_director.uid, @player_id)
+        #   end
+        # end
+
+      when RECEIVE_RESPONSE_BATTLE_INVITE_ACTION
+        MageLogger.instance.info "Player ID = #{@player_id}, response to battle invitation. UID = #{data[0]}."
+        # data[0] - uid
+        # data[1] - is accepted
+        BattleDirectorFactory.instance.opponent_response_to_invitation(@player_id, data[0], data[1])
+
+        # @battle_director = BattleDirectorFactory.instance.get(data[0])
+        # @battle_director.set_opponent(
+        #   self, PlayerFactory.instance.get_player_by_id(@player_id)
+        # )
 
       when RECEIVE_BATTLE_START_ACTION
         @battle_director.set_opponent_ready(@player_id)
@@ -99,9 +117,10 @@ class Connection < EM::Connection
 
         @latency = (Time.now.to_f - data[0]).round(3)
 
-      when RECEIVE_REQUEST_STORAGE_DATA
-        coins_gain_info = PlayerFactory.instance.coins_gain_info(@player_id)
-        send_custom_event(:currentMineAmount, coins_gain_info)
+      when RECEIVE_REQUEST_CURRENT_MINE_AMOUNT
+
+        PlayerFactory.instance.send_current_mine_amount(@player_id)
+
       end
     end
   end
@@ -110,14 +129,10 @@ end
 EventMachine::run do
   host = Settings::SERVER_HOST
   port = Settings::SERVER_PORT
-
   Signal.trap("INT")  { EventMachine.stop }
   Signal.trap("TERM") { EventMachine.stop }
-
   MageLogger.instance.info "Starting MageServer on #{host}:#{port}..."
-
   DBConnection.connect(Settings::MYSQL_HOST, Settings::MYSQL_USER_NAME, Settings::MYSQL_DB_NAME, Settings::MYSQL_PASSWORD)
-
   EventMachine::start_server host, port, Connection
   # This timer update battles.
   EventMachine::PeriodicTimer.new(0.1) do
@@ -128,12 +143,12 @@ EventMachine::run do
     current_time = Time.now.to_f
     UnitsFactory.instance.update_production_tasks(current_time)
     BuildingsFactory.instance.update_production_tasks(current_time)
-
     PlayerFactory.instance.brodcast_ping(current_time)
   end
   # Process notifications about gold mine storage filling.
   EventMachine::PeriodicTimer.new(2) do
     current_time = Time.now.to_i
     PlayerFactory.instance.brodcast_mine_capacity(current_time)
+    BattleDirectorFactory.instance.process_invitation_queue(current_time)
   end
 end

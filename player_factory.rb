@@ -30,7 +30,7 @@ class PlayerFactory
     player_id
   end
 
-  def send_game_data(player_id, action = :request_player )
+  def send_game_data(player_id)
     connection = connection(player_id)
     connection.send_game_data({
       :uid => player_id,
@@ -86,21 +86,24 @@ class PlayerFactory
       capacity = @players[key].harvester_capacity
       # Send notification about gold mine overflow
       if amount >= capacity
-        connection.send_custom_event(:goldMineStorageFull)
+        connection.send_gold_mine_storage_full()
       end
     end
   end
 
-  def coins_gain_info(player_id)
+  def send_current_mine_amount(player_id)
     player = @players[player_id]
     unless player.nil?
       amount = player.mine_amount(Time.now.to_i)
       capacity = player.harvester_capacity
       gain = player.coins_gain_per_second
 
-      return [amount, capacity, gain]
+      connection = connection(player_id)
+      unless connection.nil?
+        connection.send_current_mine_amount(amount, capacity, gain)
+      end
+
     end
-    return nil
   end
 
   def harvest_coins(player_id)
@@ -109,7 +112,7 @@ class PlayerFactory
       player.harvest
       connection = connection(player_id)
       unless connection.nil?
-        connection.send_harvesting_results(
+        connection.send_coins_storage_capacity(
           player.coins_in_storage,
           player.storage_capacity
         )
@@ -131,7 +134,7 @@ class PlayerFactory
       unless connection.nil?
         connection.send_unit_queue(*task_data)
         # Send new coins amount
-        connection.send_harvesting_results(
+        connection.send_coins_storage_capacity(
           player.coins_in_storage,
           player.storage_capacity
         )
@@ -161,7 +164,7 @@ class PlayerFactory
         # Send new started task data
         connection.send_sync_building_state(building_uid, target_level, false, production_time_in_ms)
         # Send new coins amount
-        connection.send_harvesting_results(
+        connection.send_coins_storage_capacity(
           player.coins_in_storage,
           player.storage_capacity
         )
@@ -184,11 +187,11 @@ class PlayerFactory
       if building_uid.to_sym == @storage_building_uid
         player.compute_storage_capacity()
         #Send new values
-        connection.send_harvesting_results(player.coins_in_storage, player.storage_capacity)
+        connection.send_coins_storage_capacity(player.coins_in_storage, player.storage_capacity)
       elsif building_uid.to_sym == @coin_generator_uid
         player.compute_coins_gain()
         #Send new values
-        connection.send_harvesting_results(player.coins_in_storage, player.storage_capacity)
+        connection.send_coins_storage_capacity(player.coins_in_storage, player.storage_capacity)
       end
     end
   end

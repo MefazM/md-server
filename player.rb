@@ -32,6 +32,27 @@ class Player
 
     @coins_in_storage = redis_get(@redis_resources_key, 'coins', 0).to_i
     @harvester_storage = redis_get(@redis_resources_key, 'harvester_storage', 0).to_i
+
+    # PLAYER_STATE_IDLE = 1
+    # PLAYER_STATE_IN_BATTLE = 2
+    # @state = PLAYER_STATE_IDLE
+    @frozen = false
+  end
+
+  def freeze!
+    @frozen = true
+  end
+
+  def unfreeze!
+    @frozen = false
+  end
+
+  def frozen?
+    @frozen
+  end
+
+  def idle?
+    @state == PLAYER_STATE_IDLE
   end
 
   def harvest

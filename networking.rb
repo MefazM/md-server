@@ -9,11 +9,11 @@ module NETWORKING
   RECEIVE_SPAWN_UNIT_ACTION = 5
   RECEIVE_UNIT_PRODUCTION_TASK_ACTION = 6
   RECEIVE_SPELL_CAST_ACTION = 7
-  RECEIVE_ACCEPT_BATTLE_ACTION = 8
+  RECEIVE_RESPONSE_BATTLE_INVITE_ACTION = 8
   RECEIVE_PING_ACTION = 9
   RECEIVE_BUILDING_PRODUCTION_TASK_ACTION = 10
   RECEIVE_DO_HARVESTING_ACTION = 11
-  RECEIVE_REQUEST_STORAGE_DATA = 12
+  RECEIVE_REQUEST_CURRENT_MINE_AMOUNT = 12
 
   SEND_SPELL_CAST_ACTION = 101
   SEND_SPAWN_UNIT_ACTION = 102
@@ -83,9 +83,9 @@ module NETWORKING
     send_message(message)
   end
 
-  def send_invite_to_battle(battle_uid, invitation_from)
+  def send_invite_to_battle(token, invitation_from)
     message = [SEND_INVITE_TO_BATTLE_ACTION, @latency]
-    message << battle_uid
+    message << token
     message << invitation_from
 
     send_message(message)
@@ -143,11 +143,28 @@ module NETWORKING
     send_message(message)
   end
 
-  def send_harvesting_results(earned_coins, storage_capacity)
+  def send_coins_storage_capacity(earned_coins, storage_capacity)
     message = [SEND_CUSTOM_EVENT, @latency]
     message << :setStorageCapacity
     message << earned_coins
     message << storage_capacity
+
+    send_message(message)
+  end
+
+  def send_current_mine_amount(amount, capacity, gain)
+    message = [SEND_CUSTOM_EVENT, @latency]
+    message << :currentMineAmount
+    message << amount
+    message << capacity
+    message << gain
+
+    send_message(message)
+  end
+
+  def send_gold_mine_storage_full()
+    message = [SEND_CUSTOM_EVENT, @latency]
+    message << :goldMineStorageFull
 
     send_message(message)
   end

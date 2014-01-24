@@ -14,7 +14,6 @@ class BattleDirector
   FINISHED = 4
   # Timings
   DEFAULT_UNITS_SPAWN_TIME = 5.0
-  PING_TIME = 0.5
 
   def initialize()
     # Battle director save two players connection
@@ -25,7 +24,6 @@ class BattleDirector
 
     @opponents_indexes = {}
     @iteration_time = Time.now.to_f
-    @ping_time = Time.now.to_f
 
     @default_unit_spawn_time = 0
 
@@ -104,10 +102,6 @@ class BattleDirector
     is_default_unit_spawn_time = current_time - @default_unit_spawn_time > DEFAULT_UNITS_SPAWN_TIME
     @default_unit_spawn_time = current_time if is_default_unit_spawn_time
 
-    # Ping update
-    is_ping_time = current_time - @ping_time > PING_TIME
-    @ping_time = current_time if is_ping_time
-
     @opponents.each do |player_id, player|
       opponent_uid = @opponents_indexes[player_id]
       opponent = @opponents[opponent_uid]
@@ -145,7 +139,7 @@ class BattleDirector
       end
 
       if main_building.dead?
-        # finish battle, current player is a loser!
+        # finish battle, current player loses
         finish_battle(player_id)
         return
       else
@@ -167,12 +161,6 @@ class BattleDirector
             player[:spells].delete_at(index)
           end
         end
-        # Ping update
-        # @opponents.each_value { |opponent|
-        #   opponent[:connection].send_ping(
-        #     current_time
-        #   ) unless opponent[:connection].nil?
-        # } if is_ping_time
       end
       # /LOOP
     end
@@ -265,7 +253,6 @@ private
     }
 
     @iteration_time = Time.now.to_f
-    @ping_time = Time.now.to_f
     @default_unit_spawn_time = 0
   end
 
