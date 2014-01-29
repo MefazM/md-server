@@ -4,7 +4,7 @@ require 'pry'
 require_relative 'redis_connection.rb'
 class Player
 
-  attr_accessor :id, :storage_capacity, :coins_in_storage, :harvester_capacity, :coins_gain, :units
+  attr_accessor :id, :storage_capacity, :coins_in_storage, :harvester_capacity, :coins_gain, :units, :username
 
   def initialize(id, email, username)
     @id = id

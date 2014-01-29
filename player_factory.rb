@@ -68,7 +68,7 @@ class PlayerFactory
   def appropriate_players_for_battle(player_id)
     players = []
     @connections.each_key do |id|
-      players << @players[id].to_i unless id == player_id
+      players << [@players[id].id, @players[id].username]  unless id == player_id
     end
 
     players
