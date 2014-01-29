@@ -100,7 +100,7 @@ class UnitsFactory
               producers_tasks[:tasks].delete(unit_uid)
             end
             # Process complited task
-            player = PlayerFactory.instance.get_player_by_id(player_id)
+            player = PlayerFactory.instance.player(player_id)
             player.add_unit(unit_uid)
 
             MageLogger.instance.info "UnitsFactory| Production task finished for player##{player_id}, producer='#{producer_id}', unit added='#{unit_uid}'."

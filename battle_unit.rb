@@ -9,6 +9,9 @@ class BattleUnit
   ATTACK_MELEE = 4
   ATTACK_RANGE = 5
   IDLE = 42
+
+  attr_accessor :uid, :position, :status
+
   def initialize(unit_uid, position = 0.0)
     # initialization unit by prototype
     @unit_prototype = UnitsFactory.instance.units(unit_uid)
@@ -29,20 +32,8 @@ class BattleUnit
     @force_sync = false
   end
 
-  def uid
-    @unit_uid
-  end
-
-  def uid()
-    @uid
-  end
-
   def dead?()
     @status == DIE
-  end
-
-  def position()
-    @position
   end
 
   def sync_data
@@ -121,10 +112,6 @@ class BattleUnit
         # puts("FORCE TO #{@target_unit_uid}")
       end
     end
-  end
-
-  def status
-    @status
   end
 
   def can_attack?

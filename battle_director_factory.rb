@@ -1,3 +1,5 @@
+require_relative 'battle_director.rb'
+
 class BattleDirectorFactory
   include Singleton
 
@@ -9,7 +11,7 @@ class BattleDirectorFactory
   end
 
   def invite(sender_id, opponent_id)
-    sender = PlayerFactory.instance.get_player_by_id(sender_id)
+    sender = PlayerFactory.instance.player(sender_id)
 
     if sender.frozen?
       send_invitation_canceled_notification(sender_id)
@@ -24,28 +26,74 @@ class BattleDirectorFactory
     return true
   end
 
+  def create_ai_battle(player_id, ai_id)
+    player = PlayerFactory.instance.player(player_id)
+    player.freeze!
+
+    battle_director = BattleDirector.new()
+    @battles[battle_director.uid()] = battle_director
+
+    data = {
+      :id => player_id,
+      :units => player.units(),
+      # Here will be other plyer options
+    }
+
+    connection = PlayerFactory.instance.connection(player_id)
+    battle_director.set_opponent(data, connection)
+
+    # Set AI opponent
+    ai_player = AiPlayer.new
+    data = {
+      :id => ai_id,
+      :units => ai_player.units(),
+      # Here will be other plyer options
+    }
+    battle_director.set_opponent(data, nil)
+
+    battle_director
+  end
+
   def opponent_response_to_invitation(player_id, token, decision)
     return false if @invites[player_id].nil? or @invites[player_id][0].nil?
 
     invitation = @invites[player_id][0]
     return false if invitation[2] != token
+    # Opponent player agree invitation
     if decision == true
-
-      player = PlayerFactory.instance.get_player_by_id(player_id)
+      player = PlayerFactory.instance.player(player_id)
       player.freeze!
-
+      battle_director = BattleDirector.new()
+      @battles[battle_director.uid()] = battle_director
       @invites.delete(player_id)
+
+      [player_id, invitation[0]].each do |opponent_id|
+        connection = PlayerFactory.instance.connection(opponent_id)
+        player = PlayerFactory.instance.player(opponent_id)
+
+        data = {
+          :id => opponent_id,
+          :units => player.units(),
+          # Here will be other plyer options
+        }
+
+        battle_director.set_opponent(data, connection)
+      end
+
+      return battle_director
+
     else
+      # Opponent player reject invitaion
       cancel_invitation(player_id)
+
+      return nil
     end
   end
 
   def process_invitation_queue(current_time)
-    # current_time = Time.now.to_i
     @invites.each do |player_id, invitations|
       invitation = invitations[0]
 
-puts(current_time - invitation[1])
       if current_time - invitation[1] > INVITATION_LIFE_TIME
         # invitaion expired
         cancel_invitation(player_id)
@@ -85,7 +133,7 @@ puts(current_time - invitation[1])
     invitation = @invites[player_id][0]
     sender_id = invitation[0]
 
-    sender = PlayerFactory.instance.get_player_by_id(sender_id)
+    sender = PlayerFactory.instance.player(sender_id)
     sender.unfreeze!
 
     send_invitation_canceled_notification(sender_id)

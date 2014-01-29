@@ -3,6 +3,9 @@ require 'pry'
 require_relative 'ai_player.rb'
 
 class BattleBuilding
+
+  attr_accessor :uid, :health_points, :position
+
   def initialize(uid, position = 0.1)
     # initialization unit by prototype
     @unit_prototype = {
@@ -25,20 +28,8 @@ class BattleBuilding
     changed
   end
 
-  def uid()
-    @uid
-  end
-
-  def health_points()
-    @health_points
-  end
-
   def dead?()
     @health_points < 0
-  end
-
-  def position()
-    @position
   end
 
   def to_a

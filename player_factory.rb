@@ -40,7 +40,7 @@ class PlayerFactory
     }) unless connection.nil?
   end
 
-  def get_player_by_id(player_id)
+  def player(player_id)
     if @players.key? player_id
       @players[player_id]
     else
@@ -96,7 +96,7 @@ class PlayerFactory
     unless player.nil?
       amount = player.mine_amount(Time.now.to_i)
       capacity = player.harvester_capacity
-      gain = player.coins_gain_per_second
+      gain = player.coins_gain
 
       connection = connection(player_id)
       unless connection.nil?
@@ -107,7 +107,7 @@ class PlayerFactory
   end
 
   def harvest_coins(player_id)
-    player = get_player_by_id(player_id)
+    player = player(player_id)
     unless player.storage_full?
       player.harvest
       connection = connection(player_id)
@@ -202,7 +202,7 @@ private
     authentication = DBConnection.query("SELECT * FROM authentications WHERE token = '#{token}' ").first
     if authentication
       player_id = authentication[:player_id]
-      player = get_player_by_id(player_id)
+      player = player(player_id)
     end
 
     return player
@@ -210,7 +210,7 @@ private
 
   def create_player(login_data)
     player_id = Player.create(login_data)
-    get_player_by_id(player_id)
+    player(player_id)
   end
 
 end

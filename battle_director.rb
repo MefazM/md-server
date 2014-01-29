@@ -15,6 +15,8 @@ class BattleDirector
   # Timings
   DEFAULT_UNITS_SPAWN_TIME = 5.0
 
+  attr_accessor :uid, :status
+
   def initialize()
     # Battle director save two players connection
     # Here stores connections and battle data
@@ -30,45 +32,38 @@ class BattleDirector
     MageLogger.instance.info "New BattleDirector initialize... UID = #{@uid}"
   end
 
-  def status
-    @status
-  end
-  # Add player opponent snapshot and his connection.
-  # If opponents > 2 - start the battle
-  # :player - should contains all battle data. Refactor this shit.
-  # Use this method when other play accept battle.
-  def set_opponent(connection, player)
-    player_id = player.id()
+  def set_opponent(data, connection)
+    player_id = data[:id]
+    # Units data, available and lost
+    units = {}
+    data[:units].each do |uid, count|
+      units[uid] = {
+        :available => count,
+        :lost => 0
+      }
+    end
 
-    @opponents[player_id] = {
-      :connection => connection,
-      :player => player,
+    opponent_data = {
+      :units => units,
       :is_ready => false,
       :units_pool => [],
-      :main_building => nil,
-      :spells => []
+      :main_building => BattleBuilding.new( 'building_1', 0.1 ),
+      :spells => [],
+      :connection => connection
     }
+
+    if connection.nil?
+      opponent_data[:is_ai] = true
+      opponent_data[:is_ready] = true
+    end
+
+    @opponents[player_id] = opponent_data
+
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) added opponent. ID = #{player_id}"
-    # Если достаточное количество игроков чтобы начать бой
+    # Create battle on devices if anough players
     create_battle_at_clients() if @opponents.count == 2
   end
 
-  # Enable AI and start the battle.
-  # Opponent should be added first.
-  # :player - ai player object
-  def enable_ai(ai_uid)
-    MageLogger.instance.info "BattleDirector (UID=#{@uid}) enable AI. UID = #{ai_uid} "
-
-    @opponents[ai_uid] = {
-      :connection => nil,
-      :player => AiPlayer.new(),
-      :is_ready => true,
-      :units_pool => [],
-      :main_building => nil,
-      :spells => []
-    }
-    create_battle_at_clients()
-  end
   # After initialization battle on clients.
   # Battle starts after all opponents are ready.
   def set_opponent_ready(player_id)
@@ -82,11 +77,6 @@ class BattleDirector
   def is_started?()
     @status == IN_PROGRESS
   end
-  # Battle uid.
-  def uid()
-    @uid
-  end
-
   # Update:
   # 1. Calculating latency
   # 2. Calculating units moverment, damage and states.
@@ -125,6 +115,12 @@ class BattleDirector
         end
 
         if unit.dead?
+          # Iterate lost unit counter
+          unit_data = opponent[:units][unit.uid]
+          unless unit_data.nil?
+            unit_data[:lost] += 1
+          end
+
           player[:units_pool].delete_at(index)
           unit = nil
         end
@@ -164,12 +160,20 @@ class BattleDirector
       end
       # /LOOP
     end
-    # /update
+    # /UPDATE
   end
 
   # Additional units spawning. here should be a validation.
   def spawn_unit (unit_uid, player_id)
-    add_unit_to_pool(player_id, unit_uid)
+    unit_uid = unit_uid.to_sym
+    #
+    unit_data = @opponents[player_id][:units][unit_uid]
+    unless unit_data.nil?
+      if unit_data[:available] > 0
+        unit_data[:available] -= 1
+        add_unit_to_pool(player_id, unit_uid)
+      end
+    end
   end
 
   # Cast the spell to target area.
@@ -270,30 +274,27 @@ private
     MageLogger.instance.info "BattleDirector (UID=#{@uid}) has two opponents. Initialize battle on clients."
     _opponents_indexes = []
     # Collecting each player main buildings info.
+    # And brodcast this data to clients
     opponents_main_buildings = []
-
     @opponents.each do |player_id, opponent|
-      player_building = BattleBuilding.new( 'building_1', 0.1 )
-      opponent[:main_building] = player_building
-
-      player_building_data = player_building.to_a
+      player_building_data = opponent[:main_building].to_a
       player_building_data << player_id
-
       opponents_main_buildings << player_building_data
     end
-    #
+    #############################################
     @opponents.each do |player_id, opponent|
       # Players indexes.
       _opponents_indexes << player_id
       # Opponent additional units info.
-      player_units = opponent[:player].units_data_for_battle()
       unless opponent[:connection].nil?
         opponent[:connection].send_create_new_battle_on_client(
-          @uid, player_units, opponents_main_buildings
+          @uid,
+          opponent[:units],
+          opponents_main_buildings
         )
       end
     end
-    # hack to get user id by its opponent id.
+    # hack to get player id by its opponent id.
     @opponents_indexes[_opponents_indexes[0]] = _opponents_indexes[1]
     @opponents_indexes[_opponents_indexes[1]] = _opponents_indexes[0]
   end
@@ -301,10 +302,19 @@ private
   def finish_battle(loser_id)
     MageLogger.instance.info "BattleDirector (UID=#{@uid}). Battle finished, player (#{loser_id} - lose.)"
     @status = FINISHED
-    @opponents.each_value { |opponent|
+    @opponents.each do |player_id, opponent|
       opponent[:connection].send_finish_battle(
         loser_id
       ) unless opponent[:connection].nil?
-    }
+      #
+      # Sync player data, if not AI
+      unless opponent[:is_ai]
+        player = PlayerFactory.instance.player(player_id)
+        player.sync_after_battle({
+          :units => opponent[:units]
+        })
+      end
+
+    end
   end
 end

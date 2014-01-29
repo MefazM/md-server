@@ -4,6 +4,8 @@ require 'pry'
 require_relative 'redis_connection.rb'
 class Player
 
+  attr_accessor :id, :storage_capacity, :coins_in_storage, :harvester_capacity, :coins_gain, :units
+
   def initialize(id, email, username)
     @id = id
     @email = email
@@ -18,11 +20,9 @@ class Player
 
     buildings_json = RedisConnection.instance.connection.hget(@redis_player_key, 'buildings')
     @buildings = buildings_json.nil? ? {} : JSON.parse(buildings_json, {:symbolize_names => true})
-
-    # CoinZZ
     #
+    # CoinZZ
     @last_harvest_time = redis_get(@redis_resources_key, 'last_harvest_time', Time.now.to_i)
-
     # Buildings uids, assigned to coins generation
     @storage_building_uid = GameData.instance.storage_building_uid
     @coin_generator_uid = GameData.instance.coin_generator_uid
@@ -33,9 +33,6 @@ class Player
     @coins_in_storage = redis_get(@redis_resources_key, 'coins', 0).to_i
     @harvester_storage = redis_get(@redis_resources_key, 'harvester_storage', 0).to_i
 
-    # PLAYER_STATE_IDLE = 1
-    # PLAYER_STATE_IN_BATTLE = 2
-    # @state = PLAYER_STATE_IDLE
     @frozen = false
   end
 
@@ -86,22 +83,6 @@ class Player
     @coins_in_storage >= @storage_capacity
   end
 
-  def storage_capacity
-    @storage_capacity
-  end
-
-  def coins_in_storage
-    @coins_in_storage
-  end
-
-  def harvester_capacity
-    @harvester_capacity
-  end
-
-  def coins_gain_per_second
-    @coins_gain
-  end
-
   def mine_amount current_time
     d_time = current_time - @last_harvest_time.to_i
     earned = (d_time * @coins_gain).to_i + @harvester_storage
@@ -144,13 +125,6 @@ class Player
     enough_coins
   end
 
-  def id
-    @id
-  end
-
-  def to_i
-    [@id, @username]
-  end
 
   def building_level(uid)
     level = @buildings[uid.to_sym] || 0
@@ -161,9 +135,6 @@ class Player
     'crusader'
   end
 
-  def units_data_for_battle
-    @units.keys
-  end
 
   def add_unit(unit_id, count = 1)
     units_count = @units[unit_id] || 0
@@ -194,6 +165,21 @@ class Player
     @storage_capacity =  GameData.instance.storage_capacity(level)
   end
 
+  # Sync player after battle
+  # -add earned points
+  # -decrease units count
+  # -other...
+  def sync_after_battle(options)
+    options[:units].each do |uid, unit_data|
+      @units[uid] -= unit_data[:lost]
+      # Destroy field if no units left.
+      if @units[uid] <= 0
+        @units.delete(uid)
+      end
+    end
+    serialize_units_to_redis()
+
+  end
 
   def self.create(login_data)
     DBConnection.query(

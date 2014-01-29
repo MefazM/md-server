@@ -43,47 +43,21 @@ class Connection < EM::Connection
         # - opponen already in battle
         # - by timeout
         # - if opponen don't accept battle
-
-        BattleDirectorFactory.instance.invite(@player_id, data[0])
-
-        # opponent = PlayerFactory.instance.get_player_by_id(@player_id)
-        # if opponent.frozen?
-
-        # else
-
-        # end
-
-        # @battle_director = BattleDirectorFactory.instance.create()
-
-        # @battle_director.set_opponent(self, opponent)
-        # # Если это бой с AI - подтверждение не требуется, сразу инициируем создание боя на клиенте.
-        # # и ждем запрос для начала боя.
-        # # Тутже надо добавить список ресурсов для прелоада
-        # # data[0] - opponent or AI uid.
-        # opponent_id = data[0]
-        # # Is ai battle?
-        # if data[1] == true
-        #   @battle_director.enable_ai(opponent_id)
-        # else
-        #   # Send invite to opponent
-        #   connection = PlayerFactory.instance.connection(opponent_id)
-        #   unless connection.nil?
-        #     connection.send_invite_to_battle(@battle_director.uid, @player_id)
-        #   end
-        # end
+        # Is ai battle?
+        if data[1] == true
+          @battle_director = BattleDirectorFactory.instance.create_ai_battle(@player_id, data[0])
+        else
+          BattleDirectorFactory.instance.invite(@player_id, data[0])
+        end
 
       when RECEIVE_RESPONSE_BATTLE_INVITE_ACTION
         MageLogger.instance.info "Player ID = #{@player_id}, response to battle invitation. UID = #{data[0]}."
         # data[0] - uid
         # data[1] - is accepted
-        BattleDirectorFactory.instance.opponent_response_to_invitation(@player_id, data[0], data[1])
-
-        # @battle_director = BattleDirectorFactory.instance.get(data[0])
-        # @battle_director.set_opponent(
-        #   self, PlayerFactory.instance.get_player_by_id(@player_id)
-        # )
+        @battle_director = BattleDirectorFactory.instance.opponent_response_to_invitation(@player_id, data[0], data[1])
 
       when RECEIVE_BATTLE_START_ACTION
+
         @battle_director.set_opponent_ready(@player_id)
       when RECEIVE_LOBBY_DATA_ACTION
         # Collect data for user battle lobby

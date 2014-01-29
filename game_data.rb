@@ -4,6 +4,8 @@ require 'json'
 class GameData
   include Singleton
 
+  attr_accessor :collected_data, :coin_generator_uid, :storage_building_uid
+
   def initialize
     MageLogger.instance.info "GameData| Loading resources from DB ..."
 
@@ -42,24 +44,12 @@ class GameData
     }
   end
 
-  def collected_data
-    @collected_data
-  end
-
   def harvester level
     @coins_generation_per_level[level]
   end
 
   def storage_capacity level
     @storage_capacity_per_level[level]
-  end
-
-  def coin_generator_uid
-    @coin_generator_uid
-  end
-
-  def storage_building_uid
-    @storage_building_uid
   end
 
   private
