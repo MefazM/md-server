@@ -24,20 +24,12 @@ class PlayerFactory
       @connections[player_id].close_connection
       @connections[player_id] = nil
     end
-    # assign connection
+    # Save connection
     @connections[player_id] = connection
+    # Assign player to connection
+    connection.player= player
 
     player_id
-  end
-
-  def send_game_data(player_id)
-    connection = connection(player_id)
-    connection.send_game_data({
-      :uid => player_id,
-      :player_data => @players[player_id].game_data(),
-      :game_data => GameData.instance.collected_data,
-      :server_version => Settings::SERVER_VERSION
-    }) unless connection.nil?
   end
 
   def player(player_id)
@@ -64,7 +56,6 @@ class PlayerFactory
     connection
   end
 
-
   def appropriate_players_for_battle(player_id)
     players = []
     @connections.each_key do |id|
@@ -88,88 +79,6 @@ class PlayerFactory
       if amount >= capacity
         connection.send_gold_mine_storage_full()
       end
-    end
-  end
-
-  def send_current_mine_amount(player_id)
-    player = @players[player_id]
-    unless player.nil?
-      amount = player.mine_amount(Time.now.to_i)
-      capacity = player.harvester_capacity
-      gain = player.coins_gain
-
-      connection = connection(player_id)
-      unless connection.nil?
-        connection.send_current_mine_amount(amount, capacity, gain)
-      end
-
-    end
-  end
-
-  def harvest_coins(player_id)
-    player = player(player_id)
-    unless player.storage_full?
-      player.harvest
-      connection = connection(player_id)
-      unless connection.nil?
-        connection.send_coins_storage_capacity(
-          player.coins_in_storage,
-          player.storage_capacity
-        )
-      end
-    end
-  end
-
-  #
-  # UNITS
-  def try_to_train_unit(player_id, unit_uid)
-    player = @players[player_id]
-    return false if player.nil?
-
-    price = UnitsFactory.instance.price(unit_uid)
-    if player.make_payment(price)
-      task_data = UnitsFactory.instance.add_production_task(player_id, unit_uid)
-      # Responce to client
-      connection = connection(player_id)
-      unless connection.nil?
-        connection.send_unit_queue(*task_data)
-        # Send new coins amount
-        connection.send_coins_storage_capacity(
-          player.coins_in_storage,
-          player.storage_capacity
-        )
-      end
-
-    end
-  end
-
-  #
-  # BUILDINGS
-  def try_update_building(player_id, building_uid)
-    player = @players[player_id]
-    return false if player.nil?
-    # if player already construct this building, current_level > 0
-    target_level = player.building_level(building_uid) + 1
-
-    price = BuildingsFactory.instance.price(building_uid, target_level)
-
-    if player.make_payment(price)
-
-      task_data = BuildingsFactory.instance.add_production_task(player_id, building_uid, target_level)
-      # Notify client about task start
-      connection = connection(player_id)
-      # Convert to client ms
-      production_time_in_ms = task_data[:production_time] * 1000
-      unless connection.nil?
-        # Send new started task data
-        connection.send_sync_building_state(building_uid, target_level, false, production_time_in_ms)
-        # Send new coins amount
-        connection.send_coins_storage_capacity(
-          player.coins_in_storage,
-          player.storage_capacity
-        )
-      end
-
     end
   end
 

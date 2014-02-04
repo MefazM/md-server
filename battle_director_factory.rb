@@ -21,7 +21,12 @@ class BattleDirectorFactory
     sender.freeze!
 
     @invites[opponent_id] = [] if @invites[opponent_id].nil?
-    @invites[opponent_id] << [sender_id, Time.now.to_i, SecureRandom.hex(16), false]
+    @invites[opponent_id] << {
+      :sender_id => sender_id,
+      :time => Time.now.to_i,
+      :token => SecureRandom.hex(5),
+      :send => false,
+    }
 
     return true
   end
@@ -31,15 +36,17 @@ class BattleDirectorFactory
     player.freeze!
 
     battle_director = BattleDirector.new()
-    @battles[battle_director.uid()] = battle_director
+    battle_director_uid = SecureRandom.hex(5)
+    @battles[battle_director_uid] = battle_director
 
     data = {
       :id => player_id,
       :units => player.units(),
-      # Here will be other plyer options
+      # Here will be other player options
     }
 
     connection = PlayerFactory.instance.connection(player_id)
+    connection.battle_director = battle_director
     battle_director.set_opponent(data, connection)
 
     # Set AI opponent
@@ -51,25 +58,27 @@ class BattleDirectorFactory
     }
     battle_director.set_opponent(data, nil)
 
-    battle_director
+    battle_director_uid
   end
 
   def opponent_response_to_invitation(player_id, token, decision)
     return false if @invites[player_id].nil? or @invites[player_id][0].nil?
 
     invitation = @invites[player_id][0]
-    return false if invitation[2] != token
+    return false if invitation[:token] != token
     # Opponent player agree invitation
     if decision == true
       player = PlayerFactory.instance.player(player_id)
       player.freeze!
       battle_director = BattleDirector.new()
-      @battles[battle_director.uid()] = battle_director
+      @battles[invitation[:token]] = battle_director
       @invites.delete(player_id)
 
-      [player_id, invitation[0]].each do |opponent_id|
+      [player_id, invitation[:sender_id]].each do |opponent_id|
         connection = PlayerFactory.instance.connection(opponent_id)
         player = PlayerFactory.instance.player(opponent_id)
+        # Assign battle director to connection
+        connection.battle_director = battle_director
 
         data = {
           :id => opponent_id,
@@ -94,22 +103,22 @@ class BattleDirectorFactory
     @invites.each do |player_id, invitations|
       invitation = invitations[0]
 
-      if current_time - invitation[1] > INVITATION_LIFE_TIME
+      if current_time - invitation[:time] > INVITATION_LIFE_TIME
         # invitaion expired
         cancel_invitation(player_id)
-        MageLogger.instance.info "Invitation #{invitation[2]} expired."
-      elsif invitation[3] == false
+        MageLogger.instance.info "Invitation #{invitation[:token]} expired."
+      elsif invitation[:send] == false
         # invitaions is not sended
-        send_invitation(player_id, invitation[0], invitation[2])
+        send_invitation(player_id, invitation[:sender_id], invitation[:token])
         # mark invitation as sended
-        invitation[3] = true
-        MageLogger.instance.info "Invitation #{invitation[2]} sended."
+        invitation[:send] = true
+        MageLogger.instance.info "Invitation #{invitation[:token]} sended."
       end
     end
   end
 
-  def get(uid)
-    @battles[uid]
+  def get(token)
+    @battles[token]
   end
 
   def update(current_time)

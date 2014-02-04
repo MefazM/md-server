@@ -20,7 +20,6 @@ class Player
 
     buildings_json = RedisConnection.instance.connection.hget(@redis_player_key, 'buildings')
     @buildings = buildings_json.nil? ? {} : JSON.parse(buildings_json, {:symbolize_names => true})
-    #
     # CoinZZ
     @last_harvest_time = redis_get(@redis_resources_key, 'last_harvest_time', Time.now.to_i)
     # Buildings uids, assigned to coins generation

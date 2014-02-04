@@ -15,15 +15,13 @@ class BattleDirector
   # Timings
   DEFAULT_UNITS_SPAWN_TIME = 5.0
 
-  attr_accessor :uid, :status
+  attr_accessor :status
 
   def initialize()
     # Battle director save two players connection
     # Here stores connections and battle data
     @opponents = {}
     @status = PENDING
-    @uid = SecureRandom.hex(5)
-
     @opponents_indexes = {}
     @iteration_time = Time.now.to_f
 

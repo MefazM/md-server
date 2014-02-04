@@ -20,6 +20,8 @@ class Connection < EM::Connection
 
   include NETWORKING
 
+  attr_accessor :battle_director, :player
+
   def post_init
     @latency = 0
   end
@@ -33,11 +35,18 @@ class Connection < EM::Connection
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
       action, *data = JSON.parse(json,:symbolize_names => true)
-      # puts("ACTION:#{action}, DATA:#{data.inspect}")
+
       case action
       when RECEIVE_PLAYER_ACTION
         @player_id = PlayerFactory.instance.find_or_create(data[0], self)
-        PlayerFactory.instance.send_game_data(@player_id)
+
+        send_game_data({
+          :uid => @player.id,
+          :player_data => @player.game_data(),
+          :game_data => GameData.instance.collected_data,
+          :server_version => Settings::SERVER_VERSION
+        })
+
       when RECEIVE_NEW_BATTLE_ACTION
         # Cancel battle invite if
         # - opponen already in battle
@@ -45,7 +54,7 @@ class Connection < EM::Connection
         # - if opponen don't accept battle
         # Is ai battle?
         if data[1] == true
-          @battle_director = BattleDirectorFactory.instance.create_ai_battle(@player_id, data[0])
+          BattleDirectorFactory.instance.create_ai_battle(@player_id, data[0])
         else
           BattleDirectorFactory.instance.invite(@player_id, data[0])
         end
@@ -54,30 +63,49 @@ class Connection < EM::Connection
         MageLogger.instance.info "Player ID = #{@player_id}, response to battle invitation. UID = #{data[0]}."
         # data[0] - uid
         # data[1] - is accepted
-        @battle_director = BattleDirectorFactory.instance.opponent_response_to_invitation(@player_id, data[0], data[1])
+        BattleDirectorFactory.instance.opponent_response_to_invitation(@player_id, data[0], data[1])
 
       when RECEIVE_BATTLE_START_ACTION
 
         @battle_director.set_opponent_ready(@player_id)
+
       when RECEIVE_LOBBY_DATA_ACTION
         # Collect data for user battle lobby
         appropriate_players = PlayerFactory.instance.appropriate_players_for_battle(@player_id)
         appropriate_ai = [[13123, 'Boy_1'], [334, 'Boy_2']]
 
-        connection = PlayerFactory.instance.connection(@player_id)
-        unless connection.nil?
-          connection.send_lobby_data(appropriate_players, appropriate_ai)
-        end
+        send_lobby_data(appropriate_players, appropriate_ai)
+
       when RECEIVE_SPAWN_UNIT_ACTION
         @battle_director.spawn_unit(data[0], @player_id)
 
       when RECEIVE_UNIT_PRODUCTION_TASK_ACTION
 
-        PlayerFactory.instance.try_to_train_unit(@player_id, data[0].to_sym)
+        unit_uid = data[0].to_sym
+        price = UnitsFactory.instance.price(unit_uid)
+        if @player.make_payment(price)
+          task_data = UnitsFactory.instance.add_production_task(@player.id, unit_uid)
+          # Responce to client
+          send_unit_queue(*task_data)
+          send_coins_storage_capacity(@player.coins_in_storage, @player.storage_capacity)
+        end
 
       when RECEIVE_BUILDING_PRODUCTION_TASK_ACTION
 
-        PlayerFactory.instance.try_update_building(@player_id, data[0])
+        building_uid = data[0]
+        # if player already construct this building, current_level > 0
+        target_level = @player.building_level(building_uid) + 1
+        price = BuildingsFactory.instance.price(building_uid, target_level)
+        if @player.make_payment(price)
+          task_data = BuildingsFactory.instance.add_production_task(@player.id, building_uid, target_level)
+          # Notify client about task start
+          # Convert to client ms
+          production_time_in_ms = task_data[:production_time] * 1000
+          # Send new started task data
+          send_sync_building_state(building_uid, target_level, false, production_time_in_ms)
+          # Send new coins amount
+          send_coins_storage_capacity(@player.coins_in_storage, @player.storage_capacity)
+        end
 
       when RECEIVE_SPELL_CAST_ACTION
 
@@ -85,7 +113,10 @@ class Connection < EM::Connection
 
       when RECEIVE_DO_HARVESTING_ACTION
 
-        PlayerFactory.instance.harvest_coins(@player_id)
+        unless @player.storage_full?
+          @player.harvest
+          send_coins_storage_capacity(@player.coins_in_storage, @player.storage_capacity)
+        end
 
       when RECEIVE_PING_ACTION
 
@@ -93,7 +124,11 @@ class Connection < EM::Connection
 
       when RECEIVE_REQUEST_CURRENT_MINE_AMOUNT
 
-        PlayerFactory.instance.send_current_mine_amount(@player_id)
+        amount = @player.mine_amount(Time.now.to_i)
+        capacity = @player.harvester_capacity
+        gain = @player.coins_gain
+
+        send_current_mine_amount(amount, capacity, gain)
 
       end
     end
