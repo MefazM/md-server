@@ -140,7 +140,7 @@ class BattleDirectorFactory
 
   def cancel_invitation(player_id)
     invitation = @invites[player_id][0]
-    sender_id = invitation[0]
+    sender_id = invitation[:sender_id]
 
     sender = PlayerFactory.instance.player(sender_id)
     sender.unfreeze!

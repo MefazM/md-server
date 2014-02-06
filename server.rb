@@ -35,7 +35,7 @@ class Connection < EM::Connection
     if str_start and str_end
       json = message[ str_start + 15 .. str_end - 1 ]
       action, *data = JSON.parse(json,:symbolize_names => true)
-
+      MageLogger.instance.info "RECEIVE: #{json}"
       case action
       when RECEIVE_PLAYER_ACTION
         @player_id = PlayerFactory.instance.find_or_create(data[0], self)

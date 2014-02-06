@@ -114,7 +114,7 @@ class BattleDirector
 
         if unit.dead?
           # Iterate lost unit counter
-          unit_data = opponent[:units][unit.uid]
+          unit_data = player[:units][unit.name]
           unless unit_data.nil?
             unit_data[:lost] += 1
           end

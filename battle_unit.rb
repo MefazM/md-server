@@ -10,12 +10,12 @@ class BattleUnit
   ATTACK_RANGE = 5
   IDLE = 42
 
-  attr_accessor :uid, :position, :status
+  attr_accessor :uid, :position, :status, :name
 
-  def initialize(unit_uid, position = 0.0)
+  def initialize(name, position = 0.0)
     # initialization unit by prototype
-    @unit_prototype = UnitsFactory.instance.units(unit_uid)
-    @unit_uid = unit_uid
+    @unit_prototype = UnitsFactory.instance.units(name)
+    @name = name
     @uid = SecureRandom.hex(4)
     # additional params
     @status = IDLE

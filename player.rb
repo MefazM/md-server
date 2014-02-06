@@ -177,7 +177,6 @@ class Player
       end
     end
     serialize_units_to_redis()
-
   end
 
   def self.create(login_data)

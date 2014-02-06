@@ -35,6 +35,7 @@ module NETWORKING
 
   def send_message(message_arr)
     # puts("SEND: #{@player_id} #{message_arr.to_json}")
+    MageLogger.instance.info "SEND: #{@player_id} #{message_arr.to_json}"
     message = "__JSON__START__#{message_arr.to_json}__JSON__END__"
     send_data(message)
   end
