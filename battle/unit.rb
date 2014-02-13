@@ -1,7 +1,4 @@
-require "securerandom"
-require 'pry'
 require_relative 'ai_player.rb'
-
 class BattleUnit
   # Unit statuses
   MOVE = 1
@@ -10,13 +7,15 @@ class BattleUnit
   ATTACK_RANGE = 5
   IDLE = 42
 
+  @@uid_iteratior = 0
+
   attr_accessor :uid, :position, :status, :name
 
   def initialize(name, position = 0.0)
     # initialization unit by prototype
     @unit_prototype = UnitsFactory.instance.units(name)
     @name = name
-    @uid = SecureRandom.hex(4)
+    @uid = @@uid_iteratior += 1
     # additional params
     @status = IDLE
     @prev_status = IDLE
@@ -30,6 +29,12 @@ class BattleUnit
     @attack_type = nil
     @target_unit_uid = nil
     @force_sync = false
+
+    ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
+  end
+
+  def self.finalize(id)
+    puts "Battle Unit| #{id} dying at #{Time.new}"
   end
 
   def dead?()

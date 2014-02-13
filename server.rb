@@ -2,12 +2,12 @@
 require 'pry'
 require 'rubygems'
 require 'eventmachine'
-require 'json'
+require 'yajl/json_gem'
 require 'singleton'
 
 require_relative 'mage_logger.rb'
 require_relative 'player.rb'
-require_relative 'battle_director_factory.rb'
+require_relative 'battle/factory.rb'
 require_relative 'db_connection.rb'
 require_relative 'player_factory.rb'
 require_relative 'buildings_factory.rb'
@@ -15,6 +15,7 @@ require_relative 'units_factory.rb'
 require_relative 'settings.rb'
 require_relative 'networking.rb'
 require_relative 'game_data.rb'
+
 
 class Connection < EM::Connection
 

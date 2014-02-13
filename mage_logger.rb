@@ -4,7 +4,7 @@ require 'logger'
 class MageLogger < Logger
   include Singleton
 
-  LOG_FILE = STDOUT#File.open("server.log", "a")
+  LOG_FILE = File.open("server.log", "a")
 
   def initialize
     super LOG_FILE

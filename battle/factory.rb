@@ -1,4 +1,4 @@
-require_relative 'battle_director.rb'
+require_relative 'director.rb'
 
 class BattleDirectorFactory
   include Singleton
@@ -125,15 +125,16 @@ class BattleDirectorFactory
     @battles.each do |battle_uid, battle|
       case battle.status
       when BattleDirector::FINISHED
-
+        battle.destroy
         @battles.delete(battle_uid)
 
       when BattleDirector::IN_PROGRESS
 
         battle.update_opponents(current_time)
-
       end
     end
+
+    # GC.start
   end
 
   private

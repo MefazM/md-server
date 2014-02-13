@@ -204,12 +204,12 @@ class Player
 private
 
   def serialize_units_to_redis
-    units_json = @units.to_json
+    units_json = JSON.generate(@units)
     RedisConnection.instance.connection.hset(@redis_player_key, 'units', units_json)
   end
 
   def serialize_buildings_to_redis
-    buildings_json = @buildings.to_json
+    buildings_json = JSON.generate(@buildings)
     RedisConnection.instance.connection.hset(@redis_player_key, 'buildings', buildings_json)
   end
 

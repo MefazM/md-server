@@ -99,7 +99,7 @@ class UnitsFactory
               # Empty task queue if this is a last task
               producers_tasks[:tasks].delete(unit_uid)
             end
-            # Process complited task
+            # Process completed task
             player = PlayerFactory.instance.player(player_id)
             player.add_unit(unit_uid)
 

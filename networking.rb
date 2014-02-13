@@ -34,17 +34,18 @@ module NETWORKING
   SEND_CUSTOM_EVENT = 777
 
   def send_message(message_arr)
-    # puts("SEND: #{@player_id} #{message_arr.to_json}")
-    MageLogger.instance.info "SEND: #{@player_id} #{message_arr.to_json}"
-    message = "__JSON__START__#{message_arr.to_json}__JSON__END__"
+    message_encoded = JSON.generate(message_arr)
+    MageLogger.instance.info "SEND: #{@player_id} #{message_encoded}"
+    message = "__JSON__START__#{message_encoded}__JSON__END__"
     send_data(message)
   end
 
-  def send_spell_cast(spell_uid, target_area, owner_id)
+  def send_spell_cast(spell_uid, target_area, owner_id, area)
     message = [SEND_SPELL_CAST_ACTION, @latency]
     message << spell_uid
     message << target_area
     message << owner_id
+    message << area
 
     send_message(message)
   end

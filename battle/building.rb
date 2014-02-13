@@ -32,7 +32,7 @@ class BattleBuilding
     @health_points < 0
   end
 
-  def to_a
+  def export
     [@uid, @uid, @position, @health_points]
   end
 

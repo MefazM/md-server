@@ -11,7 +11,11 @@ class Spells
     begin
       DBConnection.query("SELECT * FROM spells").each do |spell|
         # Convert ms to seconds
-        spell[:reaction_time] *= 0.001
+        spell[:time] *= 0.001
+
+        [:uid, :ability_preset, :processing_type, :target_type].each do |field|
+          spell[field] = spell[field].to_sym
+        end
 
         @spells_prototypes[spell[:uid].to_sym] = spell
       end
@@ -22,7 +26,7 @@ class Spells
     MageLogger.instance.info "Spells| #{@spells_prototypes.count} spell(s) - loaded."
   end
 
-  def spell_battle_params(uid)
+  def get(uid)
     @spells_prototypes[uid]
   end
 

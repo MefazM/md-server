@@ -1,6 +1,3 @@
-require 'singleton'
-require 'json'
-
 class GameData
   include Singleton
 
