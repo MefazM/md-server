@@ -4,7 +4,7 @@ require_relative 'building.rb'
 # require_relative '../spells_lib.rb'
 require_relative '../spells_lib.rb'
 require_relative 'opponent.rb'
-require_relative 'spells_factory.rb'
+require_relative 'spells/spells_factory.rb'
 
 # Holds all battle logic and process all battle events.
 class BattleDirector
@@ -16,9 +16,7 @@ class BattleDirector
   # Timings
   DEFAULT_UNITS_SPAWN_TIME = 5.0
 
-  # include BATTLE_DIRECTOR_SPELLS
-
-  attr_accessor :status
+  attr_reader :status
   # Battle director save two players connection
   # Here stores connections and battle data
   def initialize
@@ -27,12 +25,12 @@ class BattleDirector
     @opponents_indexes = {}
     @iteration_time = 0
     @default_unit_spawn_time = 0
-    @spells_lib = Spells.instance
+    @spells_data = GameData.instance.spells_data
 
     @spells = []
 
     MageLogger.instance.info "New BattleDirector initialize... UID = #{@uid}"
-    ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
+    # ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
   end
 
   def self.finalize(id)
@@ -40,23 +38,38 @@ class BattleDirector
   end
 
   def cast_spell(player_id, target_area, spell_uid)
-    spell_data = @spells_lib.get(spell_uid.to_sym)
+    spell_data = @spells_data[spell_uid.to_sym]
 
-    @opponents.each_value { |opponent|
-      opponent.send_spell_cast!(spell_uid, target_area, player_id, spell_data[:area])
-    }
+    if spell_data.nil?
+      MageLogger.instance.error("Spell not found. UID = #{@uid}")
+    else
 
-    unit_pool = case spell_data[:target_type]
-      when :friendly
-        @opponents[player_id].units_pool
-      when :enemy
+      timing = spell_data[:time_ms] || 0
+
+      brodcast_custom_event = Proc.new do |name, data|
+        @opponents.each_value { |opponent|
+          opponent.send_custom_event!(name, data)
+        }
+      end
+
+      @opponents.each_value { |opponent|
+        opponent.send_spell_cast!(spell_uid, timing, target_area, player_id, spell_data[:area])
+      }
+
+      spell = SpellFactory.create(spell_data, brodcast_custom_event)
+
+      if spell.friendly_targets?
+        spell.target_area = target_area
+        spell.units_pool = @opponents[player_id].units_pool
+      else
+        spell.target_area = 1.0 - target_area
+
         opponent_uid = @opponents_indexes[player_id]
-        @opponents[opponent_uid].units_pool
-      when :both
-        []
-    end
+        spell.units_pool = @opponents[opponent_uid].units_pool
+      end
 
-    @spells << SpellFactory.create(spell_data, target_area, unit_pool)
+      @spells << spell #unless spell.nil?
+    end
   end
 
   def set_opponent(data, connection)
@@ -91,7 +104,7 @@ class BattleDirector
     end
 
     @spells.each do |spell|
-      spell.process!(current_time)
+      spell.update!(current_time, iteration_delta)
 
       if spell.completed
         @spells.delete(spell)

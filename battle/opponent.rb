@@ -58,11 +58,17 @@ class Opponen
     end
   end
 
-  def send_spell_cast!(spell_uid, target_area, opponent_uid, area)
+  def send_spell_cast!(spell_uid, timing, target_area, opponent_uid, area)
     unless @connection.nil?
       @connection.send_spell_cast(
-        spell_uid, target_area, opponent_uid, area
+        spell_uid, timing, target_area, opponent_uid, area
       )
+    end
+  end
+
+  def send_custom_event!(event_name, data_array = [])
+    unless @connection.nil?
+      @connection.send_custom_event( event_name, data_array )
     end
   end
 

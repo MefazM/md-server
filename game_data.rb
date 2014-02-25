@@ -1,7 +1,7 @@
 class GameData
   include Singleton
 
-  attr_accessor :collected_data, :coin_generator_uid, :storage_building_uid
+  attr_accessor :collected_data, :coin_generator_uid, :storage_building_uid, :spells_data
 
   def initialize
     MageLogger.instance.info "GameData| Loading resources from DB ..."
@@ -39,6 +39,8 @@ class GameData
       :units_data => export_units(units),
       :buildings_data => export_buildings(buildings)
     }
+
+    @spells_data = load_spells
   end
 
   def harvester level
@@ -130,5 +132,41 @@ class GameData
   def produce_units? uid, level
     units = DBConnection.query("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
     return units.count > 0
+  end
+
+  def load_spells
+    MageLogger.instance.info "Spells| Loading spells from DB ..."
+    spells_data = {}
+    begin
+      DBConnection.query("SELECT * FROM spells").each do |spell_data|
+        # Convert ms to seconds
+        uid = spell_data[:uid].to_sym
+        time = spell_data[:time] || 0
+        spell_prototype = {
+          :uid => uid,
+          :time_s => time * 0.001,
+          :time_ms => time,
+          :area => spell_data[:area],
+          :manacost => spell_data[:manacost],
+          :description => spell_data[:description]
+        }
+        # Get spel attrs
+        DBConnection.query("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
+          key = spell_attrs[:key]
+          value = spell_attrs[:value]
+
+          spell_prototype[key.to_sym] = value
+        end
+
+        spells_data[uid] = spell_prototype
+
+      end
+    rescue Exception => e
+      raise e
+    end
+
+    MageLogger.instance.info "Spells| #{spells_data.count} spell(s) - loaded."
+
+    return spells_data
   end
 end

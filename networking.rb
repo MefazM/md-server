@@ -40,9 +40,10 @@ module NETWORKING
     send_data(message)
   end
 
-  def send_spell_cast(spell_uid, target_area, owner_id, area)
+  def send_spell_cast(spell_uid, timing, target_area, owner_id, area)
     message = [SEND_SPELL_CAST_ACTION, @latency]
     message << spell_uid
+    message << timing
     message << target_area
     message << owner_id
     message << area

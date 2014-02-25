@@ -1,21 +1,26 @@
 require_relative 'ai_player.rb'
 class BattleUnit
-  # Unit statuses
+  @@uid_iteratior = 0
+  # Unit states
   MOVE = 1
   DIE = 3
   ATTACK_MELEE = 4
   ATTACK_RANGE = 5
   IDLE = 42
+  # Spell-based states
+  STUNED = 101
+  #
+  NO_TARGET = -1
 
-  @@uid_iteratior = 0
-
-  attr_accessor :uid, :position, :status, :name
+  attr_accessor :uid, :position, :status, :name, :movement_speed, :force_sync
+  attr_reader :health_points
 
   def initialize(name, position = 0.0)
     # initialization unit by prototype
     @unit_prototype = UnitsFactory.instance.units(name)
     @name = name
-    @uid = @@uid_iteratior += 1
+    @uid = "u#{@@uid_iteratior}"
+    @@uid_iteratior += 1
     # additional params
     @status = IDLE
     @prev_status = IDLE
@@ -29,8 +34,7 @@ class BattleUnit
     @attack_type = nil
     @target_unit_uid = nil
     @force_sync = false
-
-    ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
+    # ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
   end
 
   def self.finalize(id)
@@ -43,7 +47,17 @@ class BattleUnit
 
   def sync_data
     data = [@uid, @status, @position.round(3)]
-    data << @target_unit_uid if @status == ATTACK_RANGE
+    data << @status == ATTACK_RANGE ? @target_unit_uid : NO_TARGET
+    animation_scale = case @status
+    when MOVE
+      @movement_speed / @unit_prototype[:movement_speed]
+    # when ATTACK_MELEE, ATTACK_RANGE
+    else
+      1.0
+    end
+
+    data << animation_scale
+    # data << @movement_speed
 
     data
   end
@@ -56,26 +70,34 @@ class BattleUnit
     }
   end
 
-  def decrease_health_points(decrease_by, attack_type)
+  def decrease_health_points(decrease_by, attack_type = nil)
     # Сила аттаки уменьшается в двое, если юнит имеет защиту от такого типа атак.
     resist_type = @unit_prototype[:resist_type]
     decrease_by *= 0.5 if resist_type and attack_type == resist_type
-
     @health_points -= decrease_by
+
+    puts("HP: #{@health_points}")
+
+    force_sync = true
+  end
+
+  def increase_health_points(increase_by)
+    @health_points = [@unit_prototype[:health_points], @health_points + increase_by].min
+
+    puts("HP: #{@health_points}")
+
+    force_sync = true
   end
 
   def process_deffered_damage(iteration_delta)
     @deferred_damage.each_with_index do |deferred, index|
       deferred[:position] += iteration_delta * 0.4 #! This is magick, 0.4 is a arrow speed!!
-
       if (deferred[:position] + @position >= 1.0)
         decrease_health_points(deferred[:power], deferred[:range_attack_damage_type])
         @deferred_damage.delete_at(index)
-
         return true
       end
     end
-
     return false
   end
 
@@ -86,7 +108,6 @@ class BattleUnit
     # Calculate distance
     attack_range = @unit_prototype["#{attack_type}_range".to_sym]
     distantion = opponent_position + @position
-
     return distantion > (1.0 - attack_range) # and distantion < 1.0
   end
 
@@ -97,10 +118,8 @@ class BattleUnit
         @melee_attack_power,
         @unit_prototype[:melee_attack_damage_type]
       )
-
       @attack_period_time = @unit_prototype[:melee_attack_speed]
       @status = ATTACK_MELEE
-
     when :range_attack
       opponent_unit.add_deffered_damage(
         @range_attack_power,
@@ -127,12 +146,10 @@ class BattleUnit
     process_deffered_damage(iteration_delta)
     case @status
     when MOVE
-      @position += iteration_delta * @unit_prototype[:movement_speed]
-
+      @position += iteration_delta * @movement_speed
     when ATTACK_MELEE, ATTACK_RANGE
       @attack_period_time -= iteration_delta
       @status = IDLE if @attack_period_time < 0
-
     when IDLE
       @status = MOVE
       @target_unit_uid = nil
@@ -144,10 +161,8 @@ class BattleUnit
       has_changes = @status != @prev_status
       @prev_status = @status
     end
-
     has_changes = true if @force_sync
     @force_sync = false
-
     return has_changes
   end
 end
