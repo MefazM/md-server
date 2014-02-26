@@ -9,6 +9,8 @@ require_relative 'wind_blow.rb'
 require_relative 'stun.rb'
 require_relative 'bomb.rb'
 require_relative 'thunder.rb'
+require_relative 'curse.rb'
+require_relative 'bless.rb'
 
 class SpellFactory
   @@spells = {}
@@ -20,9 +22,11 @@ class SpellFactory
   @@spells[:arrow_air] = Haste
   @@spells[:arrow_water] = Slow
   @@spells[:arrow_earth] = Regeneration
+  @@spells[:arrow_fire] = Bless
 
   @@spells[:z_water] = Poison
   @@spells[:z_air] = Thunder
+  @@spells[:z_fire] = Curse
 
   @@spells[:rect_air] = WindBlow
   @@spells[:rect_water] = Stun

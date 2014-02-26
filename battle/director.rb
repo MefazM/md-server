@@ -44,7 +44,7 @@ class BattleDirector
       MageLogger.instance.error("Spell not found. UID = #{@uid}")
     else
 
-      timing = spell_data[:time_ms] || 0
+      # timing = spell_data[:time_ms] || 0
 
       brodcast_custom_event = Proc.new do |name, data|
         @opponents.each_value { |opponent|
@@ -52,11 +52,11 @@ class BattleDirector
         }
       end
 
-      @opponents.each_value { |opponent|
-        opponent.send_spell_cast!(spell_uid, timing, target_area, player_id, spell_data[:area])
-      }
-
       spell = SpellFactory.create(spell_data, brodcast_custom_event)
+
+      @opponents.each_value { |opponent|
+        opponent.send_spell_cast!(spell_uid, spell.life_time * 1000, target_area, player_id, spell_data[:area])
+      }
 
       if spell.friendly_targets?
         spell.target_area = target_area

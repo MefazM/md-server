@@ -12,8 +12,10 @@ class BattleUnit
   #
   NO_TARGET = -1
 
-  attr_accessor :uid, :position, :status, :name, :movement_speed, :force_sync
-  attr_reader :health_points
+  attr_accessor :uid, :position, :status, :name,
+    :movement_speed, :force_sync, :range_attack_power, :melee_attack_power
+
+  attr_reader :health_points, :unit_prototype
 
   def initialize(name, position = 0.0)
     # initialization unit by prototype
@@ -76,7 +78,7 @@ class BattleUnit
     decrease_by *= 0.5 if resist_type and attack_type == resist_type
     @health_points -= decrease_by
 
-    puts("HP: #{@health_points}")
+    # puts("HP: #{@health_points}")
 
     force_sync = true
   end
@@ -84,7 +86,7 @@ class BattleUnit
   def increase_health_points(increase_by)
     @health_points = [@unit_prototype[:health_points], @health_points + increase_by].min
 
-    puts("HP: #{@health_points}")
+    # puts("HP: #{@health_points}")
 
     force_sync = true
   end

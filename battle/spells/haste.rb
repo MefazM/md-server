@@ -16,7 +16,7 @@ class Haste < AbstractSpell
     unless @target_units.empty?
       @target_units.each { |target|
         # puts(target.movement_speed, @value)
-        target.movement_speed = target.movement_speed / @value
+        target.movement_speed += target.unit_prototype[:movement_speed] * @value
         target.force_sync = true
       }
     end
@@ -26,10 +26,9 @@ class Haste < AbstractSpell
     unless @target_units.empty?
       @target_units.each { |target|
         # puts(@value * target.movement_speed)
-        target.movement_speed = @value * target.movement_speed
+        target.movement_speed -= target.unit_prototype[:movement_speed] * @value
         target.force_sync = true
       }
-      # notificate_dispel!
     end
   end
 end

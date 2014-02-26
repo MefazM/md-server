@@ -1,8 +1,7 @@
 class AbstractSpell
   STATES = [ :process, :affect, :wait, :empty ]
-  DELAY_BETWEEN_CHARGES = 0.25
 
-  attr_reader :completed
+  attr_reader :completed, :life_time
   attr_writer :units_pool, :target_area
 
   def initialize(data, brodcast_callback)
@@ -17,6 +16,8 @@ class AbstractSpell
     @elapsed_time = 0
     @target_area = nil
     @create_at = Time.now.to_f
+
+    # @data[:time_s] = 0.2
 
     @life_time = @data[:time_s]
   end
@@ -43,7 +44,7 @@ class AbstractSpell
       end
     # Wait for delay between spell charges expire
     when :wait_charge
-      if @charges_count < (@elapsed_time / DELAY_BETWEEN_CHARGES)
+      if @charges_count < (@elapsed_time / @data[:time_s])
         @charges_count += 1
         @states_stack.delete_at(0)
       end
@@ -54,6 +55,7 @@ class AbstractSpell
       @states_stack.delete_at(0)
     # Spell is ready if task stack is empty
     when :empty
+      # puts("FINISH!!!!!")
       @units_pool = nil
       @completed = true
     end

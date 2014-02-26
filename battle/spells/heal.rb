@@ -1,16 +1,10 @@
 #
 # INSTANT HEAL
 class Heal < AbstractSpell
-
-  # attr_reader :affect_enemy_units
-
   def initialize(data, brodcast_callback)
     super
-
     @states_stack = compute_processing_stack(:instant)
-
     @heal = data[:heal_power].to_f || 0.0
-
   end
 
   def affect_targets!
