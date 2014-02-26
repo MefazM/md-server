@@ -35,7 +35,7 @@ module NETWORKING
 
   def send_message(message_arr)
     message_encoded = JSON.generate(message_arr)
-    MageLogger.instance.info "SEND: #{@player_id} #{message_encoded}"
+    # MageLogger.instance.info "SEND: #{@player_id} #{message_encoded}"
     message = "__JSON__START__#{message_encoded}__JSON__END__"
     send_data(message)
   end

@@ -48,8 +48,11 @@ class BattleUnit
   end
 
   def sync_data
-    data = [@uid, @status, @position.round(3)]
-    data << @status == ATTACK_RANGE ? @target_unit_uid : NO_TARGET
+    hp_scale = @health_points.to_f / @unit_prototype[:health_points].to_f
+    data = [@uid, @status, @position.round(3), hp_scale]
+    target_uid = @status == ATTACK_RANGE ? @target_unit_uid : NO_TARGET
+    data << target_uid
+
     animation_scale = case @status
     when MOVE
       @movement_speed / @unit_prototype[:movement_speed]
@@ -60,7 +63,6 @@ class BattleUnit
 
     data << animation_scale
     # data << @movement_speed
-
     data
   end
 
@@ -80,7 +82,7 @@ class BattleUnit
 
     # puts("HP: #{@health_points}")
 
-    force_sync = true
+    @force_sync = true
   end
 
   def increase_health_points(increase_by)
@@ -88,7 +90,7 @@ class BattleUnit
 
     # puts("HP: #{@health_points}")
 
-    force_sync = true
+    @force_sync = true
   end
 
   def process_deffered_damage(iteration_delta)

@@ -17,8 +17,6 @@ class AbstractSpell
     @target_area = nil
     @create_at = Time.now.to_f
 
-    # @data[:time_s] = 0.2
-
     @life_time = @data[:time_s]
   end
 
