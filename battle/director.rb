@@ -14,7 +14,7 @@ class BattleDirector
   IN_PROGRESS = 3
   FINISHED = 4
   # Timings
-  DEFAULT_UNITS_SPAWN_TIME = 5.0
+  DEFAULT_UNITS_SPAWN_TIME = 2.0
 
   attr_reader :status
   # Battle director save two players connection
@@ -134,10 +134,10 @@ class BattleDirector
   # Additional units spawning. here should be a validation.
   def spawn_unit(unit_name, player_id, validate = true)
     unit_name = unit_name.to_sym
-    unit_uid = @opponents[player_id].add_unit_to_pool(unit_name, validate)
-    unless unit_uid.nil?
+    unit = @opponents[player_id].add_unit_to_pool(unit_name, validate)
+    unless unit.nil?
       @opponents.each_value { |opponent|
-        opponent.notificate_unit_spawn!(unit_uid, unit_name, player_id)
+        opponent.notificate_unit_spawn!(unit.uid, unit_name, player_id, unit.path_id)
       }
     end
   end

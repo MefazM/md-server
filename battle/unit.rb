@@ -12,10 +12,14 @@ class BattleUnit
   #
   NO_TARGET = -1
 
-  attr_accessor :uid, :position, :status, :name,
-    :movement_speed, :force_sync, :range_attack_power, :melee_attack_power
+  PATH_COUNT = 10
 
-  attr_reader :health_points, :unit_prototype
+  NEAREST_TARGET_DEFAULT_OFFSET = 0.25
+
+  attr_accessor :uid, :position, :status, :name,
+    :movement_speed, :force_sync, :range_attack_power, :melee_attack_power, :target, :path_id, :health_points
+
+  attr_reader :health_points, :unit_prototype, :initiative, :body_width, :nearest_target_offset
 
   def initialize(name, position = 0.0)
     # initialization unit by prototype
@@ -34,9 +38,28 @@ class BattleUnit
     @health_points = @unit_prototype[:health_points]
     @movement_speed = @unit_prototype[:movement_speed]
     @attack_type = nil
-    @target_unit_uid = nil
+
     @force_sync = false
+
+    @initiative = rand(0..10000)
+
+
+    @body_width = 0.015
+
+
+    @nearest_target_offset = 1.0 - (@unit_prototype[:range_attack] ? @unit_prototype[:range_attack_range] : NEAREST_TARGET_DEFAULT_OFFSET)
+
+    @target = nil
+
     # ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
+  end
+
+  def target_leave_path?
+    !@target.nil? && !@target.static?  && @target.path_id != @path_id
+  end
+
+  def has_no_target?
+    @target.nil? || @target.dead?
   end
 
   def self.finalize(id)
@@ -44,14 +67,17 @@ class BattleUnit
   end
 
   def dead?()
-    @status == DIE
+    @health_points < 0.0
   end
 
   def sync_data
     hp_scale = @health_points.to_f / @unit_prototype[:health_points].to_f
-    data = [@uid, @status, @position.round(3), hp_scale]
-    target_uid = @status == ATTACK_RANGE ? @target_unit_uid : NO_TARGET
-    data << target_uid
+    data = [@uid, @status, @path_id, @position.round(3), hp_scale]
+
+
+    target = @target.nil? ? NO_TARGET : @target.uid
+
+    data << target
 
     animation_scale = case @status
     when MOVE
@@ -115,48 +141,108 @@ class BattleUnit
     return distantion > (1.0 - attack_range) # and distantion < 1.0
   end
 
+  def in_attack_range?(opponent, attack_type)
+    # If unit has not such kind of attack
+    # return false
+    return false unless @unit_prototype[attack_type]
+    # 
+
+    # unless opponent.static?
+    #   return false unless opponent.path_id == @path_id
+    # end
+
+    # Calculate distance
+    attack_range = @unit_prototype["#{attack_type}_range".to_sym]
+    body_width = opponent.body_width
+    distantion = opponent.position + @position
+
+    return ((distantion + attack_range) > 1.0 - body_width) && (distantion < 1.0)
+  end
+
   def attack(opponent_unit, attack_type)
     case attack_type
     when :melee_attack
-      opponent_unit.decrease_health_points(
-        @melee_attack_power,
-        @unit_prototype[:melee_attack_damage_type]
-      )
+      opponent_unit.decrease_health_points(@melee_attack_power,
+        @unit_prototype[:melee_attack_damage_type])
+
       @attack_period_time = @unit_prototype[:melee_attack_speed]
       @status = ATTACK_MELEE
     when :range_attack
-      opponent_unit.add_deffered_damage(
-        @range_attack_power,
-        @position,
-        @unit_prototype[:range_attack_damage_type]
-      )
+
+      opponent_unit.decrease_health_points(@range_attack_power,
+        @unit_prototype[:range_attack_damage_type])
+
       @attack_period_time = @unit_prototype[:range_attack_speed]
       @status = ATTACK_RANGE
-      # Save target unit id
-      if @target_unit_uid != opponent_unit.uid
-        @target_unit_uid = opponent_unit.uid
-        # force sync, to change range attack target
-        @force_sync = true
-        # puts("FORCE TO #{@target_unit_uid}")
-      end
     end
   end
 
+  def static?
+    false
+  end
+
   def can_attack?
-    return @status == MOVE || @status == IDLE
+    return (@status == MOVE || @status == IDLE) #|| (@target.nil? || @target.dead?)
   end
 
   def update(iteration_delta)
-    process_deffered_damage(iteration_delta)
+    #target out of range?
+    # unless @target.nil?
+    #   @target = nil if @target.position + @position > 1.1
+    # end
+
+    unless @target.nil?
+
+      
+
+
+
+      can_attack = @status == MOVE || @status == IDLE
+
+      if can_attack
+
+        [:melee_attack, :range_attack].each do |type|
+
+          if in_attack_range?(@target, type)
+
+            attack(@target, type)
+
+            if @target.static? == false# && @target.target.nil?
+
+              if @target.target != self
+
+                @target.target = self if @target.position + @position > 0.9
+              end
+
+              # puts "#{@target.path_id} | #{@path_id}"
+            end
+
+            # @health_points = -1
+            # @target.health_points = -1
+
+            @target = nil if @target.dead?
+
+          end
+        end
+      end
+    end
+
+
     case @status
     when MOVE
-      @position += iteration_delta * @movement_speed
+      if @position < 0.9
+        @position += iteration_delta * @movement_speed
+      else
+        @status = IDLE
+      end
+
+
     when ATTACK_MELEE, ATTACK_RANGE
       @attack_period_time -= iteration_delta
       @status = IDLE if @attack_period_time < 0
     when IDLE
       @status = MOVE
-      @target_unit_uid = nil
+
     end
     @status = DIE if @health_points < 0.0
     # Processing sync
@@ -167,6 +253,7 @@ class BattleUnit
     end
     has_changes = true if @force_sync
     @force_sync = false
+
     return has_changes
   end
 end

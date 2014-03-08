@@ -51,11 +51,12 @@ module NETWORKING
     send_message(message)
   end
 
-  def send_unit_spawning(entity_uid, unit_id, owner_id)
+  def send_unit_spawning(entity_uid, unit_id, owner_id, path_id)
     message = [SEND_SPAWN_UNIT_ACTION, @latency]
     message << entity_uid
     message << unit_id
     message << owner_id
+    message << path_id
 
     send_message(message)
   end

@@ -1,5 +1,7 @@
 class Opponen
-  attr_accessor :id, :main_building, :units_pool
+  attr_accessor :id, :main_building, :units_pool, :path_ways, :main_building_attaker
+
+  PATH_COUNT = 10
 
   def initialize(data, connection = nil)
     @id = data[:id]
@@ -14,9 +16,7 @@ class Opponen
 
     @ready = false
     @units_pool = []
-    @main_building = BattleBuilding.new( 'building_1', 0.1 )
-
-    @spells = []
+    @main_building = BattleBuilding.new( 'building_1', 0.05 )
 
     @connection = connection
 
@@ -25,14 +25,27 @@ class Opponen
       @ai = true
       @ready = true
     end
+
+    @target_unit_id_counter = 0
+
+    @each_path_units = []
+
+    11.times do |i|
+      @each_path_units[i] = 0
+    end
+
+    @path_ways = []
+    PATH_COUNT.times do
+      @path_ways << []
+    end
+
+    @main_building_attaker = []
+
+    @units_count = 0
   end
 
   def lose?
     @main_building.dead?
-  end
-
-  def add_spell(spell_uid)
-
   end
 
   def finish_battle!(loser_id)
@@ -49,7 +62,12 @@ class Opponen
   end
 
   def sort_units!
-    @units_pool.sort_by!{|v| v.position}.reverse!
+
+    @path_ways.each do |path_way|
+      path_way.sort_by!{|v| v.position}.reverse!
+    end
+
+    # @units_pool.sort_by!{|v| v.position}.reverse!
   end
 
   def send_game_data!(shared_data)
@@ -78,39 +96,173 @@ class Opponen
     end
   end
 
+  def find_targets_at_line(attaker_position, path_way)
+    path_way.select {|unit| (unit.position + attaker_position) < 1.0}
+  end
+
+  def find_nearest(attaker, opponent_path_ways)
+    position = -1.0
+    target = nil
+    attaker_position = attaker.position
+    attaker_path_id = attaker.path_id
+
+    near_spawn = attaker_position < 0.15
+
+
+    opponent_path_ways.each_with_index do |path_way, index|
+
+      # next if @path_ways[index].length > 5
+
+      # count = @path_ways[index].select {|u| u.position > attaker_position}.length
+      # next if count > 2# && !near_spawn
+
+#       binding.pry if @path_ways[index].length > 5
+# puts("#{count}, #{index}")
+      nearest_targets = find_targets_at_line(attaker_position, path_way)
+      unless nearest_targets.empty?
+
+        # next if near_spawn == false && attaker_path_id == index
+
+        nearest_target = nearest_targets[0]
+        nearest_target_position = nearest_target.position + attaker_position
+
+
+        next if (nearest_target_position + attaker_position) < 0.8
+
+        # allow_overflow_cross = near_spawn && (nearest_target_position + attaker_position > 0.75)
+
+        # max_count = allow_overflow_cross ? 8 : 3
+
+        # count = @path_ways[index].select {|u| u.position > attaker_position && u.position < (1.0 - nearest_target_position)}.length
+
+        # @path_ways[index].select {|u| u.position > attaker_position && u.position < (1.0 - nearest_target_position)}.length
+    # unless nearest_target_position > 0.75
+      count_all = 0
+      count_between = 0
+
+      @path_ways[index].each do |u|
+
+        if (u.position > attaker_position && u.position < (1.0 - nearest_target.position))
+          count_between +=1
+        end
+
+        if  (u.position > attaker_position)
+          count_all +=1
+        end
+
+      end
+
+      # next if count_between >= nearest_targets.length || @path_ways[index].length > 2 #&& !near_spawn
+      next if count_between > 1
+    # end
+
+        # puts(count_between, @path_ways[index].length)
+
+
+
+        if (nearest_target_position > position) #&& count > 3
+
+
+          position = nearest_target_position
+          target = nearest_target
+
+        end
+      end
+    end
+
+    target
+  end
+
+  def find_this_fucking_target!(attaker, opponent)
+    target = nil
+
+    [:melee_attack, :range_attack].each do |type|
+      if attaker.in_attack_range?(opponent.main_building, type)
+        target = opponent.main_building
+      end
+    end
+
+    if target.nil?
+      target = find_nearest(
+        attaker,
+        opponent.path_ways
+      )
+    end
+
+    attaker.target = target
+
+    unless target.nil? || target.static?
+
+      # if target.target.nil?
+      #   target.target = attaker
+      # end
+
+      return target.path_id
+    else
+
+      return nil
+    end
+  end
+
   def update(opponent, iteration_delta)
+    # puts("UC: #{@units_count}")
     # First need to sort opponent units by distance
     opponent.sort_units!
 
     sync_data_arr = []
-    # To prevent units attack one opponent unit, and share attacks
-    # use opponent_unit_id, it will itereate after each unit attack
-    # and become zero if attack is not possible
-    opponent_unit_id = 0
-    # update each unit and collect unit response
-    @units_pool.each_with_index do |unit, index|
-      # Unit state allow attacks?
-      if unit.can_attack?
-        opponent_unit_id = make_attack(opponent, unit, opponent_unit_id)
-      end
-      # collect updates only if unit has change
-      if unit.update(iteration_delta)
-        sync_data_arr << unit.sync_data
-      end
 
-      if unit.dead?
-        # Iterate lost unit counter
-        unit_data = @units[unit.name]
-        unless unit_data.nil?
-          unit_data[:lost] += 1
+    @path_ways.each_with_index do |path, index|
+      path.each do |unit|
+        next if unit.nil?
+
+        if unit.has_no_target?
+          new_path_id = find_this_fucking_target!(unit, opponent)
+          unless new_path_id.nil?
+            unit.path_id = new_path_id
+            unit.force_sync = true
+            @path_ways[new_path_id] << @path_ways[index].delete(unit)
+
+
+          end
         end
-        @units_pool.delete_at(index)
-        # unit = nil
+        # Make unit follow the target
+        binding.pry if unit.position > 0.98
+
       end
     end
 
-    @spells.each_with_index do |spell, index|
-      spell.find_targets()
+    @path_ways.each_with_index do |path, index|
+      path.each do |unit|
+
+        # next if unit.dead?
+        next if unit.nil?
+
+        if unit.update(iteration_delta)
+          sync_data_arr << unit.sync_data
+        end
+
+        if unit.target_leave_path?
+          unit.target = nil
+          # old_index = unit.path_id
+          # new_index = unit.target.path_id
+
+          # unit.path_id = new_index
+          # unit.force_sync = true
+          # @path_ways[new_index] << @path_ways[old_index].delete(unit)
+        end
+
+
+        if unit.dead?
+          # Iterate lost unit counter
+          unit_data = @units[unit.name]
+          unless unit_data.nil?
+            unit_data[:lost] += 1
+          end
+          path.delete(unit)
+          @units_count -= 1
+          # unit = nil
+        end
+      end
     end
 
     # Main building - is a main game trigger.
@@ -150,17 +302,24 @@ class Opponen
 
     if valid
       unit = BattleUnit.new(unit_name)
-      @units_pool << unit
+      # Set new unit target from those who attacks a main building
 
-      return unit.uid
+      unit.path_id = rand(0..PATH_COUNT-1)
+
+
+      @path_ways[unit.path_id] << unit
+
+      @units_count += 1
+
+      return unit
     end
 
     return nil
   end
 
-  def notificate_unit_spawn!(unit_uid, unit_name, player_id)
+  def notificate_unit_spawn!(unit_uid, unit_name, player_id, path_id)
     @connection.send_unit_spawning(
-      unit_uid, unit_name, player_id
+      unit_uid, unit_name, player_id, path_id
     ) unless @connection.nil?
   end
 
@@ -169,37 +328,5 @@ class Opponen
   end
 
   private
-  # Recursively find attack target
-  def make_attack(opponent, attacker, opponent_unit_id)
-    # opponent_unit_id user only for share out attack to
-    # opponent units. Don't affect buildings.
-    opponent_unit = opponent.units_pool[opponent_unit_id]
-    if opponent_unit.nil? == false
-      [:melee_attack, :range_attack].each do |type|
-        # has target for opponent unit with current opponent_unit_id
-        if attacker.attack?(opponent_unit.position, type)
-          attacker.attack(opponent_unit, type)
-          return opponent_unit_id
-        end
-      end
-      # If target not found, and opponent_unit_id is zero
-      # Try to find target from nearest units
-      unless opponent_unit_id == 0
-        return make_attack(opponent, attacker, 0)
-      end
-    elsif opponent_unit.nil? and opponent_unit_id != 0
-      # If unit at opponent_unit_id nol exist
-      # and opponent_unit_id == 0
-      # Try to find target from nearest units
-      return make_attack(opponent, attacker, 0)
-    end
-    # At last check unit attack opponent main bulding
-    [:melee_attack, :range_attack].each do |type|
-      if attacker.attack?(opponent.main_building.position, type)
-        attacker.attack(opponent.main_building, type)
-      end
-    end
-    # Always retur current opponent id
-    return opponent_unit_id
-  end
+
 end

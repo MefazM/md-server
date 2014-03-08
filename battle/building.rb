@@ -5,11 +5,16 @@ require_relative 'ai_player.rb'
 class BattleBuilding
 
   attr_accessor :uid, :health_points, :position
+  attr_reader :body_width
 
-  def initialize(uid, position = 0.1)
+  def static?
+    true
+  end
+
+  def initialize(uid, position)
     # initialization unit by prototype
     @unit_prototype = {
-      :health_points => 200
+      :health_points => 20000
     }
     @uid = uid
     @uid = SecureRandom.hex(4)
@@ -19,6 +24,8 @@ class BattleBuilding
     @health_points = @unit_prototype[:health_points]
 
     @changed = false
+
+    @body_width = 0.05
   end
 
   def changed?
