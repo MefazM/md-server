@@ -1,7 +1,9 @@
 class Opponen
-  attr_accessor :id, :main_building, :units_pool, :path_ways, :main_building_attaker
+  attr_accessor :id, :main_building, :path_ways
+  attr_reader :spawned_units_count
 
-  PATH_COUNT = 10
+  TARGETING_OFFSET = 0.6
+  BETWEEN_COUNT_OFFSET = 1
 
   def initialize(data, connection = nil)
     @id = data[:id]
@@ -15,7 +17,6 @@ class Opponen
     end
 
     @ready = false
-    @units_pool = []
     @main_building = BattleBuilding.new( 'building_1', 0.05 )
 
     @connection = connection
@@ -26,22 +27,12 @@ class Opponen
       @ready = true
     end
 
-    @target_unit_id_counter = 0
-
-    @each_path_units = []
-
-    11.times do |i|
-      @each_path_units[i] = 0
-    end
-
     @path_ways = []
     PATH_COUNT.times do
       @path_ways << []
     end
 
-    @main_building_attaker = []
-
-    @units_count = 0
+    @spawned_units_count = 0
   end
 
   def lose?
@@ -58,16 +49,22 @@ class Opponen
       })
       # Notificate about battle ended
       @connection.send_finish_battle(loser_id)
+
+      @path_ways.each do |path|
+        path.each_with_index do |unit, index|
+          path[index].target = nil
+          path[index] = nil
+        end
+      end
+
+      @path_ways = nil
     end
   end
 
   def sort_units!
-
     @path_ways.each do |path_way|
       path_way.sort_by!{|v| v.position}.reverse!
     end
-
-    # @units_pool.sort_by!{|v| v.position}.reverse!
   end
 
   def send_game_data!(shared_data)
@@ -76,10 +73,10 @@ class Opponen
     end
   end
 
-  def send_spell_cast!(spell_uid, timing, target_area, opponent_uid, area)
+  def send_spell_cast!(spell_uid, timing, horizontal_target, opponent_uid, area)
     unless @connection.nil?
       @connection.send_spell_cast(
-        spell_uid, timing, target_area, opponent_uid, area
+        spell_uid, timing, horizontal_target, opponent_uid, area
       )
     end
   end
@@ -96,116 +93,7 @@ class Opponen
     end
   end
 
-  def find_targets_at_line(attaker_position, path_way)
-    path_way.select {|unit| (unit.position + attaker_position) < 1.0}
-  end
-
-  def find_nearest(attaker, opponent_path_ways)
-    position = -1.0
-    target = nil
-    attaker_position = attaker.position
-    attaker_path_id = attaker.path_id
-
-    near_spawn = attaker_position < 0.15
-
-
-    opponent_path_ways.each_with_index do |path_way, index|
-
-      # next if @path_ways[index].length > 5
-
-      # count = @path_ways[index].select {|u| u.position > attaker_position}.length
-      # next if count > 2# && !near_spawn
-
-#       binding.pry if @path_ways[index].length > 5
-# puts("#{count}, #{index}")
-      nearest_targets = find_targets_at_line(attaker_position, path_way)
-      unless nearest_targets.empty?
-
-        # next if near_spawn == false && attaker_path_id == index
-
-        nearest_target = nearest_targets[0]
-        nearest_target_position = nearest_target.position + attaker_position
-
-
-        next if (nearest_target_position + attaker_position) < 0.8
-
-        # allow_overflow_cross = near_spawn && (nearest_target_position + attaker_position > 0.75)
-
-        # max_count = allow_overflow_cross ? 8 : 3
-
-        # count = @path_ways[index].select {|u| u.position > attaker_position && u.position < (1.0 - nearest_target_position)}.length
-
-        # @path_ways[index].select {|u| u.position > attaker_position && u.position < (1.0 - nearest_target_position)}.length
-    # unless nearest_target_position > 0.75
-      count_all = 0
-      count_between = 0
-
-      @path_ways[index].each do |u|
-
-        if (u.position > attaker_position && u.position < (1.0 - nearest_target.position))
-          count_between +=1
-        end
-
-        if  (u.position > attaker_position)
-          count_all +=1
-        end
-
-      end
-
-      # next if count_between >= nearest_targets.length || @path_ways[index].length > 2 #&& !near_spawn
-      next if count_between > 1
-    # end
-
-        # puts(count_between, @path_ways[index].length)
-
-
-
-        if (nearest_target_position > position) #&& count > 3
-
-
-          position = nearest_target_position
-          target = nearest_target
-
-        end
-      end
-    end
-
-    target
-  end
-
-  def find_this_fucking_target!(attaker, opponent)
-    target = nil
-
-    [:melee_attack, :range_attack].each do |type|
-      if attaker.in_attack_range?(opponent.main_building, type)
-        target = opponent.main_building
-      end
-    end
-
-    if target.nil?
-      target = find_nearest(
-        attaker,
-        opponent.path_ways
-      )
-    end
-
-    attaker.target = target
-
-    unless target.nil? || target.static?
-
-      # if target.target.nil?
-      #   target.target = attaker
-      # end
-
-      return target.path_id
-    else
-
-      return nil
-    end
-  end
-
   def update(opponent, iteration_delta)
-    # puts("UC: #{@units_count}")
     # First need to sort opponent units by distance
     opponent.sort_units!
 
@@ -213,20 +101,21 @@ class Opponen
 
     @path_ways.each_with_index do |path, index|
       path.each do |unit|
-        next if unit.nil?
+        next if unit.dead?
 
-        if unit.has_no_target?
-          new_path_id = find_this_fucking_target!(unit, opponent)
-          unless new_path_id.nil?
-            unit.path_id = new_path_id
-            unit.force_sync = true
-            @path_ways[new_path_id] << @path_ways[index].delete(unit)
+        if unit.has_no_target? && unit.can_attack?
+          target = find_target!(unit, opponent)
+          unless target.nil?
 
+            unit.target = target
+            unless target.static?
+              unit.path_id = target.path_id
+              unit.force_sync = true
+            end
 
+            @path_ways[unit.path_id] << @path_ways[index].delete(unit)
           end
         end
-        # Make unit follow the target
-        binding.pry if unit.position > 0.98
 
       end
     end
@@ -234,23 +123,11 @@ class Opponen
     @path_ways.each_with_index do |path, index|
       path.each do |unit|
 
-        # next if unit.dead?
-        next if unit.nil?
-
         if unit.update(iteration_delta)
           sync_data_arr << unit.sync_data
         end
 
-        if unit.target_leave_path?
-          unit.target = nil
-          # old_index = unit.path_id
-          # new_index = unit.target.path_id
-
-          # unit.path_id = new_index
-          # unit.force_sync = true
-          # @path_ways[new_index] << @path_ways[old_index].delete(unit)
-        end
-
+        unit.target = nil if unit.target_leave_path?
 
         if unit.dead?
           # Iterate lost unit counter
@@ -259,16 +136,13 @@ class Opponen
             unit_data[:lost] += 1
           end
           path.delete(unit)
-          @units_count -= 1
-          # unit = nil
+          @spawned_units_count -= 1
         end
       end
     end
 
     # Main building - is a main game trigger.
     # If it is destroyed - player loses
-    # main_building = player[:main_building]
-    @main_building.update(iteration_delta)
     # Send main bulding updates only if has changes
     if @main_building.changed?
       sync_data_arr << [main_building.uid, main_building.health_points]
@@ -302,14 +176,11 @@ class Opponen
 
     if valid
       unit = BattleUnit.new(unit_name)
-      # Set new unit target from those who attacks a main building
-
       unit.path_id = rand(0..PATH_COUNT-1)
-
-
       @path_ways[unit.path_id] << unit
 
-      @units_count += 1
+
+      @spawned_units_count += 1
 
       return unit
     end
@@ -317,7 +188,7 @@ class Opponen
     return nil
   end
 
-  def notificate_unit_spawn!(unit_uid, unit_name, player_id, path_id)
+  def send_unit_spawn!(unit_uid, unit_name, player_id, path_id)
     @connection.send_unit_spawning(
       unit_uid, unit_name, player_id, path_id
     ) unless @connection.nil?
@@ -325,8 +196,72 @@ class Opponen
 
   def destroy!
     @connection = nil
+    @path_ways.each_with_index do |path, index|
+      path.each do |unit|
+        unit.target = nil
+        unit = nil
+      end
+    end
+    @main_building = nil
   end
 
   private
+  def find_nearest(attaker, opponent_path_ways)
+    closest_distance = -1.0
+    target = nil
+    attaker_position = attaker.position
+    attaker_path_id = attaker.path_id
+
+    opponent_path_ways.each_with_index do |path_way, index|
+
+      targets = path_way.select {|unit| (unit.position + attaker_position) < 1.0}
+
+      unless targets.empty?
+        nearest = targets[0]
+        nearest_position = nearest.position
+        distance = nearest_position + attaker_position
+
+        next if distance > 1.0
+        next if distance < TARGETING_OFFSET
+
+        target_mirrored_position = 1.0 - nearest_position
+
+        attack_offset = (attaker.attack_offset + nearest.attack_offset)
+        # time
+        inverted_dist = (1.0 - distance) + attack_offset
+        horizontal_time = inverted_dist + 0.05 / ((attaker.movement_speed  + nearest.movement_speed))
+        vertical_time = (attaker_path_id - index).abs * 0.2
+        next if vertical_time > horizontal_time
+
+        count_between = @path_ways[index].select {|u|
+          # u.position > attaker_position && u.position < target_mirrored_position
+          u.position.between?(attaker_position, target_mirrored_position)
+        }.length
+
+        next if count_between > BETWEEN_COUNT_OFFSET
+
+        if (distance > closest_distance)
+          closest_distance = distance
+          target = nearest
+        end
+      end
+    end
+
+    target
+  end
+
+  def find_target!(attaker, opponent)
+    target = nil
+
+    [:melee_attack, :range_attack].each do |type|
+      if attaker.in_attack_range?(opponent.main_building, type)
+        target = opponent.main_building
+      end
+    end
+
+    target = find_nearest(attaker, opponent.path_ways) if target.nil?
+
+    target
+  end
 
 end

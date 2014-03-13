@@ -86,7 +86,7 @@ class GameData
             attack_data[attack_field] = value
           end
           damage_type = unit["#{attack_type}_damage_type".to_sym]
-          attack_data[:type] if damage_type == true
+          attack_data[:type] = damage_type unless damage_type.nil?
 
           data[attack_type] = attack_data
         end
@@ -147,6 +147,7 @@ class GameData
           :time_s => time * 0.001,
           :time_ms => time,
           :area => spell_data[:area],
+          :vertical_area => spell_data[:vertical_area],
           :manacost => spell_data[:manacost],
           :description => spell_data[:description]
         }

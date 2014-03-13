@@ -13,23 +13,23 @@ require_relative 'curse.rb'
 require_relative 'bless.rb'
 
 class SpellFactory
-  @@spells = {}
+  @@spells = {
+    :circle_fire => Fireball,
+    :circle_earth => Heal,
+    :circle_water => Bomb,
 
-  @@spells[:circle_fire] = Fireball
-  @@spells[:circle_earth] = Heal
-  @@spells[:circle_water] = Bomb
+    :arrow_air => Haste,
+    :arrow_water => Slow,
+    :arrow_earth => Regeneration,
+    :arrow_fire => Bless,
 
-  @@spells[:arrow_air] = Haste
-  @@spells[:arrow_water] = Slow
-  @@spells[:arrow_earth] = Regeneration
-  @@spells[:arrow_fire] = Bless
+    :z_water => Poison,
+    :z_air => Thunder,
+    :z_fire => Curse,
 
-  @@spells[:z_water] = Poison
-  @@spells[:z_air] = Thunder
-  @@spells[:z_fire] = Curse
-
-  @@spells[:rect_air] = WindBlow
-  @@spells[:rect_water] = Stun
+    :rect_air => WindBlow,
+    :rect_water => Stun
+  }
 
   def self.create(data, brodcast_callback)
     klass = @@spells[data[:uid]]

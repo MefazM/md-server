@@ -12,7 +12,7 @@ class BattleDirectorFactory
 
   def invite(sender_id, opponent_id)
     sender = PlayerFactory.instance.player(sender_id)
-
+    MageLogger.instance.info "New battle invite. From #{sender_id}, To: #{opponent_id}."
     if sender.frozen?
       send_invitation_canceled_notification(sender_id)
       return false
@@ -31,21 +31,28 @@ class BattleDirectorFactory
     return true
   end
 
-  def create_ai_battle(player_id, ai_id)
-    player = PlayerFactory.instance.player(player_id)
-    player.freeze!
+  def create_ai_battle(sender_id, ai_id)
+    MageLogger.instance.info "New battle AI battle. P: #{sender_id}, Ai: #{ai_id}."
+    sender = PlayerFactory.instance.player(sender_id)
+
+    if sender.frozen?
+      MageLogger.instance.info "Try to create Ai battle. But player (#{sender_id}) is frozen!."
+      return false
+    end
+
+    sender.freeze!
 
     battle_director = BattleDirector.new()
     battle_director_uid = SecureRandom.hex(5)
     @battles[battle_director_uid] = battle_director
 
     data = {
-      :id => player_id,
-      :units => player.units(),
+      :id => sender_id,
+      :units => sender.units(),
       # Here will be other player options
     }
 
-    connection = PlayerFactory.instance.connection(player_id)
+    connection = PlayerFactory.instance.connection(sender_id)
     connection.battle_director = battle_director
     battle_director.set_opponent(data, connection)
 
@@ -68,6 +75,7 @@ class BattleDirectorFactory
     return false if invitation[:token] != token
     # Opponent player agree invitation
     if decision == true
+      MageLogger.instance.info "Battle accepted. P1: #{player_id}, P2(sender): #{invitation[:sender_id]}"
       player = PlayerFactory.instance.player(player_id)
       player.freeze!
       battle_director = BattleDirector.new()
@@ -92,6 +100,7 @@ class BattleDirectorFactory
       return battle_director
 
     else
+      MageLogger.instance.info "Battle rejected. P1: #{player_id}, P2(sender): #{invitation[:sender_id]}"
       # Opponent player reject invitaion
       cancel_invitation(player_id)
 
@@ -106,13 +115,13 @@ class BattleDirectorFactory
       if current_time - invitation[:time] > INVITATION_LIFE_TIME
         # invitaion expired
         cancel_invitation(player_id)
-        MageLogger.instance.info "Invitation #{invitation[:token]} expired."
+        MageLogger.instance.info "Invitation P:(sender) #{player_id}, T:#{invitation[:token]} expired."
       elsif invitation[:send] == false
         # invitaions is not sended
         send_invitation(player_id, invitation[:sender_id], invitation[:token])
         # mark invitation as sended
         invitation[:send] = true
-        MageLogger.instance.info "Invitation #{invitation[:token]} sended."
+        MageLogger.instance.info "Invitation P:(sender) #{player_id}, T:#{invitation[:token]} sended."
       end
     end
   end
@@ -143,6 +152,8 @@ class BattleDirectorFactory
     invitation = @invites[player_id][0]
     sender_id = invitation[:sender_id]
 
+    MageLogger.instance.info "Invitation canceled P:(sender) #{sender_id}, T:#{invitation[:token]}."
+
     sender = PlayerFactory.instance.player(sender_id)
     sender.unfreeze!
 
@@ -154,6 +165,8 @@ class BattleDirectorFactory
   end
 
   def send_invitation(player_id, sender_id, token)
+    MageLogger.instance.info "Sending invintation P:(sender) #{sender_id}, P2: #{player_id}, T:#{token}."
+
     connection = PlayerFactory.instance.connection(player_id)
     unless connection.nil?
       connection.send_invite_to_battle(token, sender_id)

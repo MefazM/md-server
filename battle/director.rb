@@ -1,8 +1,6 @@
 require_relative 'ai_player.rb'
 require_relative 'unit.rb'
 require_relative 'building.rb'
-# require_relative '../spells_lib.rb'
-require_relative '../spells_lib.rb'
 require_relative 'opponent.rb'
 require_relative 'spells/spells_factory.rb'
 
@@ -15,7 +13,6 @@ class BattleDirector
   FINISHED = 4
   # Timings
   DEFAULT_UNITS_SPAWN_TIME = 2.0
-
   attr_reader :status
   # Battle director save two players connection
   # Here stores connections and battle data
@@ -29,7 +26,7 @@ class BattleDirector
 
     @spells = []
 
-    MageLogger.instance.info "New BattleDirector initialize... UID = #{@uid}"
+    MageLogger.instance.info "New BattleDirector initialize..."
     # ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
   end
 
@@ -37,15 +34,12 @@ class BattleDirector
     puts "BattleDirector| #{id} dying at #{Time.new}"
   end
 
-  def cast_spell(player_id, target_area, spell_uid)
+  def cast_spell(player_id, spell_uid, horizontal_target)
     spell_data = @spells_data[spell_uid.to_sym]
 
     if spell_data.nil?
-      MageLogger.instance.error("Spell not found. UID = #{@uid}")
+      MageLogger.instance.error("Spell not found.")
     else
-
-      # timing = spell_data[:time_ms] || 0
-
       brodcast_custom_event = Proc.new do |name, data|
         @opponents.each_value { |opponent|
           opponent.send_custom_event!(name, data)
@@ -55,25 +49,25 @@ class BattleDirector
       spell = SpellFactory.create(spell_data, brodcast_custom_event)
 
       @opponents.each_value { |opponent|
-        opponent.send_spell_cast!(spell_uid, spell.life_time * 1000, target_area, player_id, spell_data[:area])
+        opponent.send_spell_cast!(spell_uid, spell.life_time * 1000,
+          horizontal_target, player_id, spell_data[:area])
       }
 
       if spell.friendly_targets?
-        spell.target_area = target_area
-        spell.units_pool = @opponents[player_id].units_pool
+        spell.set_target(horizontal_target, @opponents[player_id].path_ways)
       else
-        spell.target_area = 1.0 - target_area
+        horizontal_target = 1.0 - horizontal_target
 
         opponent_uid = @opponents_indexes[player_id]
-        spell.units_pool = @opponents[opponent_uid].units_pool
+        spell.set_target(horizontal_target, @opponents[opponent_uid].path_ways)
       end
 
-      @spells << spell #unless spell.nil?
+      @spells << spell
     end
   end
 
   def set_opponent(data, connection)
-    MageLogger.instance.info "BattleDirector| (UID=#{@uid}) added opponent. ID = #{data[:id]}"
+    MageLogger.instance.info "BattleDirector| added opponent. ID = #{data[:id]}"
     @opponents[data[:id]] = Opponen.new(data, connection)
     # Create battle on devices if anough players
     create_battle_at_clients if @opponents.count == 2
@@ -81,7 +75,7 @@ class BattleDirector
   # After initialization battle on clients.
   # Battle starts after all opponents are ready.
   def set_opponent_ready(player_id)
-    MageLogger.instance.info "BattleDirector| (UID=#{@uid}) opponent ID = #{player_id} is ready to battle."
+    MageLogger.instance.info "BattleDirector| opponent ID = #{player_id} is ready to battle."
     @opponents[player_id].ready!
     # Battle ready to start, if each opponent is ready.
     all_ready = @opponents.values.all? {|opponent| opponent.ready?}
@@ -123,34 +117,36 @@ class BattleDirector
 
       if player.lose?
         finish_battle!(player_id)
+        return
       end
 
       if default_units_spawn_time
         spawn_unit('crusader', player_id, false)
+        spawn_unit('mage', player_id, false)
+        spawn_unit('elf', player_id, false)
       end
     end
     # /UPDATE
   end
-  # Additional units spawning. here should be a validation.
+  # Additional units spawning.
   def spawn_unit(unit_name, player_id, validate = true)
     unit_name = unit_name.to_sym
     unit = @opponents[player_id].add_unit_to_pool(unit_name, validate)
     unless unit.nil?
       @opponents.each_value { |opponent|
-        opponent.notificate_unit_spawn!(unit.uid, unit_name, player_id, unit.path_id)
+        opponent.send_unit_spawn!(unit.uid, unit_name, player_id, unit.path_id)
       }
     end
   end
   # Destroy battle director
   def destroy
-    # Destroy references in connections
     @opponents.each_value { |opponent| opponent.destroy! }
   end
 
   private
   # Start the battle.
   def start!
-    MageLogger.instance.info "BattleDirector| (UID=#{@uid}) is started!"
+    MageLogger.instance.info "BattleDirector| is started!"
     @status = IN_PROGRESS
     @opponents.each_value { |opponent| opponent.start_battle! }
     @iteration_time = Time.now.to_f
@@ -159,7 +155,7 @@ class BattleDirector
   # Also here server should send all additional info about resources
   # so client can prechache them.
   def create_battle_at_clients
-    MageLogger.instance.info "BattleDirector| (UID=#{@uid}) has two opponents. Initialize battle on clients."
+    MageLogger.instance.info "BattleDirector| has two opponents. Initialize battle on clients."
     _opponents_indexes = []
     # Collecting each player main buildings info.
     # And brodcast this data to clients
@@ -181,7 +177,7 @@ class BattleDirector
   end
   # Simple finish battle.
   def finish_battle!(loser_id)
-    MageLogger.instance.info "BattleDirector| (UID=#{@uid}). Battle finished, player (#{loser_id} - lose.)"
+    MageLogger.instance.info "BattleDirector| Battle finished, player (#{loser_id} - lose.)"
     @status = FINISHED
     @opponents.each_value { |opponent| opponent.finish_battle!(loser_id) }
   end

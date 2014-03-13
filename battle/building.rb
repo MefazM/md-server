@@ -1,8 +1,9 @@
 require "securerandom"
 require 'pry'
-require_relative 'ai_player.rb'
 
 class BattleBuilding
+
+  @@uid_iteratior = 0
 
   attr_accessor :uid, :health_points, :position
   attr_reader :body_width
@@ -11,26 +12,22 @@ class BattleBuilding
     true
   end
 
-  def initialize(uid, position)
-    # initialization unit by prototype
-    @unit_prototype = {
-      :health_points => 20000
-    }
-    @uid = uid
-    @uid = SecureRandom.hex(4)
+  def initialize(name, position)
+    @name = name
+    @uid = "b#{@@uid_iteratior}"
+    @@uid_iteratior += 1
     # additional params
     @position = position
-    @deferred_damage = []
-    @health_points = @unit_prototype[:health_points]
+    @health_points = 20000
 
-    @changed = false
+    @force_sync = false
 
-    @body_width = 0.05
+    @body_width = 1.0 - 0.05
   end
 
   def changed?
-    changed = @changed
-    @changed = false
+    changed = @force_sync
+    @force_sync = false
 
     changed
   end
@@ -43,32 +40,12 @@ class BattleBuilding
     [@uid, @uid, @position, @health_points]
   end
 
-  def add_deffered_damage(attack_power, initial_position, range_attack_damage_type)
-    @deferred_damage << {
-      :power => attack_power,
-      :position => initial_position,
-      :range_attack_damage_type => range_attack_damage_type
-    }
-  end
-
   def decrease_health_points(decrease_by, attack_type)
     # Сила аттаки уменьшается в двое, если юнит имеет защиту от такого типа атак.
     @health_points -= decrease_by
-    @changed = true
-  end
-
-  def process_deffered_damage(iteration_delta)
-    @deferred_damage.each_with_index do |deferred, index|
-      deferred[:position] += iteration_delta * 0.4 #! This is magick, 0.4 is a arrow speed!!
-      if (deferred[:position] + @position >= 1.0)
-        decrease_health_points(deferred[:power], deferred[:range_attack_damage_type])
-        @deferred_damage.delete_at(index)
-        @changed = true
-      end
-    end
+    @force_sync = true
   end
 
   def update(iteration_delta)
-    process_deffered_damage(iteration_delta)
   end
 end

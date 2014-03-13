@@ -2,7 +2,7 @@ class AbstractSpell
   STATES = [ :process, :affect, :wait, :empty ]
 
   attr_reader :completed, :life_time
-  attr_writer :units_pool, :target_area
+  # attr_writer :units_pool, :horizontal_target
 
   def initialize(data, brodcast_callback)
     @data = data
@@ -10,14 +10,23 @@ class AbstractSpell
 
     @completed = false
     @charges_count = 0
-    @target_units = []
-    @target_units_ids = []
-    @units_pool = {}
+    @target_units = nil
+    @target_units_ids = nil
+    # @units_pool = {}
     @elapsed_time = 0
-    @target_area = nil
+    # @horizontal_target = nil
     @create_at = Time.now.to_f
 
     @life_time = @data[:time_s]
+
+  end
+
+  def set_target(horizontal_target, path_ways)
+    half_horizontal_area = @data[:area] * 0.5
+    @left_bound = horizontal_target - half_horizontal_area
+    @right_bound = horizontal_target + half_horizontal_area
+
+    @path_ways = path_ways
   end
 
   def update!(current_time, iteration_delta)
@@ -54,7 +63,10 @@ class AbstractSpell
     # Spell is ready if task stack is empty
     when :empty
       # puts("FINISH!!!!!")
-      @units_pool = nil
+      # @units_pool = nil
+      @target_units = nil
+      @target_units_ids = nil
+      @path_ways = nil
       @completed = true
     end
   end
@@ -86,16 +98,16 @@ class AbstractSpell
   end
 
   def find_targets!
-    area = @data[:area]
+    @target_units = []
+    @target_units_ids = []
 
-    left_bound = @target_area - area * 0.5
-    right_bound = @target_area + area * 0.5
-
-    @units_pool.each do |target|
-      position = target.position
-      if position >= left_bound and position <= right_bound
-        @target_units << target
-        @target_units_ids << target.uid
+    @path_ways.each do |path|
+      path.each do |target|
+        position = target.position
+        if position >= @left_bound and position <= @right_bound
+          @target_units << target
+          @target_units_ids << target.uid
+        end
       end
     end
   end
