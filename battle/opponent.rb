@@ -212,7 +212,16 @@ class Opponen
     attaker_position = attaker.position
     attaker_path_id = attaker.path_id
 
-    opponent_path_ways.each_with_index do |path_way, index|
+    target_min_path_way = attaker_path_id - 2
+
+    target_min_path_way = 0 if target_min_path_way < 0
+
+    target_max_path_way = attaker_path_id + 2
+    target_max_path_way = 9 if target_max_path_way > 9
+
+    opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
+
+puts("I: #{attaker_path_id} | MIN: #{target_min_path_way} | MAX: #{target_max_path_way}")
 
       targets = path_way.select {|unit| (unit.position + attaker_position) < 1.0}
 
@@ -231,7 +240,7 @@ class Opponen
         inverted_dist = (1.0 - distance) + attack_offset
         horizontal_time = inverted_dist + 0.05 / ((attaker.movement_speed  + nearest.movement_speed))
         vertical_time = (attaker_path_id - index).abs * 0.2
-        next if vertical_time > horizontal_time
+        #next if vertical_time > horizontal_time
 
         count_between = @path_ways[index].select {|u|
           # u.position > attaker_position && u.position < target_mirrored_position

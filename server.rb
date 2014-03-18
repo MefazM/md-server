@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby
-require 'pry'
+# require 'pry'
 require 'rubygems'
 require 'eventmachine'
-require 'yajl/json_gem'
+# require 'yajl/json_gem'
 require 'singleton'
-
+require "json"
 require_relative 'constants.rb'
 
 require_relative 'mage_logger.rb'
@@ -18,6 +18,9 @@ require_relative 'settings.rb'
 require_relative 'networking.rb'
 require_relative 'game_data.rb'
 
+require_relative 'game_server_statistics.rb'
+
+# GAME_SERVER_STATISTICS = GameServerStatistics.new
 
 class Connection < EM::Connection
 
@@ -163,4 +166,16 @@ EventMachine::run do
     PlayerFactory.instance.brodcast_mine_capacity(current_time)
     BattleDirectorFactory.instance.process_invitation_queue(current_time)
   end
+
+  # gss = GameServerStatistics.new
+  # gss.callback { |c| puts "The language was #{c}" }
+
+  # EventMachine::PeriodicTimer.new(0.2) do
+
+
+  #   EM.defer proc.new{
+  #     gss.do
+  #   }
+
+  # end
 end

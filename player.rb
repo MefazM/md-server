@@ -1,6 +1,5 @@
 
 require "securerandom"
-require 'pry'
 require_relative 'redis_connection.rb'
 class Player
 

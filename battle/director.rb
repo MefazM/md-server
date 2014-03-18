@@ -12,7 +12,7 @@ class BattleDirector
   IN_PROGRESS = 3
   FINISHED = 4
   # Timings
-  DEFAULT_UNITS_SPAWN_TIME = 2.0
+  DEFAULT_UNITS_SPAWN_TIME = 1.0
   attr_reader :status
   # Battle director save two players connection
   # Here stores connections and battle data

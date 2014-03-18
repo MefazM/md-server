@@ -1,6 +1,4 @@
 require "securerandom"
-require 'pry'
-
 class BattleBuilding
 
   @@uid_iteratior = 0
