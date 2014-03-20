@@ -40,6 +40,11 @@ class DBConnection
     @@connection.last_id
   end
 
+  def self.disconnect!
+    @@stmtSelect.close
+    @@connSelect.close
+  end
+
   def self.query(sql_query)
 
     dd = @@stmtSelect.execute_query(sql_query)

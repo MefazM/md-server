@@ -7,6 +7,15 @@ gem 'mysql2', platform: :ruby
 
 gem 'pry'
 
+gem "connection_pool", "~> 2.0.0"
+
+gem 'celluloid'
+gem 'celluloid-io'
+
+gem 'celluloid-redis'
+
+
+
 if defined?(JRUBY_VERSION)
   gem 'jdbc-mysql'
   gem "redis", "~> 3.0.1"

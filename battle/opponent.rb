@@ -221,7 +221,7 @@ class Opponen
 
     opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
 
-puts("I: #{attaker_path_id} | MIN: #{target_min_path_way} | MAX: #{target_max_path_way}")
+    # puts("I: #{attaker_path_id} | MIN: #{target_min_path_way} | MAX: #{target_max_path_way}")
 
       targets = path_way.select {|unit| (unit.position + attaker_position) < 1.0}
 

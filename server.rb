@@ -144,8 +144,16 @@ end
 EventMachine::run do
   host = Settings::SERVER_HOST
   port = Settings::SERVER_PORT
-  Signal.trap("INT")  { EventMachine.stop }
-  Signal.trap("TERM") { EventMachine.stop }
+  Signal.trap("INT")  {
+    EventMachine.stop
+    DBConnection.disconnect!
+  }
+
+  Signal.trap("TERM") {
+    EventMachine.stop
+    DBConnection.disconnect!
+  }
+
   MageLogger.instance.info "Starting MageServer on #{host}:#{port}..."
   DBConnection.connect(Settings::MYSQL_HOST, Settings::MYSQL_USER_NAME, Settings::MYSQL_DB_NAME, Settings::MYSQL_PASSWORD)
   EventMachine::start_server host, port, Connection
@@ -168,14 +176,13 @@ EventMachine::run do
   end
 
   # gss = GameServerStatistics.new
-  # gss.callback { |c| puts "The language was #{c}" }
 
-  # EventMachine::PeriodicTimer.new(0.2) do
+  13.times do |i|
+    d = GameServerStatistics.new(i)
+    d._do
+  end
 
-
-  #   EM.defer proc.new{
-  #     gss.do
-  #   }
-
+  # EventMachine::PeriodicTimer.new(5.0) do
+  #   gss._do
   # end
 end
