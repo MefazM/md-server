@@ -1,144 +1,169 @@
-class GameData
-  include Singleton
+module Storage
+  class GameData
+    # Define getters
 
-  attr_accessor :collected_data, :coin_generator_uid, :storage_building_uid, :spells_data
-
-  def initialize
-    MageLogger.instance.info "GameData| Loading resources from DB ..."
-
-    units = DBConnection.query("SELECT * FROM units")
-    buildings = DBConnection.query("SELECT * FROM buildings")
-    # Process game settings
-    coins_production_data = {}
-    coins_production = DBConnection.query("SELECT * FROM game_settings")
-    coins_production.each do |option|
-      coins_production_data[option[:key].to_sym] = option[:value]
-    end
-    # Convert JSON data.
-    [:storage_capacity_per_level, :coins_generation_per_level].each do |type|
-      coins_production_data[type] = JSON.parse(coins_production_data[type])
-    end
-    @coins_generation_per_level = []
-    coins_production_data[:coins_generation_per_level].each do |data|
-      @coins_generation_per_level << {
-        :amount => data['amount'].to_f,
-        :harvester_capacity => data['harvest_capacity'].to_i
-      }
+    def self.collected_data
+      @@collected_data
     end
 
-    @storage_capacity_per_level = []
-    coins_production_data[:storage_capacity_per_level].each do |data|
-      @storage_capacity_per_level << data['amount'].to_i
+    def self.coin_generator_uid
+      @@coin_generator_uid
     end
 
-    @coin_generator_uid = coins_production_data[:coin_generator_uid].to_sym
-    @storage_building_uid = coins_production_data[:storage_building_uid].to_sym
-    # Collect and process game objects
-    @collected_data = {
-      :buildings_production => export_buildings_production(units) ,
-      :units_data => export_units(units),
-      :buildings_data => export_buildings(buildings)
-    }
+    def self.storage_building_uid
+      @@storage_building_uid
+    end
 
-    @spells_data = load_spells
-  end
+    def self.spells_data
+      @@spells_data
+    end
 
-  def harvester level
-    @coins_generation_per_level[level]
-  end
+    def self.load!
+      Celluloid::Logger::info 'Loading game data...'
 
-  def storage_capacity level
-    @storage_capacity_per_level[level]
-  end
+      @@mysql = Mysql::MysqlClient.new
 
-  private
-
-  def export_buildings_production units
-    units_by_building = {}
-    units.each do |unit|
-      building_uid = unit[:depends_on_building_uid].to_sym
-      unless building_uid.empty?
-        units_by_building[building_uid] = [] if units_by_building[building_uid].nil?
-        units_by_building[building_uid] << {
-          :uid => unit[:uid],
-          :level => unit[:depends_on_building_level]
+      # Process game settings
+      game_settings = {}
+      @@mysql.query("SELECT * FROM game_settings").each do |option|
+        game_settings[option[:key].to_sym] = option[:value]
+      end
+      # Convert JSON data.
+      [:storage_capacity_per_level, :coins_generation_per_level].each do |type|
+        game_settings[type] = JSON.parse(game_settings[type])
+      end
+      # Coins
+      @@coins_generation_per_level = []
+      game_settings[:coins_generation_per_level].each do |data|
+        @@coins_generation_per_level << {
+          :amount => data['amount'].to_f,
+          :harvester_capacity => data['harvest_capacity'].to_i
         }
       end
-    end
 
-    units_by_building
-  end
-
-
-  def export_units units
-    units_data = {}
-    units.each do |unit|
-      data = {}
-      [:name, :description, :health_points, :movement_speed, :production_time].each do |attr|
-        data[attr] = unit[attr]
+      @@storage_capacity_per_level = []
+      game_settings[:storage_capacity_per_level].each do |data|
+        @@storage_capacity_per_level << data['amount'].to_i
       end
 
-      [:range_attack, :melee_attack].each do |attack_type|
-        if unit[attack_type] == true
-          attack_data = {}
-          [:power_max, :power_min, :range, :speed].each do |attack_field|
-            value = unit["#{attack_type}_#{attack_field}".to_sym]
-            attack_data[attack_field] = value
-          end
-          damage_type = unit["#{attack_type}_damage_type".to_sym]
-          attack_data[:type] = damage_type unless damage_type.nil?
+      @@coin_generator_uid = game_settings[:coin_generator_uid].to_sym
+      @@storage_building_uid = game_settings[:storage_building_uid].to_sym
 
-          data[attack_type] = attack_data
+      # Collect and process game objects
+      units = @@mysql.query("SELECT * FROM units")
+
+      @@collected_data = {
+        :buildings_production => self.export_buildings_production(units) ,
+        :units_data => self.export_units(units),
+        :buildings_data => self.load_buildings
+      }
+
+      @@spells_data = self.load_spells
+
+      # Kill mysql connection!
+      @@mysql.finalize
+      @@mysql = nil
+    end
+
+    def self.harvester level
+      @@coins_generation_per_level[level]
+    end
+
+    def self.storage_capacity level
+      @@storage_capacity_per_level[level]
+    end
+
+    private
+
+    def self.export_buildings_production units
+      units_by_building = {}
+      units.each do |unit|
+        building_uid = unit[:depends_on_building_uid].to_sym
+        unless building_uid.empty?
+          units_by_building[building_uid] = [] if units_by_building[building_uid].nil?
+          units_by_building[building_uid] << {
+            :uid => unit[:uid],
+            :level => unit[:depends_on_building_level]
+          }
         end
       end
 
-      units_data[unit[:uid]] = data
+      units_by_building
     end
 
-    units_data
-  end
+    def self.export_units units
+      units_data = {}
+      units.each do |unit|
+        data = {}
+        [:name, :description, :health_points, :movement_speed, :production_time].each do |attr|
+          data[attr] = unit[attr]
+        end
 
-  def export_buildings buildings
-    buildings_data = {}
-    buildings.each do |building|
-      building_uid = building[:uid].to_sym
-      uid = "#{building_uid}_#{building[:level]}"
-      # buildings_data[uid] = [] if buildings_data[uid].nil?
+        [:range_attack, :melee_attack].each do |attack_type|
+          if unit[attack_type] == true
+            attack_data = {}
+            [:power_max, :power_min, :range, :speed].each do |attack_field|
+              value = unit["#{attack_type}_#{attack_field}".to_sym]
+              attack_data[attack_field] = value
+            end
+            damage_type = unit["#{attack_type}_damage_type".to_sym]
+            attack_data[:type] = damage_type unless damage_type.nil?
 
-      buildings_data[uid] = {}
+            data[attack_type] = attack_data
+          end
+        end
 
-      [:name, :description, :production_time].each do |attr|
-        buildings_data[uid][attr] = building[attr]
+        units_data[unit[:uid]] = data
       end
 
-      buildings_data[uid][:actions] = {
-        :build => updateable?(building[:uid], building[:level]),
-        :info => @coin_generator_uid != building_uid,
-        :units => produce_units?(building[:uid], building[:level]),
-        :harvest_collect => @coin_generator_uid == building_uid,
-        :harvest_info => @coin_generator_uid == building_uid
-      }
+      units_data
     end
 
-    buildings_data
-  end
+    def self.load_buildings
+      buildings_data = {}
+      @@mysql.query("SELECT * FROM buildings").each do |building|
+        building_uid = building[:uid].to_sym
+        uid = "#{building_uid}_#{building[:level]}"
+        # buildings_data[uid] = [] if buildings_data[uid].nil?
 
-  def updateable? uid, level
-    target_level = level + 1
-    building = DBConnection.query("SELECT * FROM buildings WHERE level = #{target_level} AND uid = '#{uid}'").first
-    return building.nil? == false
-  end
+        buildings_data[uid] = {}
 
-  def produce_units? uid, level
-    units = DBConnection.query("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
-    return units.count > 0
-  end
+        [:name, :description, :production_time].each do |attr|
+          buildings_data[uid][attr] = building[attr]
+        end
 
-  def load_spells
-    MageLogger.instance.info "Spells| Loading spells from DB ..."
-    spells_data = {}
-    begin
-      DBConnection.query("SELECT * FROM spells").each do |spell_data|
+        buildings_data[uid][:actions] = {
+          :build => self.updateable?(building[:uid], building[:level]),
+          :info => @coin_generator_uid != building_uid,
+          :units => self.produce_units?(building[:uid], building[:level]),
+          :harvest_collect => @coin_generator_uid == building_uid,
+          :harvest_info => @coin_generator_uid == building_uid
+        }
+      end
+
+      buildings_data
+    end
+
+    def self.updateable? uid, level
+      target_level = level + 1
+
+      # building = Storage::Mysql::Pool.connections_pool.with do |mysql|
+      building = @@mysql.query("SELECT * FROM buildings WHERE level = #{target_level} AND uid = '#{uid}'").first
+
+      building.nil? == false
+    end
+
+    def self.produce_units? uid, level
+      units = @@mysql.query("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
+
+      # building = Storage::Mysql::Pool.connections_pool.with do |mysql|
+      units.count > 0
+    end
+
+    def self.load_spells
+      spells_data = {}
+
+      @@mysql.query("SELECT * FROM spells").each do |spell_data|
         # Convert ms to seconds
         uid = spell_data[:uid].to_sym
         time = spell_data[:time] || 0
@@ -152,7 +177,7 @@ class GameData
           :description => spell_data[:description]
         }
         # Get spel attrs
-        DBConnection.query("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
+        @@mysql.query("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
           key = spell_attrs[:key]
           value = spell_attrs[:value]
 
@@ -162,12 +187,9 @@ class GameData
         spells_data[uid] = spell_prototype
 
       end
-    rescue Exception => e
-      raise e
+
+      spells_data
     end
 
-    MageLogger.instance.info "Spells| #{spells_data.count} spell(s) - loaded."
-
-    return spells_data
   end
 end

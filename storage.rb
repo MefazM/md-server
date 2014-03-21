@@ -3,6 +3,7 @@
 require 'connection_pool'
 require 'mysql_client'
 require 'redis_client'
+require 'game_data'
 
 module Storage
 

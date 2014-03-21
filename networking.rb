@@ -1,8 +1,4 @@
-
-
 module Networking
-
-
   MESSAGE_START_TOKEN = '__JSON__START__'
   MESSAGE_END_TOKEN = '__JSON__END__'
   TOKEN_START_LENGTH = MESSAGE_START_TOKEN.length
