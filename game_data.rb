@@ -146,8 +146,6 @@ module Storage
 
     def self.updateable? uid, level
       target_level = level + 1
-
-      # building = Storage::Mysql::Pool.connections_pool.with do |mysql|
       building = @@mysql.query("SELECT * FROM buildings WHERE level = #{target_level} AND uid = '#{uid}'").first
 
       building.nil? == false
@@ -155,8 +153,6 @@ module Storage
 
     def self.produce_units? uid, level
       units = @@mysql.query("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
-
-      # building = Storage::Mysql::Pool.connections_pool.with do |mysql|
       units.count > 0
     end
 

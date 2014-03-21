@@ -3,18 +3,12 @@
 require 'celluloid'
 require 'celluloid/io'
 require 'celluloid/autostart'
-
 require 'pry'
-
 require 'json'
-
 require 'constants'
 require 'storage'
-
 require 'player_factory'
-
 require 'networking'
-
 
 
 class GameServer
@@ -28,6 +22,7 @@ class GameServer
 
     Storage::Mysql::Pool.create!
     Storage::Redis::Pool.create!
+    Storage::GameData.load!
 
     @server = TCPServer.new(host, port)
     async.run
