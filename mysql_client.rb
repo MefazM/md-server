@@ -38,7 +38,7 @@ module Storage
       end
 
       def last_inser_id
-        # @connection.last_id
+        @statement.lastInsertID
       end
 
       def query(sql_query)

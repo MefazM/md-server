@@ -6,9 +6,14 @@ require 'celluloid/autostart'
 
 require 'pry'
 
+require 'json'
+
 require 'constants'
 require 'storage'
-require 'player'
+
+require 'player_factory'
+
+require 'networking'
 
 class GameServer
   include Celluloid::IO
@@ -27,6 +32,7 @@ class GameServer
   end
 
   def shutdown
+    info "***Shutting down server...***"
     @server.close if @server
   end
 
@@ -37,10 +43,18 @@ class GameServer
   def handle_connection(socket)
     _, port, host = socket.peeraddr
 
-    puts "Received connection from #{host}:#{port}"
+    info "Received connection from #{host}:#{port}"
 
-    player = Player.new(socket)
-    player.async.run
+    Networking::Request.listen_socket(socket) do |action, data|
+      if action == Networking::RECEIVE_PLAYER_ACTION
+        Player::PlayerFactory.find_or_create(data[0], socket).async.run
+
+        true
+      end
+    end
+
+    rescue EOFError
+      socket.close
   end
 end
 
