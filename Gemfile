@@ -22,8 +22,6 @@ if defined?(JRUBY_VERSION)
   gem "hiredis", "~> 0.4.5"
   gem "json-jruby"
 else
-  gem 'mysql2'
-  
   gem 'pry-stack_explorer'
   gem 'pry-debugger'
 

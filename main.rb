@@ -6,9 +6,9 @@ require 'celluloid/autostart'
 require 'pry'
 require 'json'
 require 'constants'
-require 'storage'
-require 'player_factory'
-require 'networking'
+require 'storage/storage'
+require 'player/player_factory'
+require 'network/networking'
 
 
 class GameServer
@@ -43,7 +43,8 @@ class GameServer
     info "Received connection from #{host}:#{port}"
 
     Networking::Request.listen_socket(socket) do |action, data|
-      if action == Networking::RECEIVE_PLAYER_ACTION
+
+      if action == Networking::Actions::RECEIVE_PLAYER_ACTION
         Player::PlayerFactory.find_or_create(data[0], socket).async.run
 
         true

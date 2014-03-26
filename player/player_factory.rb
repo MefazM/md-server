@@ -1,5 +1,5 @@
 
-require 'player'
+require 'player/player'
 
 module Player
   class PlayerFactory

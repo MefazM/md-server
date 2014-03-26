@@ -18,6 +18,18 @@ module Storage
       @@spells_data
     end
 
+    def self.unit_price uid
+      @@collected_data[:units_data][uid][:price]
+    end
+
+    def self.units
+      @@collected_data[:units_data]
+    end
+
+    def self.unit uid
+      @@collected_data[:units_data][uid]
+    end
+
     def self.load!
       Celluloid::Logger::info 'Loading game data...'
 
@@ -95,17 +107,24 @@ module Storage
       units_data = {}
       units.each do |unit|
         data = {}
-        [:name, :description, :health_points, :movement_speed, :production_time].each do |attr|
+        [ :name, :description, :health_points,
+          :movement_speed, :production_time, :depends_on_building_uid,
+          :depends_on_building_level, :price ].each do |attr|
+
           data[attr] = unit[attr]
         end
 
         [:range_attack, :melee_attack].each do |attack_type|
           if unit[attack_type] == true
             attack_data = {}
-            [:power_max, :power_min, :range, :speed].each do |attack_field|
+            [:power_max, :power_min, :range].each do |attack_field|
               value = unit["#{attack_type}_#{attack_field}".to_sym]
               attack_data[attack_field] = value
             end
+            # Convert attack speed in ms to server seconds
+            attack_speed_key = "#{attack_type}_speed".to_sym
+            attack_data[attack_speed_key] = unit[attack_speed_key] * 0.001
+
             damage_type = unit["#{attack_type}_damage_type".to_sym]
             attack_data[:type] = damage_type unless damage_type.nil?
 
@@ -113,7 +132,7 @@ module Storage
           end
         end
 
-        units_data[unit[:uid]] = data
+        units_data[unit[:uid].to_sym] = data
       end
 
       units_data
@@ -134,10 +153,10 @@ module Storage
 
         buildings_data[uid][:actions] = {
           :build => self.updateable?(building[:uid], building[:level]),
-          :info => @coin_generator_uid != building_uid,
+          :info => @@coin_generator_uid != building_uid,
           :units => self.produce_units?(building[:uid], building[:level]),
-          :harvest_collect => @coin_generator_uid == building_uid,
-          :harvest_info => @coin_generator_uid == building_uid
+          :harvest_collect => @@coin_generator_uid == building_uid,
+          :harvest_info => @@coin_generator_uid == building_uid
         }
       end
 

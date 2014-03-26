@@ -1,9 +1,9 @@
 
 
 require 'connection_pool'
-require 'mysql_client'
-require 'redis_client'
-require 'game_data'
+require 'storage/mysql_client'
+require 'storage/redis_client'
+require 'storage/game_data'
 
 module Storage
 
