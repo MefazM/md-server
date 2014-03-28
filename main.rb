@@ -10,7 +10,6 @@ require 'storage/storage'
 require 'player/player_factory'
 require 'network/networking'
 
-
 class GameServer
   include Celluloid::IO
   include Celluloid::Logger

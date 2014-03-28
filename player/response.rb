@@ -9,13 +9,10 @@ module Player
         buildings[uid] = {:level => level, :ready => true, :uid => uid}
       end
 
-      # buildings_queue = BuildingsFactory.instance.buildings_in_queue(@id)
-
-      # buildings_queue.each do |uid, data|
-      #   buildings[uid] = data
-      #   # mark as not ready building in queue
-      #   buildings[uid][:ready] = false
-      # end
+      buildings_updates_queue_export.each do |building_uid, task|
+        buildings[building_uid] = task
+        buildings[building_uid][:ready] = false
+      end
 
       game_data = {
         :uid => @id,
@@ -61,6 +58,14 @@ module Player
       write_data [SEND_START_TASK_IN_UNIT_QUEUE_ACTION, @latency,
         producer_id, production_time]
     end
+
+    def send_sync_building_state(uid, level, is_ready = true, finish_time = nil)
+      message = [SEND_SYNC_BUILDING_STATE_ACTION, @latency, uid, level, is_ready]
+      message << finish_time unless is_ready
+
+      write_data message
+    end
+
 
     def write_data(data)
       # puts data.inspect

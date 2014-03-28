@@ -30,6 +30,10 @@ module Storage
       @@collected_data[:units_data][uid]
     end
 
+    def self.building uid
+      @@collected_data[:buildings_data][uid]
+    end
+
     def self.load!
       Celluloid::Logger::info 'Loading game data...'
 
@@ -108,11 +112,13 @@ module Storage
       units.each do |unit|
         data = {}
         [ :name, :description, :health_points,
-          :movement_speed, :production_time, :depends_on_building_uid,
+          :movement_speed, :production_time,
           :depends_on_building_level, :price ].each do |attr|
 
           data[attr] = unit[attr]
         end
+
+        data[:depends_on_building_uid] = unit[:depends_on_building_uid].to_sym
 
         [:range_attack, :melee_attack].each do |attack_type|
           if unit[attack_type] == true
@@ -147,7 +153,7 @@ module Storage
 
         buildings_data[uid] = {}
 
-        [:name, :description, :production_time].each do |attr|
+        [:name, :description, :production_time, :price].each do |attr|
           buildings_data[uid][attr] = building[attr]
         end
 

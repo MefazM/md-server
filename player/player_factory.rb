@@ -12,8 +12,16 @@ module Player
       end
 
       player_id = authentication.nil? ? self.create_player(login_data) : authentication[:player_id]
+      actor_key = "p_#{player_id}"
 
-      self.get_player(player_id, socket)
+      player = self.get_player(player_id, socket)
+
+      if Celluloid::Actor[actor_key]
+        raise StandardError, "Try to access alive player!" if Celluloid::Actor[actor_key].alive?
+      end
+      Celluloid::Actor[actor_key] = player
+
+      player
     end
 
     private
