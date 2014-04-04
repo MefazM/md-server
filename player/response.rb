@@ -1,6 +1,7 @@
 module Player
   module Response
     include ::Networking::Actions
+
     def send_game_data
 
       buildings = {}
@@ -66,8 +67,52 @@ module Player
       write_data message
     end
 
+    def send_invite_to_battle(token, sender_id)
+      write_data [SEND_INVITE_TO_BATTLE_ACTION, @latency, token, sender_id]
+    end
 
-    def write_data(data)
+    def send_custom_event(event_name, data_array = [])
+      message = [SEND_CUSTOM_EVENT, @latency, event_name]
+      data_array = [] if data_array.nil?
+      message += data_array
+
+      write_data message
+    end
+
+    def send_lobby_data(players_data, ai_oppontns_data)
+      write_data [SEND_LOBBY_DATA_ACTION, @latency, players_data, ai_oppontns_data]
+    end
+
+    def send_finish_battle loser_id
+
+    end
+
+    # TODO: separate send_create_new_battle_on_client
+    # into two methods
+    #  1 - create_battle @ client
+    #  2 - send_battle_data (useful on battle restore)
+    # remove @id
+    def send_create_new_battle_on_client(units, shared_data)
+      write_data [SEND_CREATE_NEW_BATTLE_ON_CLIENT_ACTION, @latency, @id, units, shared_data]
+    end
+
+    def send_spell_cast(spell_uid, timing, horizontal_target, opponent_uid, area)
+      write_data [SEND_SPELL_CAST_ACTION, @latency, spell_uid, timing, horizontal_target, owner_id, area]
+    end
+
+    def send_battle_sync sync_data
+      write_data [SEND_BATTLE_SYNC_ACTION, @latency, sync_data]
+    end
+
+    def send_start_battle
+      write_data [SEND_START_BATTLE_ACTION, @latency]
+    end
+
+    def send_unit_spawning(unit_data)
+      write_data [SEND_SPAWN_UNIT_ACTION, @latency] + unit_data
+    end
+
+    def write_data data
       # puts data.inspect
       json = JSON.generate(data)
       @socket.write "__JSON__START__#{json}__JSON__END__"

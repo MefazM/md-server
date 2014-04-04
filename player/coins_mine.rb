@@ -10,7 +10,7 @@ module Player
       @harvester_capacity = data[:harvester_capacity]
     end
 
-    def reset_gold_mine_full_notification
+    def reset_gold_mine_notificator
       d_time = Time.now.to_i - @last_harvest_time
 
       @harvester_capacity
@@ -21,13 +21,13 @@ module Player
 
       time_left = d_amount / @coins_gain
 
-      unless @gold_mine_notification_timer.nil?
-        @gold_mine_notification_timer.cancel
-        @gold_mine_notification_timer = nil
+      unless @mine_notificator_timer.nil?
+        @mine_notificator_timer.cancel
+        @mine_notificator_timer = nil
       end
 
       if time_left > 0.0
-        @gold_mine_notification_timer = @timers.after(time_left) {
+        @mine_notificator_timer = after(time_left) {
           send_gold_mine_storage_full
         }
 
@@ -59,7 +59,7 @@ module Player
 
       @last_harvest_time = current_time
 
-      reset_gold_mine_full_notification
+      reset_gold_mine_notificator
     end
 
   end

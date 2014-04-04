@@ -1,4 +1,3 @@
-
 require 'player/player'
 
 module Player
@@ -19,6 +18,7 @@ module Player
       if Celluloid::Actor[actor_key]
         raise StandardError, "Try to access alive player!" if Celluloid::Actor[actor_key].alive?
       end
+
       Celluloid::Actor[actor_key] = player
 
       player

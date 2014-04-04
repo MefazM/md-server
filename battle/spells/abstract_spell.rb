@@ -29,7 +29,7 @@ class AbstractSpell
     @path_ways = path_ways
   end
 
-  def update!(current_time, iteration_delta)
+  def update(current_time, iteration_delta)
     state = @states_stack[0] || :empty
 
     @elapsed_time = current_time - @create_at

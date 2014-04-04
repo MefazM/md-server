@@ -129,7 +129,7 @@ module Storage
             end
             # Convert attack speed in ms to server seconds
             attack_speed_key = "#{attack_type}_speed".to_sym
-            attack_data[attack_speed_key] = unit[attack_speed_key] * 0.001
+            attack_data[:speed] = unit[attack_speed_key] * 0.001
 
             damage_type = unit["#{attack_type}_damage_type".to_sym]
             attack_data[:type] = damage_type unless damage_type.nil?

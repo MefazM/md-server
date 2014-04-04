@@ -3,8 +3,10 @@ require 'network/networking'
 require 'player/units_production'
 require 'player/buildings_production'
 require 'player/response'
+require 'player/request'
 require 'player/coins_storage'
 require 'player/coins_mine'
+require 'player/battle_messages_proxy'
 
 module Player
   class PlayerActor
@@ -12,15 +14,33 @@ module Player
     include Celluloid::IO
     include ::Networking::Actions
     include Celluloid::Logger
+    include Celluloid::Notifications
 
     include Response
+    include RequestPerform
+
     include CoinsMine
     include CoinsStorage
     include UnitsProduction
     include BuildingsProduction
+    include BattleMessagesProxy
+
+    attr_reader :username, :id, :units
+
+    finalizer :drop_player
 
     UPDATE_PERIOD = 1
     SERIALIZATION_PERIOD = 180
+
+    map_request RECEIVE_UNIT_PRODUCTION_TASK_ACTION, :unit_production_task_action
+    map_request RECEIVE_BUILDING_PRODUCTION_TASK_ACTION, :building_production_task_action
+    map_request RECEIVE_REQUEST_CURRENT_MINE_AMOUNT, :request_current_mine_amount
+    map_request RECEIVE_DO_HARVESTING_ACTION, :do_harvesting_action
+    map_request RECEIVE_NEW_BATTLE_ACTION, :new_battle_action
+    map_request RECEIVE_RESPONSE_BATTLE_INVITE_ACTION, :response_battle_invite_action
+    map_request RECEIVE_BATTLE_START_ACTION, :battle_start_action
+    map_request RECEIVE_LOBBY_DATA_ACTION, :lobby_data_action
+    map_request RECEIVE_PING_ACTION, :ping_action
 
     def initialize ( id, email, username, socket )
       @socket = socket
@@ -42,103 +62,54 @@ module Player
       # Send game data to client
       send_game_data
 
-      @timers = Timers.new
-      @gold_mine_notification_timer = nil
+      reset_gold_mine_notificator
+      # Test this!
+      Actor[:lobby].register(@id, @username)
 
-      reset_gold_mine_full_notification
+      @update_timer = after(UPDATE_PERIOD) {
+        update
+
+        @update_timer.reset
+      }
+
+      @serialization_timer = after(SERIALIZATION_PERIOD) {
+        serialize_player
+
+        @serialization_timer.reset
+      }
+      # TODO: add inactivity timer
     end
 
-    def buiding_exist(uid, level)
-      @buildings[uid].nil? ? false : @buildings[uid] == level
+    def freeze!
+      @frozen = true
+    end
+
+    def unfreeze!
+      @frozen = false
     end
 
     def run
-      every UPDATE_PERIOD do
-
-        current_time = Time.now.to_f
-
-        @timers.fire
-
-        process_unit_queue current_time
-        process_buildings_queue current_time
-      end
-
-      every SERIALIZATION_PERIOD do
-        serialize_player
-      end
-
       listen_socket
+    end
+
+    def update
+      current_time = Time.now.to_f
+      # TODO: refactor production queue to Timers
+      process_unit_queue current_time
+      process_buildings_queue current_time
     end
 
     # private
 
     def listen_socket
       Networking::Request.listen_socket(@socket) do |action, data|
-        case action
-        when RECEIVE_UNIT_PRODUCTION_TASK_ACTION
-          unit_uid = data[0].to_sym
-          unit = Storage::GameData.unit unit_uid
-
-          building_uid = unit[:depends_on_building_uid]
-          building_level = unit[:depends_on_building_level]
-          price = unit[:price]
-          # TODO: add building_is_ready velidation here
-          if buiding_exist(building_uid, building_level)
-
-            if make_payment price
-              production_time = unit[:production_time]
-              add_unit_production_task(unit_uid, production_time, building_uid)
-
-              send_new_unit_queue_item(unit_uid, building_uid, production_time)
-              send_coins_storage_capacity
-            end
-          end
-
-        when RECEIVE_BUILDING_PRODUCTION_TASK_ACTION
-          building_uid = data[0].to_sym
-          # if player already construct this building, current_level > 0
-          current_level = @buildings[building_uid] || 0
-          target_level = current_level + 1
-          # TODO: add updateable validation here
-          # TODO: add not_units_task to this building validation here
-          building = Storage::GameData.building "#{building_uid}_#{target_level}"
-
-          unless building.nil?
-            price = building[:price]
-            if make_payment price
-              production_time_in_ms = building[:production_time] * 1000
-              add_update_building_task(building_uid, building[:production_time], target_level)
-
-              send_sync_building_state(building_uid, target_level, false, production_time_in_ms)
-
-              send_coins_storage_capacity
-            end
-          end
-
-        when RECEIVE_REQUEST_CURRENT_MINE_AMOUNT
-
-          send_current_mine_amount
-
-        when RECEIVE_DO_HARVESTING_ACTION
-
-          unless storage_full?
-            harvest
-            send_coins_storage_capacity
-          end
-
-        when RECEIVE_PING_ACTION
-
-          @latency = (Time.now.to_f - data[0]).round(3)
-
-        end
+        perform(action, data)
 
         @status == :term
       end
 
       rescue EOFError
-        @socket.close
-        serialize_player
-        terminate
+        disconnect
     end
 
     def restore_from_redis
@@ -168,6 +139,8 @@ module Player
     end
 
     def serialize_player
+      info "Save player (#{@id}) to redis..."
+
       Storage::Redis::Pool.connections_pool.with do |redis|
         # serialize units, buildings, coins, queue
         redis.connection.hset(@redis_player_key, 'units', JSON.generate(@units))
@@ -179,6 +152,23 @@ module Player
         redis.connection.hset(@redis_resources_key, 'coins', @coins_in_storage)
         redis.connection.hset(@redis_resources_key, 'harvester_storage', @harvester_storage)
       end
+    end
+
+    def disconnect
+      @socket.close
+      @status = :term
+
+      @update_timer.cancel
+      @serialization_timer.cancel
+      @mine_notificator_timer.cancel
+
+      serialize_player
+
+      terminate
+    end
+
+    def drop_player
+      Actor[:lobby].async.remove @id
     end
 
   end

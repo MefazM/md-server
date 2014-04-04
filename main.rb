@@ -9,6 +9,7 @@ require 'constants'
 require 'storage/storage'
 require 'player/player_factory'
 require 'network/networking'
+require 'lobby'
 
 class GameServer
   include Celluloid::IO
@@ -54,6 +55,8 @@ class GameServer
       socket.close
   end
 end
+
+Celluloid::Actor[:lobby] = Lobby.new
 
 supervisor = GameServer.supervise( SERVER_HOST, SERVER_PORT )
 trap("INT") { supervisor.terminate; exit }
