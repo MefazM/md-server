@@ -20,7 +20,7 @@ class Stun < AbstractSpell
     unless @target_units.empty?
       @target_units.each { |target|
         @prev_status = target.status
-        target.status = BattleUnit::STUNED
+        target.status = Battle::BattleUnit::STUNED
         target.force_sync = true
       }
     end

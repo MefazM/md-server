@@ -99,10 +99,10 @@ module Player
       if payload[1] == true
         # Celluloid::Actor[:lobby].start_ai_battle
         # BattleDirectorFactory.instance.create_ai_battle(@id, payload[0])
-        Celluloid::Actor[:lobby].async.create_ai_battle(@id, payload[0])
+        Celluloid::Actor[:lobby].create_ai_battle(@id, payload[0])
       else
 
-        Celluloid::Actor[:lobby].async.invite(@id, payload[0])
+        Celluloid::Actor[:lobby].invite(@id, payload[0])
       end
     end
 
@@ -110,7 +110,7 @@ module Player
     def response_battle_invite_action payload
       info "Player ID = #{@id}, response to battle invitation. UID = #{payload[0]}."
       # payload[0] - uid, payload[1] - is decision
-      Celluloid::Actor[:lobby].async.opponent_response_to_invitation(@id, payload[0], payload[1])
+      Celluloid::Actor[:lobby].opponent_response_to_invitation(@id, payload[0], payload[1])
     end
 
     # RECEIVE_BATTLE_START_ACTION

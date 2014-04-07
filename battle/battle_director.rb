@@ -41,6 +41,8 @@ module Battle
       @channel = "#{@uid}_ch"
 
       info "New BattleDirector initialize..."
+
+      Actor["battle_#{@uid}"] = Actor.current
     end
 
     def cast_spell(player_id, uid, target)
@@ -164,7 +166,6 @@ module Battle
       end
 
       publish(@channel, [:create_new_battle_on_client, battle_data])
-
       # hack to get player id by its opponent id.
       @opponents_indexes[_opponents_indexes[0]] = _opponents_indexes[1]
       @opponents_indexes[_opponents_indexes[1]] = _opponents_indexes[0]

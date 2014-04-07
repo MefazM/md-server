@@ -19,8 +19,8 @@ class Curse < AbstractSpell
     unless @target_units.empty?
       @target_units.each { |target|
         unit_prototype = target.unit_prototype
-        target.range_attack_power -= unit_prototype[:range_attack_power_min] * @value unless target.range_attack_power.nil?
-        target.melee_attack_power -= unit_prototype[:melee_attack_power_min] * @value unless target.melee_attack_power.nil?
+        target.range_attack_power -= unit_prototype[:range_attack][:power_min] * @value unless target.range_attack_power.nil?
+        target.melee_attack_power -= unit_prototype[:melee_attack][:power_min] * @value unless target.melee_attack_power.nil?
       }
     end
   end
@@ -29,8 +29,8 @@ class Curse < AbstractSpell
     unless @target_units.empty?
       @target_units.each { |target|
         unit_prototype = target.unit_prototype
-        target.range_attack_power += unit_prototype[:range_attack_power_min] * @value unless target.range_attack_power.nil?
-        target.melee_attack_power += unit_prototype[:melee_attack_power_min] * @value unless target.melee_attack_power.nil?
+        target.range_attack_power += unit_prototype[:range_attack][:power_min] * @value unless target.range_attack_power.nil?
+        target.melee_attack_power += unit_prototype[:melee_attack][:power_min] * @value unless target.melee_attack_power.nil?
       }
     end
   end

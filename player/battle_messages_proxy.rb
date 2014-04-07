@@ -41,10 +41,19 @@ module Player
 
     def receive_message_from_battle_director(topic, payload)
 
-      handler = payload.shift
-      data = payload.length > 1 ? payload : payload[0]
+      # payload =_payload.dup
 
-      send(handler, data)
+      # puts("\n\n (ID = #{@id}) \n ================ \n\n  #{payload.inspect}  \n\n ======================== \n\n")
+
+
+      handler, *data = payload
+      args = data.length > 1 ? data : data[0]
+
+      # puts("\n\n (ID = #{@id}) \n AAAAAAAAAAAA!!!!!! \n\n H =     #{handler} \n\n DATA =     #{data.inspect} \n\n ")
+
+      # binding.pry if :create_new_battle_on_client == handler
+
+      send(handler, args)
 
       rescue Exception => e
         Celluloid::Logger::error "Can't execute battle message handler #{handler} \n #{e}"
@@ -65,7 +74,6 @@ module Player
       @battle_uid_key = nil
       @battle = nil
     end
-
 
   end
 end

@@ -43,7 +43,7 @@ class Lobby
     sender = Actor["p_#{sender_id}"]
 
     if sender.frozen?
-      sender.async.send_custom_event(:inviteCanceledNotification)
+      sender.send_custom_event(:inviteCanceledNotification)
       return false
     end
 
@@ -74,10 +74,9 @@ class Lobby
     sender.freeze!
 
     battle_director = Battle::BattleDirector.new()
+    # Actor["battle_#{battle_director.uid}"] = battle_director
 
-    Actor["battle_#{battle_director.uid}"] = battle_director
-
-    sender.async.attach_to_battle battle_director.uid
+    sender.attach_to_battle battle_director.uid
 
     battle_director.set_opponent({
       :id => sender_id,
@@ -90,7 +89,6 @@ class Lobby
       :id => ai_id,
       :units => Battle::AiPlayer.new.units(),
       :is_ai => true
-      # Here will be other plyer options
     })
 
     battle_director.create_battle_at_clients
@@ -98,39 +96,39 @@ class Lobby
   end
 
   def opponent_response_to_invitation(player_id, token, decision)
-    return false if @invites[player_id].nil? or @invites[player_id][0].nil?
+    return if @invites[player_id].nil? or @invites[player_id][0].nil?
 
     invitation = @invites[player_id][0]
-    return false if invitation[:token] != token
+
+    return if invitation[:token] != token
+
     # Opponent player confirm invitation
     if decision == true
       info "Battle accepted. P1: #{player_id} accepts P2(sender): #{invitation[:sender_id]}"
 
-      player = Actor["p_#{player_id}"]
-
-      player.freeze!
-      # battle_director = BattleDirector.new()
-      # @battles[invitation[:token]] = battle_director
       @invites.delete(player_id)
-      # [player_id, invitation[:sender_id]].each do |opponent_id|
-      #   connection = PlayerFactory.instance.connection(opponent_id)
-      #   player = PlayerFactory.instance.player(opponent_id)
-      #   # Assign battle director to connection
-      #   connection.battle_director = battle_director
-      #   data = {
-      #     :id => opponent_id,
-      #     :units => player.units(),
-      #     # Here will be other plyer options
-      #   }
-      #   battle_director.set_opponent(data, connection)
-      # end
-      # return battle_director
+
+      battle_director = Battle::BattleDirector.new()
+
+      [player_id, invitation[:sender_id]].each do |opponent_id|
+
+        player = Actor["p_#{opponent_id}"]
+        player.freeze!
+        player.attach_to_battle battle_director.uid
+
+        battle_director.set_opponent({
+          :id => opponent_id,
+          :units => player.units
+        })
+
+      end
+
+      battle_director.create_battle_at_clients
+
     else
       info "Battle rejected. P1: #{player_id}, P2(sender): #{invitation[:sender_id]}"
       # Opponent player reject invitaion
       cancel_invitation(player_id)
-
-      return nil
     end
   end
 
@@ -151,7 +149,7 @@ class Lobby
       elsif invitation[:sent] == false
         # invitaions is not sended
         begin
-          Actor["p_#{player_id}"].async.send_invite_to_battle(token, sender_id)
+          Actor["p_#{player_id}"].send_invite_to_battle(token, sender_id)
         rescue Celluloid::DeadActorError
           warn "Try to access dead actor (p_#{sender_id})!"
         end
@@ -169,11 +167,11 @@ class Lobby
     info "Invitation canceled P:(sender) #{sender_id}, T:#{invitation[:token]}."
 
     # Actor["p_#{sender_id}"].unfreeze!
-    # Actor["p_#{sender_id}"].async.send_custom_event(:inviteCanceledNotification)
+    # Actor["p_#{sender_id}"].send_custom_event(:inviteCanceledNotification)
     # MAY BE UNSAFE!!!!
     sender = Actor["p_#{sender_id}"]
     sender.unfreeze!
-    sender.async.send_custom_event(:inviteCanceledNotification)
+    sender.send_custom_event(:inviteCanceledNotification)
 
     @invites[player_id].delete_at(0)
     @invites.delete(player_id) if @invites[player_id].empty?
