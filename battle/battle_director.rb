@@ -3,6 +3,8 @@ require 'battle/ai_player'
 require 'battle/building'
 require 'battle/opponent'
 require 'battle/unit'
+require 'battle/unit'
+require 'battle/spells/spells_factory'
 
 module Battle
   class BattleDirector
@@ -17,7 +19,7 @@ module Battle
     IN_PROGRESS = 3
     FINISHED = 4
     # Timings
-    DEFAULT_UNITS_SPAWN_TIME = 1.0
+    DEFAULT_UNITS_SPAWN_TIME = 5.0
     # TODO: adjust this parameter properly!!!
     UPDATE_PERIOD = 0.1 #== each 100 ms
 
@@ -41,32 +43,28 @@ module Battle
       info "New BattleDirector initialize..."
     end
 
-    def cast_spell(player_id, spell_uid, horizontal_target)
-      spell_data = Storage::GameData.spells_data[spell_uid.to_sym]
+    def cast_spell(player_id, uid, target)
+      spell_data = Storage::GameData.spells_data[uid.to_sym]
 
       if spell_data.nil?
-        error "Spell (s: #{spell_uid}, from #{player_id}) not found."
+        error "Spell (s: #{uid}, from player with id = #{player_id}) not found."
       else
-        brodcast_custom_event = Proc.new do |name, data|
-          @opponents.each_value { |opponent|
-            opponent.send_custom_event!(name, data)
-          }
-        end
 
-        spell = SpellFactory.create(spell_data, brodcast_custom_event)
+        spell = SpellFactory.create spell_data
+        spell.channel = @channel
 
-        @opponents.each_value { |opponent|
-          opponent.send_spell_cast!(spell_uid, spell.life_time * 1000,
-            horizontal_target, player_id, spell_data[:area])
-        }
+        area = spell_data[:area]
+        life_time = spell.life_time * 1000
+
+        publish(@channel, [:send_spell_cast, uid, life_time, target, player_id, area])
 
         if spell.friendly_targets?
-          spell.set_target(horizontal_target, @opponents[player_id].path_ways)
+          spell.set_target(target, @opponents[player_id].path_ways)
         else
-          horizontal_target = 1.0 - horizontal_target
+          target = 1.0 - target
 
           opponent_uid = @opponents_indexes[player_id]
-          spell.set_target(horizontal_target, @opponents[opponent_uid].path_ways)
+          spell.set_target(target, @opponents[opponent_uid].path_ways)
         end
 
         @spells << spell
@@ -123,7 +121,7 @@ module Battle
         end
       end
 
-      publish(@channel, [:sync_battle, sync_data]) unless sync_data.empty?
+      publish(@channel, [:send_battle_sync, sync_data]) unless sync_data.empty?
 
       # /UPDATE
     end
@@ -132,7 +130,7 @@ module Battle
       unit_name = unit_name.to_sym
       unit = @opponents[player_id].add_unit_to_pool(unit_name, validate)
 
-      data = [:spawn_unit, unit.uid, unit_name, player_id, unit.path_id]
+      data = [:send_unit_spawning, unit.uid, unit_name, player_id, unit.path_id]
 
       publish(@channel, data) unless unit.nil?
     end
@@ -150,20 +148,22 @@ module Battle
       _opponents_indexes = []
       # Collecting each player main buildings info.
       # And brodcast this data to clients
-      shared_data = []
+      battle_data = {
+        :shared_data => [],
+        :units_data => {}
+      }
+
       @opponents.each do |player_id, opponent|
         data = opponent.main_building.export
         data << player_id
-        shared_data << data
+        battle_data[:shared_data] << data
+
+        battle_data[:units_data][player_id] = opponent.units
         # Players indexes.
         _opponents_indexes << player_id
       end
-      #############################################
-      @opponents.each do |player_id, opponent|
-        unless opponent.ai
-          Actor["p_#{player_id}"].send_create_new_battle_on_client(opponent.units, shared_data)
-        end
-      end
+
+      publish(@channel, [:create_new_battle_on_client, battle_data])
 
       # hack to get player id by its opponent id.
       @opponents_indexes[_opponents_indexes[0]] = _opponents_indexes[1]
@@ -175,7 +175,9 @@ module Battle
     def start!
       info "BattleDirector| is started!"
       @status = IN_PROGRESS
-      @opponents.each_value { |opponent| opponent.start_battle! }
+
+      # @opponents.each_value { |opponent| opponent.start_battle! }
+
       @prev_iteration_time = Time.now.to_f
       # Start timers
       @update_timer = after(UPDATE_PERIOD) {
@@ -194,7 +196,9 @@ module Battle
         @default_unit_spawn_timer.reset
       }
 
-      publish(@channel, [:start_battle])
+      publish(@channel, [:send_custom_event, :startBattle])
+
+      # publish(@channel, [:send_start_battle])
     end
     # Simple finish battle.
     def finish_battle!(loser_id)
@@ -205,28 +209,19 @@ module Battle
 
       @status = FINISHED
 
-# @opponents.each do |player_id, opponent|
-#   unless opponent.ai
-#     Actor["p_#{player_id}"].send_create_new_battle_on_client(opponent.units, shared_data)
-#   end
-# end
+      data = {
+        :loser_id => loser_id
+      }
 
-#       publish(@channel, [:finish_battle, :units => ])
+      @opponents.each do |player_id, opponent|
+        data[player_id] = {
+          :units => opponent.units
+        }
+      end
 
-# def finish_battle!(loser_id)
-#   # Sync player data, if not AI
-#   unless @ai
-#     player = PlayerFactory.instance.player(@id)
-#     player.unfreeze!
-#     player.sync_after_battle({
-#       :units => @units
-#     })
-#     # Notificate about battle ended
-#     # @connection.send_finish_battle(loser_id)
-#   end
-# end
+      publish(@channel, [:finish_battle, data])
 
-# @opponents.each_value { |opponent| opponent.finish_battle!(loser_id) }
+      terminate
     end
 
     def drop_director

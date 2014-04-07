@@ -40,24 +40,32 @@ module Player
     end
 
     def receive_message_from_battle_director(topic, payload)
-      # info "New message from #{@battle_channel} = #{payload.inspect}"
-      action, *data = payload
 
-      case action
-      when :sync_battle
+      handler = payload.shift
+      data = payload.length > 1 ? payload : payload[0]
 
-        send_battle_sync payload[1]
-      when :spawn_unit
+      send(handler, data)
 
-        send_unit_spawning data
-      when :battle_data
-
-        send_create_new_battle_on_client data
-      when :start_battle
-
-        send_start_battle
-      end
-
+      rescue Exception => e
+        Celluloid::Logger::error "Can't execute battle message handler #{handler} \n #{e}"
     end
+
+    def create_new_battle_on_client data
+      send_create_new_battle_on_client(data[:units_data][@id], data[:shared_data])
+    end
+
+    def finish_battle data
+      send_finish_battle(data[:loser_id])
+
+      unfreeze!
+
+      sync_after_battle data[@id]
+
+      @battle_channel = nil
+      @battle_uid_key = nil
+      @battle = nil
+    end
+
+
   end
 end

@@ -16,7 +16,7 @@ module Battle
       @@uid_iteratior += 1
       # additional params
       @position = position
-      @health_points = 20000
+      @health_points = 200
 
       @force_sync = false
 

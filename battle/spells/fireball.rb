@@ -1,7 +1,7 @@
 #
 # FIREBALL
 class Fireball < AbstractSpell
-  def initialize(data, brodcast_callback)
+  def initialize data
     super
     @states_stack = compute_processing_stack(:after_t)
     @damage_power = data[:power].to_f || 0.0

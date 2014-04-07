@@ -41,8 +41,10 @@ module Player
     map_request RECEIVE_BATTLE_START_ACTION, :battle_start_action
     map_request RECEIVE_LOBBY_DATA_ACTION, :lobby_data_action
     map_request RECEIVE_PING_ACTION, :ping_action
+    map_request RECEIVE_SPELL_CAST_ACTION, :cast_spell
+    map_request RECEIVE_SPAWN_UNIT_ACTION, :spawn_unit
 
-    def initialize ( id, email, username, socket )
+    def initialize( id, email, username, socket )
       @socket = socket
       @status = :run
       @id = id
@@ -169,6 +171,20 @@ module Player
 
     def drop_player
       Actor[:lobby].async.remove @id
+    end
+
+    # Sync player after battle
+    # -add earned points
+    # -decrease units count
+    # -other...
+    def sync_after_battle data
+      data[:units].each do |uid, unit_data|
+        @units[uid] -= unit_data[:lost]
+        # Destroy field if no units left.
+        if @units[uid] <= 0
+          @units.delete(uid)
+        end
+      end
     end
 
   end

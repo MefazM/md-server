@@ -1,7 +1,7 @@
 #
 # INSTANT HEAL
 class Stun < AbstractSpell
-  def initialize(data, brodcast_callback)
+  def initialize data
     super
 
     @states_stack = compute_processing_stack(:effect_switch)

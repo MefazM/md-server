@@ -1,7 +1,7 @@
 #
 #
 class Poison < AbstractSpell
- def initialize(data, brodcast_callback)
+ def initialize data
     super
     @states_stack = compute_processing_stack(:over_time)
     @damage_per_charge = data[:damage_per_charge].to_f || 0.0

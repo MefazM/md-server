@@ -1,13 +1,13 @@
 class AbstractSpell
   STATES = [ :process, :affect, :wait, :empty ]
 
+  include Celluloid::Notifications
+
   attr_reader :completed, :life_time
-  # attr_writer :units_pool, :horizontal_target
+  attr_writer :channel
 
-  def initialize(data, brodcast_callback)
+  def initialize data
     @data = data
-    @brodcast_callback = brodcast_callback
-
     @completed = false
     @charges_count = 0
     @target_units = nil
@@ -18,7 +18,8 @@ class AbstractSpell
     @create_at = Time.now.to_f
 
     @life_time = @data[:time_s]
-
+    # communication channel
+    @channel = nil
   end
 
   def set_target(horizontal_target, path_ways)
@@ -62,7 +63,6 @@ class AbstractSpell
       @states_stack.delete_at(0)
     # Spell is ready if task stack is empty
     when :empty
-      # puts("FINISH!!!!!")
       # @units_pool = nil
       @target_units = nil
       @target_units_ids = nil
@@ -82,7 +82,10 @@ class AbstractSpell
   end
 
   def notificate_affected!
-    @brodcast_callback.call(:addIcon, [@data[:uid], @life_time * 1000, @target_units_ids])
+    publish(@channel,[ :send_custom_event,
+        :addIcon,
+        @data[:uid], @life_time * 1000, @target_units_ids
+      ])
   end
 
   def affect_targets!

@@ -1,6 +1,6 @@
 class Bless < AbstractSpell
 
-  def initialize(data, brodcast_callback)
+  def initialize data
     super
     @states_stack = compute_processing_stack(:effect_switch)
     @value = data[:value_percentage].to_f || 0.0

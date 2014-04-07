@@ -13,6 +13,7 @@ require_relative 'curse.rb'
 require_relative 'bless.rb'
 
 class SpellFactory
+  # Ugly mapping
   @@spells = {
     :circle_fire => Fireball,
     :circle_earth => Heal,
@@ -31,15 +32,14 @@ class SpellFactory
     :rect_water => Stun
   }
 
-  def self.create(data, brodcast_callback)
+  def self.create data
     klass = @@spells[data[:uid]]
 
-    if klass
-      return klass.new(data, brodcast_callback)
-    else
-      MageLogger.instance.error "SpellFactory| Ability preset (#{klass}) not found."
+    if klass.nil?
+      Celluloid::Logger::error "Spell klass preset (#{klass}) not found!"
+      return nil
     end
 
-    return nil
+    klass.new data
   end
 end

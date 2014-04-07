@@ -1,7 +1,7 @@
 #
 # INSTANT HEAL
 class WindBlow < AbstractSpell
-  def initialize(data, brodcast_callback)
+  def initialize data
     super
     @states_stack = compute_processing_stack(:instant)
     @offset = data[:move_offset_percentage].to_f || 0.0

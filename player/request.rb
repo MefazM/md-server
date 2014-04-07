@@ -28,8 +28,8 @@ module Player
 
       send(handler, payload)
 
-      rescue
-        Celluloid::Logger::error "Can't execute handler #{handler} for actions state_#{action}"
+      rescue Exception => e
+        Celluloid::Logger::error "Can't execute handler #{handler} for actions state_#{action} \n #{e}"
     end
 
     #
@@ -44,7 +44,7 @@ module Player
       building_level = unit[:depends_on_building_level]
       price = unit[:price]
       # TODO: add building_is_ready velidation here
-      buiding_exist = @buildings[uid].nil? ? false : @buildings[uid] == level
+      buiding_exist = @buildings[building_uid].nil? ? false : @buildings[building_uid] == building_level
 
       if buiding_exist
 
@@ -97,12 +97,12 @@ module Player
     def new_battle_action payload
       # Is ai battle?
       if payload[1] == true
-        # Actor[:lobby].start_ai_battle
+        # Celluloid::Actor[:lobby].start_ai_battle
         # BattleDirectorFactory.instance.create_ai_battle(@id, payload[0])
-        Actor[:lobby].async.create_ai_battle(@id, payload[0])
+        Celluloid::Actor[:lobby].async.create_ai_battle(@id, payload[0])
       else
 
-        Actor[:lobby].async.invite(@id, payload[0])
+        Celluloid::Actor[:lobby].async.invite(@id, payload[0])
       end
     end
 
@@ -110,7 +110,7 @@ module Player
     def response_battle_invite_action payload
       info "Player ID = #{@id}, response to battle invitation. UID = #{payload[0]}."
       # payload[0] - uid, payload[1] - is decision
-      Actor[:lobby].async.opponent_response_to_invitation(@id, payload[0], payload[1])
+      Celluloid::Actor[:lobby].async.opponent_response_to_invitation(@id, payload[0], payload[1])
     end
 
     # RECEIVE_BATTLE_START_ACTION
@@ -122,7 +122,7 @@ module Player
     def lobby_data_action payload
       # Collect data for user battle lobby
       # TODO: REFACTOR THIS TO FUTURES!!!
-      players = Actor[:lobby].players({
+      players = Celluloid::Actor[:lobby].players({
         :except => @id,
 
       })
@@ -136,6 +136,14 @@ module Player
       @latency = (Time.now.to_f - payload[0]).round(3)
     end
     # end
+
+    def cast_spell payload
+      @battle.cast_spell(@id, payload[0], payload[1])
+    end
+
+    def spawn_unit payload
+      @battle.spawn_unit(payload[0], @id)
+    end
 
   end
 end

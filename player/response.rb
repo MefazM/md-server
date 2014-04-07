@@ -71,10 +71,13 @@ module Player
       write_data [SEND_INVITE_TO_BATTLE_ACTION, @latency, token, sender_id]
     end
 
-    def send_custom_event(event_name, data_array = [])
-      message = [SEND_CUSTOM_EVENT, @latency, event_name]
-      data_array = [] if data_array.nil?
-      message += data_array
+    def send_custom_event event_data
+      message = [SEND_CUSTOM_EVENT, @latency]
+      if event_data.kind_of?(Array)
+        message += event_data
+      else
+        message << event_data
+      end
 
       write_data message
     end
@@ -84,7 +87,7 @@ module Player
     end
 
     def send_finish_battle loser_id
-
+      write_data [SEND_FINISH_BATTLE_ACTION, @latency, loser_id]
     end
 
     # TODO: separate send_create_new_battle_on_client
@@ -96,19 +99,15 @@ module Player
       write_data [SEND_CREATE_NEW_BATTLE_ON_CLIENT_ACTION, @latency, @id, units, shared_data]
     end
 
-    def send_spell_cast(spell_uid, timing, horizontal_target, opponent_uid, area)
-      write_data [SEND_SPELL_CAST_ACTION, @latency, spell_uid, timing, horizontal_target, owner_id, area]
+    def send_spell_cast spell_data
+      write_data [SEND_SPELL_CAST_ACTION, @latency] + spell_data
     end
 
     def send_battle_sync sync_data
       write_data [SEND_BATTLE_SYNC_ACTION, @latency, sync_data]
     end
 
-    def send_start_battle
-      write_data [SEND_START_BATTLE_ACTION, @latency]
-    end
-
-    def send_unit_spawning(unit_data)
+    def send_unit_spawning unit_data
       write_data [SEND_SPAWN_UNIT_ACTION, @latency] + unit_data
     end
 
