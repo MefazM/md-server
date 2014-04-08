@@ -15,9 +15,9 @@ module Player
 
       player = self.get_player(player_id, socket)
 
-      if Celluloid::Actor[actor_key]
-        raise StandardError, "Try to access alive player!" if Celluloid::Actor[actor_key].alive?
-      end
+      # if Celluloid::Actor[actor_key]
+      #   raise "Try to access alive player!" if Celluloid::Actor[actor_key].alive?
+      # end
 
       Celluloid::Actor[actor_key] = player
 

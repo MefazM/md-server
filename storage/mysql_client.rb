@@ -1,7 +1,6 @@
-
-
 require "jdbc/mysql"
 Jdbc::MySQL.load_driver
+
 require "java"
 
 module Storage

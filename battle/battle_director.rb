@@ -23,7 +23,7 @@ module Battle
     # TODO: adjust this parameter properly!!!
     UPDATE_PERIOD = 0.1 #== each 100 ms
 
-    attr_reader :status, :uid, :channel
+    attr_reader :status, :uid, :channel, :opponents
 
     finalizer :drop_director
     # Battle director save two players connection
@@ -42,7 +42,7 @@ module Battle
 
       info "New BattleDirector initialize..."
 
-      Actor["battle_#{@uid}"] = Actor.current
+      Actor[@uid] = Actor.current
     end
 
     def cast_spell(player_id, uid, target)
@@ -145,9 +145,7 @@ module Battle
     # Also here server should send all additional info about resources
     # so client can prechache them.
     # Create battle on devices if anough players
-    def create_battle_at_clients
-      info "BattleDirector| has two opponents. Initialize battle on clients."
-      _opponents_indexes = []
+    def battle_initialization_data
       # Collecting each player main buildings info.
       # And brodcast this data to clients
       battle_data = {
@@ -160,16 +158,24 @@ module Battle
         data << player_id
         battle_data[:shared_data] << data
 
-        battle_data[:units_data][player_id] = opponent.units
-        # Players indexes.
-        _opponents_indexes << player_id
+        battle_data[:units_data][player_id] = opponent.units_statistics
       end
 
-      publish(@channel, [:create_new_battle_on_client, battle_data])
-      # hack to get player id by its opponent id.
-      @opponents_indexes[_opponents_indexes[0]] = _opponents_indexes[1]
-      @opponents_indexes[_opponents_indexes[1]] = _opponents_indexes[0]
+      battle_data
+
     end
+
+    def create_battle_at_clients
+      info "BattleDirector| has two opponents. Initialize battle on clients."
+
+      # hack to get player id by its opponent id.
+      indexes = @opponents.keys
+      @opponents_indexes[indexes[0]] = indexes[1]
+      @opponents_indexes[indexes[1]] = indexes[0]
+
+      publish(@channel, [:create_new_battle_on_client, battle_initialization_data])
+    end
+
 
     private
     # Start the battle.
@@ -216,7 +222,7 @@ module Battle
 
       @opponents.each do |player_id, opponent|
         data[player_id] = {
-          :units => opponent.units
+          :units => opponent.units_statistics
         }
       end
 

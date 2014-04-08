@@ -4,14 +4,14 @@ module Battle
     TARGETING_OFFSET = 0.6
     BETWEEN_COUNT_OFFSET = 1
 
-    attr_reader :spawned_units_count, :units, :path_ways, :ai, :id, :main_building
+    attr_reader :spawned_units_count, :units_statistics, :path_ways, :ai, :id, :main_building
 
     def initialize(data)
       @id = data[:id]
       # Units data, available and lost
-      @units = {}
+      @units_statistics = {}
       data[:units].each do |uid, count|
-        @units[uid] = {
+        @units_statistics[uid] = {
           :available => count,
           :lost => 0
         }
@@ -39,7 +39,7 @@ module Battle
         player = PlayerFactory.instance.player(@id)
         player.unfreeze!
         player.sync_after_battle({
-          :units => @units
+          :units => @units_statistics
         })
         # Notificate about battle ended
         # @connection.send_finish_battle(loser_id)
@@ -90,7 +90,7 @@ module Battle
 
           if unit.dead?
             # Iterate lost unit counter
-            unit_data = @units[unit.name]
+            unit_data = @units_statistics[unit.name]
             unless unit_data.nil?
               unit_data[:lost] += 1
             end
@@ -122,7 +122,7 @@ module Battle
       valid = !validate
 
       if validate
-        unit_data = @units[unit_name]
+        unit_data = @units_statistics[unit_name]
         if !unit_data.nil? and unit_data[:available] > 0
           unit_data[:available] -= 1
           valid = true

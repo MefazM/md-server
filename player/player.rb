@@ -53,6 +53,7 @@ module Player
       @latency = 0
 
       restore_from_redis
+
       # Buildings uids, assigned to coins generation
       @storage_building_uid = Storage::GameData.storage_building_uid
       @coin_generator_uid = Storage::GameData.coin_generator_uid
@@ -80,6 +81,9 @@ module Player
         @serialization_timer.reset
       }
       # TODO: add inactivity timer
+
+
+      restore_battle unless @battle_uid.nil?
     end
 
     def freeze!
@@ -99,6 +103,8 @@ module Player
       # TODO: refactor production queue to Timers
       process_unit_queue current_time
       process_buildings_queue current_time
+
+      send_ping
     end
 
     # private
@@ -129,6 +135,8 @@ module Player
         units_queue = redis.connection.hget(@redis_player_key, 'units_queue')
         buildings_queue = redis.connection.hget(@redis_player_key, 'buildings_queue')
 
+        @battle_uid = redis.connection.hget(@redis_player_key, 'battle_uid')
+
         @last_harvest_time = redis.connection.hget(@redis_resources_key, 'last_harvest_time').to_i
         @coins_in_storage = redis.connection.hget(@redis_resources_key, 'coins').to_i
         @harvester_storage = redis.connection.hget(@redis_resources_key, 'harvester_storage').to_i
@@ -150,6 +158,8 @@ module Player
         redis.connection.hset(@redis_player_key, 'units_queue', JSON.generate(@units_production_queue))
         redis.connection.hset(@redis_player_key, 'buildings_queue', JSON.generate(@buildings_update_queue))
 
+        redis.connection.hset(@redis_player_key, 'battle_uid', @battle_uid)
+
         redis.connection.hset(@redis_resources_key, 'last_harvest_time', @last_harvest_time)
         redis.connection.hset(@redis_resources_key, 'coins', @coins_in_storage)
         redis.connection.hset(@redis_resources_key, 'harvester_storage', @harvester_storage)
@@ -162,7 +172,7 @@ module Player
 
       @update_timer.cancel
       @serialization_timer.cancel
-      @mine_notificator_timer.cancel
+      @mine_notificator_timer.cancel unless @mine_notificator_timer.nil?
 
       serialize_player
 
@@ -171,6 +181,8 @@ module Player
 
     def drop_player
       Actor[:lobby].async.remove @id
+
+      info "Terminating player (id = #{@id})"
     end
 
     # Sync player after battle
@@ -184,6 +196,36 @@ module Player
         if @units[uid] <= 0
           @units.delete(uid)
         end
+      end
+    end
+
+    # Try to restore battle
+    def restore_battle
+      info "Player (#{@id}) try to restore battle..."
+
+      battle = Celluloid::Actor[@battle_uid]
+      if battle && battle.alive?
+
+        info "Battle (@battle_uid) is in progress! Restoring..."
+
+        create_new_battle_on_client battle.battle_initialization_data
+
+        opponents = battle.opponents
+
+        opponents.each do |player_id, player|
+          player.path_ways.flatten.each do |unit|
+            data = [unit.uid, unit.name, player_id, unit.path_id]
+            send_unit_spawning data
+          end
+        end
+
+        attach_to_battle @battle_uid
+        send_custom_event :startBattle
+
+        opponents.each_value do |opponent|
+          opponent.path_ways.flatten.each {|unit| unit.force_sync = true }
+        end
+
       end
     end
 

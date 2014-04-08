@@ -111,6 +111,10 @@ module Player
       write_data [SEND_SPAWN_UNIT_ACTION, @latency] + unit_data
     end
 
+    def send_ping
+      write_data [SEND_PING_ACTION, @latency, Time.now.to_f]
+    end
+
     def write_data data
       # puts data.inspect
       json = JSON.generate(data)
