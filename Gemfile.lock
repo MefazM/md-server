@@ -21,23 +21,18 @@ GEM
       debugger-ruby_core_source (~> 1.3.2)
     debugger-linecache (1.2.0)
     debugger-ruby_core_source (1.3.2)
-    eventmachine (1.0.3)
-    eventmachine (1.0.3-java)
-    ffi (1.9.3)
     ffi (1.9.3-java)
     hiredis (0.4.5)
     hiredis (0.4.5-java)
     httparty (0.13.1)
       json (~> 1.8)
       multi_xml (>= 0.5.2)
-    instrumental_agent (0.12.5)
     jdbc-mysql (5.1.28)
     json (1.8.1)
     json (1.8.1-java)
     json-jruby (1.4.3.1-java)
     method_source (0.8.2)
     multi_xml (0.5.5)
-    mysql2 (0.3.15)
     nio4r (1.0.0)
     nio4r (1.0.0-java)
     pry (0.9.12.6)
@@ -60,7 +55,6 @@ GEM
     spoon (0.0.4)
       ffi
     timers (1.1.0)
-    yajl-ruby (1.2.0)
 
 PLATFORMS
   java
@@ -71,15 +65,11 @@ DEPENDENCIES
   celluloid-io
   celluloid-redis
   connection_pool (~> 2.0.0)
-  eventmachine (~> 1.0.3)
   hiredis (~> 0.4.5)
   httparty (~> 0.13.1)
-  instrumental_agent
   jdbc-mysql
   json-jruby
-  mysql2
   pry
   pry-debugger
   pry-stack_explorer
   redis (~> 3.0.1)
-  yajl-ruby
