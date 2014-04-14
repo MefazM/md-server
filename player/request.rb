@@ -67,7 +67,7 @@ module Player
       # TODO: add not_units_task to this building validation here
       building = Storage::GameData.building "#{building_uid}_#{target_level}"
 
-      unless building.nil?
+      unless building.nil? and building_ready? building_uid
         price = building[:price]
         if make_payment price
           production_time_in_ms = building[:production_time] * 1000
@@ -99,10 +99,10 @@ module Player
       if payload[1] == true
         # Celluloid::Actor[:lobby].start_ai_battle
         # BattleDirectorFactory.instance.create_ai_battle(@id, payload[0])
-        Celluloid::Actor[:lobby].create_ai_battle(@id, payload[0])
+        Celluloid::Actor[:lobby].async.create_ai_battle(@id, payload[0])
       else
 
-        Celluloid::Actor[:lobby].invite(@id, payload[0])
+        Celluloid::Actor[:lobby].async.invite(@id, payload[0])
       end
     end
 

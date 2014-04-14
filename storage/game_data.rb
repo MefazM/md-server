@@ -41,7 +41,7 @@ module Storage
 
       # Process game settings
       game_settings = {}
-      @@mysql.query("SELECT * FROM game_settings").each do |option|
+      @@mysql.select("SELECT * FROM game_settings").each do |option|
         game_settings[option[:key].to_sym] = option[:value]
       end
       # Convert JSON data.
@@ -66,7 +66,7 @@ module Storage
       @@storage_building_uid = game_settings[:storage_building_uid].to_sym
 
       # Collect and process game objects
-      units = @@mysql.query("SELECT * FROM units")
+      units = @@mysql.select("SELECT * FROM units")
 
       @@collected_data = {
         :buildings_production => self.export_buildings_production(units) ,
@@ -146,7 +146,7 @@ module Storage
 
     def self.load_buildings
       buildings_data = {}
-      @@mysql.query("SELECT * FROM buildings").each do |building|
+      @@mysql.select("SELECT * FROM buildings").each do |building|
         building_uid = building[:uid].to_sym
         uid = "#{building_uid}_#{building[:level]}"
         # buildings_data[uid] = [] if buildings_data[uid].nil?
@@ -171,20 +171,20 @@ module Storage
 
     def self.updateable? uid, level
       target_level = level + 1
-      building = @@mysql.query("SELECT * FROM buildings WHERE level = #{target_level} AND uid = '#{uid}'").first
+      building = @@mysql.select("SELECT * FROM buildings WHERE level = #{target_level} AND uid = '#{uid}'").first
 
       building.nil? == false
     end
 
     def self.produce_units? uid, level
-      units = @@mysql.query("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
+      units = @@mysql.select("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
       units.count > 0
     end
 
     def self.load_spells
       spells_data = {}
 
-      @@mysql.query("SELECT * FROM spells").each do |spell_data|
+      @@mysql.select("SELECT * FROM spells").each do |spell_data|
         # Convert ms to seconds
         uid = spell_data[:uid].to_sym
         time = spell_data[:time] || 0
@@ -198,7 +198,7 @@ module Storage
           :description => spell_data[:description]
         }
         # Get spel attrs
-        @@mysql.query("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
+        @@mysql.select("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
           key = spell_attrs[:key]
           value = spell_attrs[:value]
 

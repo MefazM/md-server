@@ -6,7 +6,10 @@ module Player
         :construction_time => construction_time,
         :level => level
       }
+    end
 
+    def building_ready? uid
+      !@buildings_update_queue[uid].nil?
     end
 
     def process_buildings_queue current_time

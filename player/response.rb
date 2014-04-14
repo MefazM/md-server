@@ -118,7 +118,12 @@ module Player
     def write_data data
       # puts data.inspect
       json = JSON.generate(data)
+
       @socket.write "__JSON__START__#{json}__JSON__END__"
+
+      rescue Exception => e
+        Celluloid::Logger::error e
+        disconnect
     end
   end
 end

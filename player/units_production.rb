@@ -15,7 +15,8 @@ module Player
             }
 
             if task[:started_at]
-              task_info[:started_at] = (( task[:finish_at] - current_time ) * 1000 ).to_i
+              # task_info[:started_at] = (( task[:finish_at] - current_time ) * 1000 ).to_i
+              task_info[:started_at] = (task[:started_at] * 1000 ).to_i
             end
             # Collect task
             queue[group_uid] << task_info

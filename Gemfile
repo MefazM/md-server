@@ -18,3 +18,6 @@ gem "json-jruby"
 gem 'pry-stack_explorer', platform: :ruby
 gem 'pry-debugger', platform: :ruby
 gem 'yajl-ruby', platform: :ruby
+
+
+gem 'httparty', '~> 0.13.1'

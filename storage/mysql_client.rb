@@ -5,6 +5,7 @@ require "java"
 
 module Storage
   module Mysql
+    # TODO: refactor to sql builder
     class MysqlClient
       include Celluloid::Logger
 
@@ -32,7 +33,7 @@ module Storage
         info "Mysql client connection closed."
       end
 
-      def escape (string)
+      def escape string
         string
       end
 
@@ -40,22 +41,42 @@ module Storage
         @statement.lastInsertID
       end
 
-      def query(sql_query)
+      def insert(table, data)
 
-        result_set = @statement.execute_query(sql_query)
+        return if !data.kind_of?(Hash) || data.empty?
 
-        meta = result_set.getMetaData()
+        statements = []
+
+        data.each do |name, value|
+          escaped_value = value.kind_of?(Numeric) ? value : "'#{value}'"
+          statements << "#{name} = #{escaped_value}"
+        end
+
+        sql = "INSERT INTO #{table} SET #{statements.join(',')}"
+
+        begin
+          @statement.execute_update sql
+        rescue Exception => e
+          error "Can't execute sql! \n #{sql} \n #{e}"
+        end
+      end
+
+      def select sql
+
+        result_set = @statement.execute_query sql
+
+        meta = result_set.getMetaData
         col_names = []
-        for i in 1..meta.getColumnCount()
+        for i in 1..meta.getColumnCount
           col_names << meta.getColumnName(i)
         end
 
         data = []
 
-        while (result_set.next) do
+        while result_set.next do
           res = {}
           col_names.each do |name|
-            res[name.to_sym] = result_set.getObject(name)
+            res[name.to_sym] = result_set.getObject name
           end
 
           data << res

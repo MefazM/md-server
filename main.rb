@@ -11,6 +11,13 @@ require 'player/player_factory'
 require 'network/networking'
 require 'lobby'
 
+require 'game_statistics/game_statistics'
+
+
+
+
+GameStatistics.new
+
 class GameServer
   include Celluloid::IO
   include Celluloid::Logger

@@ -5,6 +5,7 @@ require 'battle/opponent'
 require 'battle/unit'
 require 'battle/unit'
 require 'battle/spells/spells_factory'
+require 'game_statistics/statistics_methods'
 
 module Battle
   class BattleDirector
@@ -41,6 +42,8 @@ module Battle
       @channel = "#{@uid}_ch"
 
       info "New BattleDirector initialize..."
+
+      Actor[:statistics].async.battle_started
 
       Actor[@uid] = Actor.current
     end
@@ -232,6 +235,9 @@ module Battle
     end
 
     def drop_director
+
+      Actor[:statistics].async.battle_ended
+
       puts "BattleDirector| #{@uid} dying. Status= #{@status}"
     end
   end

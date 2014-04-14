@@ -111,6 +111,7 @@ module Player
 
     def listen_socket
       Networking::Request.listen_socket(@socket) do |action, data|
+
         perform(action, data)
 
         @status == :term

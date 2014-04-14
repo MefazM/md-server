@@ -135,7 +135,9 @@ class Lobby
   private
 
   def process_invitation_queue
-    @invites.each do |player_id, invitations|
+    invites_frozen = @invites.dup
+
+    invites_frozen.each do |player_id, invitations|
       invitation = invitations[0]
       current_time = Time.now.to_i
 
