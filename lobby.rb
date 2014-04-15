@@ -38,13 +38,19 @@ class Lobby
       player_id = player[:id]
       frozen = Actor["p_#{player_id}"].frozen?
 
-      lobby_data << [player[:id], player[:name]] unless filtration_data[:except] == player_id and frozen
+      lobby_data << [player[:id], player[:name]] unless filtration_data[:except] == player_id or frozen
     end
 
     lobby_data
   end
 
   def invite(sender_id, opponent_id)
+
+    if sender_id == opponent_id
+      error "Player can't invite itself! "
+      return
+    end
+
     info "New battle invite. From #{sender_id}, To: #{opponent_id}."
     # MAY BE UNSAFE!!!!
     sender = Actor["p_#{sender_id}"]
@@ -128,7 +134,7 @@ class Lobby
 
       end
 
-      @invites.delete(player_id)
+      @invites.delete player_id
 
       battle_director.create_battle_at_clients
 
@@ -143,10 +149,13 @@ class Lobby
 
   def process_invitation_queue
     invites_frozen = @invites.dup
+    current_time = Time.now.to_i
 
     invites_frozen.each do |player_id, invitations|
+
+      next if invitations.empty?
+
       invitation = invitations.first
-      current_time = Time.now.to_i
 
       token = invitation[:token]
       sender_id = invitation[:sender_id]

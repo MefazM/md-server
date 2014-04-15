@@ -122,7 +122,7 @@ module Player
       @socket.write "__JSON__START__#{json}__JSON__END__"
 
       rescue Exception => e
-        Celluloid::Logger::error e
+        Celluloid::Logger::error e[0..20]
         disconnect
     end
   end

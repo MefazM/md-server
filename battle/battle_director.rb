@@ -1,4 +1,4 @@
-require 'battle/unit'
+uprequire 'battle/unit'
 require 'battle/ai_player'
 require 'battle/building'
 require 'battle/opponent'
