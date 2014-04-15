@@ -30,8 +30,15 @@ class Lobby
 
   def players filtration_data
     lobby_data = []
-    @registred_players.each_value do |player|
-      lobby_data << [player[:id], player[:name]] unless filtration_data[:except] == player[:id]
+
+    registred_players_frozen = @registred_players.dup
+
+    registred_players_frozen.each_value do |player|
+
+      player_id = player[:id]
+      frozen = Actor["p_#{player_id}"].frozen?
+
+      lobby_data << [player[:id], player[:name]] unless filtration_data[:except] == player_id and frozen
     end
 
     lobby_data
@@ -175,7 +182,7 @@ class Lobby
     sender.unfreeze!
     sender.send_custom_event(:inviteCanceledNotification)
 
-    @invites[player_id].delete_at(0)
+    @invites[player_id].delete invitation
     @invites.delete(player_id) if @invites[player_id].empty?
 
     rescue Celluloid::DeadActorError
