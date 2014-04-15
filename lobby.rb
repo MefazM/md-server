@@ -103,17 +103,15 @@ class Lobby
   end
 
   def opponent_response_to_invitation(player_id, token, decision)
-    return if @invites[player_id].nil? or @invites[player_id][0].nil?
+    return if @invites[player_id].nil? or @invites[player_id].first.nil?
 
-    invitation = @invites[player_id][0]
+    invitation = @invites[player_id].first
 
     return if invitation[:token] != token
 
     # Opponent player confirm invitation
     if decision == true
       info "Battle accepted. P1: #{player_id} accepts P2(sender): #{invitation[:sender_id]}"
-
-      @invites.delete(player_id)
 
       battle_director = Battle::BattleDirector.new()
 
@@ -130,12 +128,14 @@ class Lobby
 
       end
 
+      @invites.delete(player_id)
+
       battle_director.create_battle_at_clients
 
     else
       info "Battle rejected. P1: #{player_id}, P2(sender): #{invitation[:sender_id]}"
       # Opponent player reject invitaion
-      cancel_invitation(player_id)
+      cancel_invitation(player_id, invitation[:token])
     end
   end
 
@@ -145,7 +145,7 @@ class Lobby
     invites_frozen = @invites.dup
 
     invites_frozen.each do |player_id, invitations|
-      invitation = invitations[0]
+      invitation = invitations.first
       current_time = Time.now.to_i
 
       token = invitation[:token]
@@ -153,7 +153,7 @@ class Lobby
 
       if current_time - invitation[:time] > INVITATION_LIFE_TIME
         # invitaion expired
-        cancel_invitation(player_id)
+        cancel_invitation(player_id, token)
         info "Invitation P:(sender) #{player_id}, T:#{token} expired."
       elsif invitation[:sent] == false
         # invitaions is not sended
@@ -170,20 +170,27 @@ class Lobby
 
   end
 
-  def cancel_invitation(player_id)
-    invitation = @invites[player_id][0]
-    sender_id = invitation[:sender_id]
-    info "Invitation canceled P:(sender) #{sender_id}, T:#{invitation[:token]}."
+  def cancel_invitation(player_id, token)
+    invitation = @invites[player_id].find{|i| i[:token] == token}
 
-    # Actor["p_#{sender_id}"].unfreeze!
-    # Actor["p_#{sender_id}"].send_custom_event(:inviteCanceledNotification)
-    # MAY BE UNSAFE!!!!
-    sender = Actor["p_#{sender_id}"]
-    sender.unfreeze!
-    sender.send_custom_event(:inviteCanceledNotification)
+    unless invitation.nil?
 
-    @invites[player_id].delete invitation
-    @invites.delete(player_id) if @invites[player_id].empty?
+      @invites[player_id].delete invitation
+
+      sender_id = invitation[:sender_id]
+      info "Invitation canceled P:(sender) #{sender_id}, T:#{invitation[:token]}."
+
+      # MAY BE UNSAFE!!!!
+      sender = Actor["p_#{sender_id}"]
+      sender.unfreeze!
+      sender.send_custom_event(:inviteCanceledNotification)
+
+    end
+
+
+
+    # @invites[player_id].delete invitation
+    # @invites.delete(player_id) if @invites[player_id].empty?
 
     rescue Celluloid::DeadActorError
       warn "Try to access dead actor (p_#{sender_id})!"
