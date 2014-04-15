@@ -13,7 +13,7 @@ require 'lobby'
 
 require 'game_statistics/game_statistics'
 
-# GameStatistics.new
+GameStatistics.new
 
 class GameServer
   include Celluloid::IO
@@ -46,10 +46,16 @@ class GameServer
 
     info "Received connection from #{host}:#{port}"
 
-    Networking::Request.listen_socket(socket) do |action, data|
+    socket_listener =  Networking::Request.new socket
+
+    socket_listener.listen_socket do |action, data|
 
       if action == Networking::Actions::RECEIVE_PLAYER_ACTION
-        Player::PlayerFactory.find_or_create(data[0], socket).async.run
+        player = Player::PlayerFactory.find_or_create(data[0], socket)#.async.run
+
+        player.socket_listener = socket_listener
+        player.async.run
+
 
         true
       end

@@ -27,6 +27,8 @@ module Player
 
     attr_reader :username, :id, :units
 
+    attr_writer :socket_listener
+
     finalizer :drop_player
 
     UPDATE_PERIOD = 1
@@ -46,6 +48,9 @@ module Player
 
     def initialize( id, email, username, socket )
       @socket = socket
+
+      # @socket_listener =  Networking::Request.new socket
+
       @status = :run
       @id = id
       @email = email
@@ -110,7 +115,7 @@ module Player
     # private
 
     def listen_socket
-      Networking::Request.listen_socket(@socket) do |action, data|
+      @socket_listener.listen_socket do |action, data|
 
         perform(action, data)
 

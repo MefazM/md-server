@@ -36,9 +36,13 @@ class Lobby
     registred_players_frozen.each_value do |player|
 
       player_id = player[:id]
-      frozen = Actor["p_#{player_id}"].frozen?
+      actor = Actor["p_#{player_id}"]
 
-      lobby_data << [player[:id], player[:name]] unless filtration_data[:except] == player_id or frozen
+      if actor and actor.alive?
+        frozen = Actor["p_#{player_id}"].frozen?
+        lobby_data << [player[:id], player[:name]] unless filtration_data[:except] == player_id or frozen
+
+      end
     end
 
     lobby_data

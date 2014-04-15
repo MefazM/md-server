@@ -126,7 +126,7 @@ module Battle
         end
       end
 
-      publish(@channel, [:send_battle_sync, sync_data]) unless sync_data.empty?
+      # publish(@channel, [:send_battle_sync, sync_data]) unless sync_data.empty?
 
       # /UPDATE
     end
