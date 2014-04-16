@@ -1,12 +1,12 @@
 require 'uri'
-require 'httparty'
+# require 'httparty'
 
 class GameStatistics
   include Celluloid
   include Celluloid::Notifications
   include Celluloid::Logger
 
-  include HTTParty
+  # include HTTParty
 
   STATISTICS_CHANNEL = :statistics_channel
 
@@ -79,10 +79,10 @@ class GameStatistics
 
   def submit_statistics
 
-    # puts " S: \
-    #   Active players: #{@data[:cur_players]} \
-    #   Active battles: #{@data[:cur_battles]} \
-    # "
+    puts " S: \
+      Active players: #{@data[:cur_players]} \
+      Active battles: #{@data[:cur_battles]} \
+    "
 
     # info "Submit"
 

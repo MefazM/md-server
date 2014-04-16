@@ -231,8 +231,6 @@ module Battle
 
       publish(@channel, [:finish_battle, data])
 
-      Actor[:statistics].async.battle_ended
-
       lobby = Actor[:lobby]
       # unfreez players at lobby
       lobby.async.set_players_frozen_state(@opponents_indexes[0], false)
@@ -242,6 +240,9 @@ module Battle
     end
 
     def drop_director
+
+      Actor[:statistics].async.battle_ended
+
       puts "BattleDirector| #{@uid} dying. Status= #{@status}"
     end
   end

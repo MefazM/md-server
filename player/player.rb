@@ -81,6 +81,8 @@ module Player
 
       restore_battle unless @battle_uid.nil?
 
+      Actor[:statistics].async.player_connected
+
       Actor["p_#{id}"] = Actor.current
     end
 
@@ -165,6 +167,7 @@ module Player
     end
 
     def drop_player
+      Actor[:statistics].async.player_disconnected
       Actor[:lobby].async.remove @id
 
       info "Terminating player (id = #{@id})"

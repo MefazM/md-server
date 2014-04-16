@@ -13,7 +13,7 @@ require 'lobby'
 
 require 'game_statistics/game_statistics'
 
-Celluloid::Logger = nil
+Celluloid.logger = nil
 
 GameStatistics.new
 
