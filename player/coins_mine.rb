@@ -13,8 +13,6 @@ module Player
     def reset_gold_mine_notificator
       d_time = Time.now.to_i - @last_harvest_time
 
-      @harvester_capacity
-
       coins_amount = (d_time * @coins_gain).to_i + @harvester_storage
 
       d_amount = @harvester_capacity - coins_amount

@@ -79,10 +79,10 @@ class GameStatistics
 
   def submit_statistics
 
-    puts " S: \
-      Active players: #{@data[:cur_players]} \
-      Active battles: #{@data[:cur_battles]} \
-    "
+    # puts " S: \
+    #   Active players: #{@data[:cur_players]} \
+    #   Active battles: #{@data[:cur_battles]} \
+    # "
 
     # info "Submit"
 

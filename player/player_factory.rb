@@ -3,7 +3,7 @@ require 'player/player'
 module Player
   # TODO: Fix sql injection problem
   class PlayerFactory
-    def self.find_or_create(login_data, socket)
+    def self.find_or_create login_data
       Celluloid::Logger::info "Player logging in (Token = #{login_data[:token]})"
 
       authentication = Storage::Mysql::Pool.connections_pool.with do |mysql|
@@ -11,22 +11,13 @@ module Player
       end
 
       player_id = authentication.nil? ? self.create_player(login_data) : authentication[:player_id]
-      actor_key = "p_#{player_id}"
 
-      player = self.get_player(player_id, socket)
-
-      # if Celluloid::Actor[actor_key]
-      #   raise "Try to access alive player!" if Celluloid::Actor[actor_key].alive?
-      # end
-
-      Celluloid::Actor[actor_key] = player
-
-      player
+      self.get_player_data(player_id)
     end
 
     private
 
-    def self.create_player(login_data)
+    def self.create_player login_data
       player_id = Storage::Mysql::Pool.connections_pool.with do |mysql|
 
         mysql.insert('players', {:email => login_data[:email], :username => login_data[:name]})
@@ -52,14 +43,16 @@ module Player
       player_id
     end
 
-    def self.get_player(player_id, socket)
+    def self.get_player_data player_id
       player_data = Storage::Mysql::Pool.connections_pool.with do |mysql|
         mysql.select("SELECT * FROM players WHERE id = '#{player_id}' ").first
       end
 
       raise "Authentication find, but player data is not found!" if player_data.nil?
 
-      return PlayerActor.new(player_id, player_data[:email], player_data[:username], socket)
+      # return PlayerActor.new(player_id, player_data[:email], player_data[:username])
+
+      return player_id, player_data[:email], player_data[:username]
     end
 
   end

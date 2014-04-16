@@ -126,7 +126,7 @@ module Battle
         end
       end
 
-      # publish(@channel, [:send_battle_sync, sync_data]) unless sync_data.empty?
+      publish(@channel, [:send_battle_sync, sync_data]) unless sync_data.empty?
 
       # /UPDATE
     end
@@ -231,13 +231,17 @@ module Battle
 
       publish(@channel, [:finish_battle, data])
 
+      Actor[:statistics].async.battle_ended
+
+      lobby = Actor[:lobby]
+      # unfreez players at lobby
+      lobby.async.set_players_frozen_state(@opponents_indexes[0], false)
+      lobby.async.set_players_frozen_state(@opponents_indexes[1], false)
+
       terminate
     end
 
     def drop_director
-
-      Actor[:statistics].async.battle_ended
-
       puts "BattleDirector| #{@uid} dying. Status= #{@status}"
     end
   end

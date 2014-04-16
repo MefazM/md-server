@@ -10,6 +10,8 @@ gem 'celluloid'
 gem 'celluloid-io'
 gem 'celluloid-redis'
 
+# gem 'timers', '~> 1.1.0'
+
 gem 'jdbc-mysql'
 gem "redis", "~> 3.0.1"
 gem "hiredis", "~> 0.4.5"

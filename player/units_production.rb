@@ -43,7 +43,9 @@ module Player
 
     def process_unit_queue current_time
       @units_production_queue.each do |group_uid, group|
+
         unit_uid, current_task = group.first
+
         if current_task.nil?
           # queue is empty for this group
           @units_production_queue.delete(group_uid)

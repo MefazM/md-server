@@ -8,10 +8,11 @@ require 'player/coins_storage'
 require 'player/coins_mine'
 require 'player/battle_messages_proxy'
 
+
 module Player
   class PlayerActor
     include Celluloid
-    include Celluloid::IO
+
     include ::Networking::Actions
     include Celluloid::Logger
     include Celluloid::Notifications
@@ -26,8 +27,6 @@ module Player
     include BattleMessagesProxy
 
     attr_reader :username, :id, :units
-
-    attr_writer :socket_listener
 
     finalizer :drop_player
 
@@ -48,9 +47,6 @@ module Player
 
     def initialize( id, email, username, socket )
       @socket = socket
-
-      # @socket_listener =  Networking::Request.new socket
-
       @status = :run
       @id = id
       @email = email
@@ -72,23 +68,20 @@ module Player
 
       reset_gold_mine_notificator
       # Test this!
-      Actor[:lobby].register(@id, @username)
+      Actor[:lobby].async.register(@id, @username)
 
       @update_timer = after(UPDATE_PERIOD) {
         update
-
-        @update_timer.reset
       }
 
       @serialization_timer = after(SERIALIZATION_PERIOD) {
         serialize_player
-
-        @serialization_timer.reset
       }
       # TODO: add inactivity timer
 
-
       restore_battle unless @battle_uid.nil?
+
+      Actor["p_#{id}"] = Actor.current
     end
 
     def freeze!
@@ -99,10 +92,6 @@ module Player
       @frozen = false
     end
 
-    def run
-      listen_socket
-    end
-
     def update
       current_time = Time.now.to_f
       # TODO: refactor production queue to Timers
@@ -110,20 +99,8 @@ module Player
       process_buildings_queue current_time
 
       send_ping
-    end
 
-    # private
-
-    def listen_socket
-      @socket_listener.listen_socket do |action, data|
-
-        perform(action, data)
-
-        @status == :term
-      end
-
-      rescue EOFError
-        disconnect
+      @update_timer.reset
     end
 
     def restore_from_redis
@@ -170,6 +147,8 @@ module Player
         redis.connection.hset(@redis_resources_key, 'coins', @coins_in_storage)
         redis.connection.hset(@redis_resources_key, 'harvester_storage', @harvester_storage)
       end
+
+      @serialization_timer.reset
     end
 
     def disconnect
@@ -209,7 +188,7 @@ module Player
     def restore_battle
       info "Player (#{@id}) try to restore battle..."
 
-      battle = Celluloid::Actor[@battle_uid]
+      battle = Actor[@battle_uid]
       if battle && battle.alive?
 
         info "Battle (@battle_uid) is in progress! Restoring..."

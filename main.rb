@@ -13,11 +13,13 @@ require 'lobby'
 
 require 'game_statistics/game_statistics'
 
+
 GameStatistics.new
 
 class GameServer
   include Celluloid::IO
   include Celluloid::Logger
+  include Player
 
   finalizer :shutdown
 
@@ -28,7 +30,8 @@ class GameServer
     Storage::Redis::Pool.create!
     Storage::GameData.load!
 
-    @server = TCPServer.new(host, port)
+    @server = Celluloid::IO::TCPServer.new(host, port)
+
     async.run
   end
 
@@ -46,19 +49,22 @@ class GameServer
 
     info "Received connection from #{host}:#{port}"
 
-    socket_listener =  Networking::Request.new socket
+    player = nil
 
-    socket_listener.listen_socket do |action, data|
+    Networking::Request.listen_socket(socket) do |action, data|
 
       if action == Networking::Actions::RECEIVE_PLAYER_ACTION
-        player = Player::PlayerFactory.find_or_create(data[0], socket)#.async.run
 
-        player.socket_listener = socket_listener
-        player.async.run
+        player_id, email, username = PlayerFactory.find_or_create data[0]
 
+        player = PlayerActor.new(player_id, email, username, socket)
 
-        true
+      elsif player.nil? == false
+
+        player.async.perform(action, data)
       end
+
+      false
     end
 
     rescue EOFError
@@ -66,7 +72,7 @@ class GameServer
   end
 end
 
-Celluloid::Actor[:lobby] = Lobby.new
+Lobby.new
 
 supervisor = GameServer.supervise( SERVER_HOST, SERVER_PORT )
 trap("INT") { supervisor.terminate; exit }
