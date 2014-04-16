@@ -45,7 +45,7 @@ class Lobby
 
       player_id = player[:id]
 
-      if filtration_data[:except] != player[:id] and player[:frozen]
+      unless filtration_data[:except] == player[:id] and player[:frozen]
         lobby_data << [player[:id], player[:name]]
       end
 
