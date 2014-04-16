@@ -71,11 +71,11 @@ module Player
       Actor[:lobby].async.register(@id, @username)
 
       @update_timer = after(UPDATE_PERIOD) {
-        update
+        async.update
       }
 
       @serialization_timer = after(SERIALIZATION_PERIOD) {
-        serialize_player
+        async.serialize_player
       }
       # TODO: add inactivity timer
 
