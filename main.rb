@@ -49,9 +49,11 @@ class GameServer
 
     info "Received connection from #{host}:#{port}"
 
+    request = Networking::Request.new socket
+
     player = nil
 
-    Networking::Request.listen_socket(socket) do |action, data|
+    request.listen_socket do |action, data|
 
       if action == Networking::Actions::RECEIVE_PLAYER_ACTION
 

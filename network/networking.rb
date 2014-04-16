@@ -37,14 +37,17 @@ module Networking
   end
 
   class Request
-    # include Celluloid::IO
 
-    def self.listen_socket(socket)
-      raise "Socket is dead!" if socket.nil?
+    def initialize socket
+      @socket = socket
+    end
+
+    def listen_socket
+      raise "Socket is dead!" if @socket.nil?
       raise "No block given!" unless block_given?
 
       begin
-        data_str = socket.read#partial(4096)
+        data_str = @socket.readpartial(4096)
 
         str_start = data_str.index(MESSAGE_START_TOKEN)
         str_end = data_str.index(MESSAGE_END_TOKEN)
