@@ -13,7 +13,7 @@ require 'lobby'
 
 require 'game_statistics/game_statistics'
 
-Celluloid.logger = nil
+# Celluloid.logger = nil
 
 GameStatistics.new
 
@@ -71,7 +71,7 @@ class GameServer
     end
 
     rescue EOFError
-      socket.close
+      player.disconnect if player
   end
 end
 

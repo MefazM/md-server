@@ -3,12 +3,11 @@ module Battle
 
     @@uid_iteratior = 0
 
-    attr_accessor :uid, :health_points, :position
-    attr_reader :body_width
+    HEALTH_POINTS = 20000
+    BODY_WIDTH = 0.05
 
-    def static?
-      true
-    end
+    attr_accessor :uid, :health_points, :position
+    attr_reader :body_width, :engaged_routes
 
     def initialize(name, position)
       @name = name
@@ -16,11 +15,21 @@ module Battle
       @@uid_iteratior += 1
       # additional params
       @position = position
-      @health_points = 200
+      @health_points = HEALTH_POINTS
 
       @force_sync = false
 
-      @body_width = 1.0 - 0.05
+      @body_width = 1.0 - BODY_WIDTH
+
+      @engaged_routes = [9,8,6,7]
+    end
+
+    def path_id
+      @engaged_routes.sample
+    end
+
+    def static?
+      true
     end
 
     def changed?

@@ -116,6 +116,7 @@ module Player
     end
 
     def write_data data
+      # binding.pry
       # puts data.inspect
       json = JSON.generate(data)
 

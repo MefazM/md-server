@@ -67,10 +67,10 @@ module Battle
             unless target.nil?
 
               unit.target = target
-              unless target.static?
+              # unless target.static?
                 unit.path_id = target.path_id
                 unit.force_sync = true
-              end
+              # end
 
               @path_ways[unit.path_id] << @path_ways[index].delete(unit)
             end
@@ -216,6 +216,7 @@ module Battle
       [:melee_attack, :range_attack].each do |type|
         if attaker.in_attack_range?(opponent.main_building, type)
           target = opponent.main_building
+          return target
         end
       end
 

@@ -32,7 +32,7 @@ class GameStatistics
   def run
     @submin_data_timer = after(SUBMIN_DATA_PERIOD) {
 
-      submit_statistics
+      # submit_statistics
 
       @submin_data_timer.reset
     }
