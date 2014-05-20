@@ -17,6 +17,9 @@ module Player
         return true
       end
 
+      # Set actual player status
+      @status = :in_battle
+
       false
     end
 
@@ -49,6 +52,8 @@ module Player
       sync_after_battle data[@id]
 
       detach_from_battle
+
+      @status = :run
     end
 
   end

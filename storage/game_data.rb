@@ -45,7 +45,7 @@ module Storage
         game_settings[option[:key].to_sym] = option[:value]
       end
       # Convert JSON data.
-      [:storage_capacity_per_level, :coins_generation_per_level].each do |type|
+      [:storage_capacity_per_level, :coins_generation_per_level, :mana_storage_settings].each do |type|
         game_settings[type] = JSON.parse(game_settings[type])
       end
       # Coins
