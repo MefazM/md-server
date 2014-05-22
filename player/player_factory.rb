@@ -26,7 +26,7 @@ module Player
 
         raise "Player is not created! \n #{login_data.inspect}" if id == -1
 
-        data = {:player_id => id, :provider => login_data[:provider],:token => login_data[:token]}
+        data = {:player_id => id, :provider => login_data[:provider], :token => login_data[:token]}
         mysql.insert('authentications', data)
 
         id
@@ -38,6 +38,7 @@ module Player
         redis.connection.hset("players:#{player_id}:resources", "last_harvest_time", Time.now.to_i)
         redis.connection.hset("players:#{player_id}:resources", 'coins', 0)
         redis.connection.hset("players:#{player_id}:resources", 'harvester_storage', 0)
+        redis.connection.hset("players:#{player_id}:resources", "last_mana_compute_time", Time.now.to_i)
       end
 
       player_id

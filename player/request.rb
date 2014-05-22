@@ -138,6 +138,7 @@ module Player
     # end
 
     def cast_spell payload
+      decreasre_mana 10
       @battle.cast_spell(@id, payload[0], payload[1])
     end
 

@@ -6,12 +6,16 @@ require 'player/response'
 require 'player/request'
 require 'player/coins_storage'
 require 'player/coins_mine'
+require 'player/mana_storage'
 require 'player/battle_messages_proxy'
+require 'player/player_redis_mapper'
 
 
 module Player
   class PlayerActor
     include Celluloid
+
+    include PlayerRedisMapper
 
     include ::Networking::Actions
     include Celluloid::Logger
@@ -25,13 +29,15 @@ module Player
     include UnitsProduction
     include BuildingsProduction
     include BattleMessagesProxy
+    include ManaStorage
+
 
     attr_reader :username, :id, :units
 
     finalizer :drop_player
 
     UPDATE_PERIOD = 1
-    SERIALIZATION_PERIOD = 180
+    SERIALIZATION_PERIOD = 10
 
     map_request RECEIVE_UNIT_PRODUCTION_TASK_ACTION, :unit_production_task_action
     map_request RECEIVE_BUILDING_PRODUCTION_TASK_ACTION, :building_production_task_action
@@ -64,6 +70,7 @@ module Player
       # Frozen player can't be invited to battle
       @frozen = false
       # Send game data to client
+      compute_mana_storage
       send_game_data
 
       reset_gold_mine_notificator
@@ -105,53 +112,6 @@ module Player
       @update_timer.reset
     end
 
-    def restore_from_redis
-      @redis_player_key = "players:#{@id}"
-      @redis_resources_key = "#{@redis_player_key}:resources"
-
-      units_json = nil
-      buildings_json = nil
-      units_queue = nil
-      buildings_queue = nil
-
-      Storage::Redis::Pool.connections_pool.with do |redis|
-        units_json = redis.connection.hget(@redis_player_key, 'units')
-        buildings_json = redis.connection.hget(@redis_player_key, 'buildings')
-        units_queue = redis.connection.hget(@redis_player_key, 'units_queue')
-        buildings_queue = redis.connection.hget(@redis_player_key, 'buildings_queue')
-
-        @battle_uid = redis.connection.hget(@redis_player_key, 'battle_uid')
-
-        @last_harvest_time = redis.connection.hget(@redis_resources_key, 'last_harvest_time').to_i
-        @coins_in_storage = redis.connection.hget(@redis_resources_key, 'coins').to_i
-        @harvester_storage = redis.connection.hget(@redis_resources_key, 'harvester_storage').to_i
-      end
-
-      @units = units_json.nil? ? {} : JSON.parse(units_json, {:symbolize_names => true})
-      @buildings = buildings_json.nil? ? {} : JSON.parse(buildings_json, {:symbolize_names => true})
-      @units_production_queue = units_queue.nil? ? {} : JSON.parse(units_queue, {:symbolize_names => true})
-      @buildings_update_queue = buildings_queue.nil? ? {} : JSON.parse(buildings_queue, {:symbolize_names => true})
-    end
-
-    def serialize_player
-      info "Save player (#{@id}) to redis..."
-
-      Storage::Redis::Pool.connections_pool.with do |redis|
-        # serialize units, buildings, coins, queue
-        redis.connection.hset(@redis_player_key, 'units', JSON.generate(@units))
-        redis.connection.hset(@redis_player_key, 'buildings', JSON.generate(@buildings))
-        redis.connection.hset(@redis_player_key, 'units_queue', JSON.generate(@units_production_queue))
-        redis.connection.hset(@redis_player_key, 'buildings_queue', JSON.generate(@buildings_update_queue))
-
-        redis.connection.hset(@redis_player_key, 'battle_uid', @battle_uid)
-
-        redis.connection.hset(@redis_resources_key, 'last_harvest_time', @last_harvest_time)
-        redis.connection.hset(@redis_resources_key, 'coins', @coins_in_storage)
-        redis.connection.hset(@redis_resources_key, 'harvester_storage', @harvester_storage)
-      end
-
-      @serialization_timer.reset
-    end
 
     def disconnect
       @socket.close

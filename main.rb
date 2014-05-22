@@ -10,6 +10,7 @@ require 'storage/storage'
 require 'player/player_factory'
 require 'network/networking'
 require 'lobby'
+require 'hash_symbolize_keys'
 
 require 'game_statistics/game_statistics'
 

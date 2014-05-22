@@ -1,7 +1,7 @@
 module Player
   module BuildingsProduction
     def add_update_building_task(building_uid, construction_time, level)
-      @buildings_update_queue[building_uid] = {
+      @buildings_queue[building_uid] = {
         :finish_at => construction_time + Time.now.to_f,
         :construction_time => construction_time,
         :level => level
@@ -9,13 +9,13 @@ module Player
     end
 
     def building_ready? uid
-      !@buildings_update_queue[uid].nil?
+      !@buildings_queue[uid].nil?
     end
 
     def process_buildings_queue current_time
-      @buildings_update_queue.each do |building_uid, task|
+      @buildings_queue.each do |building_uid, task|
         if task[:finish_at] < current_time
-          @buildings_update_queue.delete(building_uid)
+          @buildings_queue.delete(building_uid)
           # Each building stores in uid:level pair.
           # @buildings[building_uid].nil? - means that building has 0 level
           if @buildings[building_uid].nil?
@@ -33,9 +33,9 @@ module Player
 
     def buildings_updates_queue_export
       queue = {}
-      unless @buildings_update_queue.empty?
+      unless @buildings_queue.empty?
         current_time = Time.now.to_f
-        @buildings_update_queue.each do |building_uid, task|
+        @buildings_queue.each do |building_uid, task|
           task_info = {
             :finish_time => (task[:finish_at] - current_time) * 1000,
             :production_time => task[:construction_time] * 1000,

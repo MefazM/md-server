@@ -34,6 +34,10 @@ module Storage
       @@collected_data[:buildings_data][uid]
     end
 
+    def self.mana_storage level
+      @@mana_settings_per_level[level]
+    end
+
     def self.load!
       Celluloid::Logger::info 'Loading game data...'
 
@@ -45,25 +49,30 @@ module Storage
         game_settings[option[:key].to_sym] = option[:value]
       end
       # Convert JSON data.
-      [:storage_capacity_per_level, :coins_generation_per_level, :mana_storage_settings].each do |type|
+      [:storage_capacity_per_level, :coins_generation_per_level, :mana_settings_per_level].each do |type|
+
         game_settings[type] = JSON.parse(game_settings[type])
       end
+
+      # game_settings = game_settings.recursive_symbolize_keys(game_settings)
+      game_settings.recursive_symbolize_keys!
+
       # Coins
       @@coins_generation_per_level = []
       game_settings[:coins_generation_per_level].each do |data|
         @@coins_generation_per_level << {
-          :amount => data['amount'].to_f,
-          :harvester_capacity => data['harvest_capacity'].to_i
+          :amount => data[:amount].to_f,
+          :harvester_capacity => data[:harvest_capacity].to_i
         }
       end
 
       @@storage_capacity_per_level = []
       game_settings[:storage_capacity_per_level].each do |data|
-        @@storage_capacity_per_level << data['amount'].to_i
+        @@storage_capacity_per_level << data[:amount].to_i
       end
 
-      @@coin_generator_uid = game_settings[:coin_generator_uid].to_sym
-      @@storage_building_uid = game_settings[:storage_building_uid].to_sym
+      @@coin_generator_uid = game_settings[:coin_generator_uid]
+      @@storage_building_uid = game_settings[:storage_building_uid]
 
       # Collect and process game objects
       units = @@mysql.select("SELECT * FROM units")
@@ -75,7 +84,11 @@ module Storage
       }
 
       @@spells_data = self.load_spells
-
+      # Mana
+      @@mana_settings_per_level = []
+      game_settings[:mana_settings_per_level].each do |data|
+        @@mana_settings_per_level << data.inject({}) { |h, (k, v)| h[k] = v.to_i; h }
+      end
       # Kill mysql connection!
       @@mysql.finalize
       @@mysql = nil

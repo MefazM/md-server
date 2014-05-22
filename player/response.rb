@@ -15,12 +15,20 @@ module Player
         buildings[building_uid][:ready] = false
       end
 
+      mana_settings = Storage::GameData.mana_storage 1
+      mana_amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
+
       game_data = {
         :uid => @id,
         :player_data => {
           :coins_in_storage => @coins_in_storage,
           :storage_capacity => @storage_capacity,
           :buildings => buildings,
+
+          :mana_amount => mana_settings[mana_amount_key],
+          :mana_storage_capacity => mana_settings[:capacity],
+          :mana_value => @mana_storage_value,
+
           :units => {
             # restore unit production queue on client
             :queue => units_in_queue_export
@@ -113,6 +121,14 @@ module Player
 
     def send_ping
       write_data [SEND_PING_ACTION, @latency, Time.now.to_f]
+    end
+
+    def send_sync_mana_storage
+      data = Storage::GameData.mana_storage 1
+      amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
+
+      write_data [SEND_CUSTOM_EVENT, @latency, :syncManaStorage,
+        @mana_storage_value, data[:capacity], data[amount_key]]
     end
 
     def write_data data

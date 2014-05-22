@@ -42,8 +42,6 @@ class GameStatistics
 
     trigger = payload[0]
 
-    binding.pry
-
     send trigger
 
   rescue Exception => e

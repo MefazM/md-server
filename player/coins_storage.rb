@@ -13,11 +13,7 @@ module Player
 
     def make_payment coins
       enough_coins = @coins_in_storage >= coins
-      if enough_coins
-        @coins_in_storage -= coins
-        # Save left coint num here
-        # redis_set(@redis_resources_key, 'coins', @coins_in_storage)
-      end
+      @coins_in_storage -= coins if enough_coins
 
       enough_coins
     end

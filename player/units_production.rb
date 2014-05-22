@@ -3,8 +3,8 @@ module Player
     def units_in_queue_export
       current_time = Time.now.to_f
       queue = {}
-      unless @units_production_queue.empty?
-        @units_production_queue.each do |group_uid, group|
+      unless @units_queue.empty?
+        @units_queue.each do |group_uid, group|
           queue[group_uid] = []
 
           group.each do |unit_uid, task|
@@ -28,27 +28,27 @@ module Player
     end
 
     def add_unit_production_task(unit_uid, construction_time, group_by)
-      @units_production_queue[group_by] = {} if @units_production_queue[group_by].nil?
+      @units_queue[group_by] = {} if @units_queue[group_by].nil?
       # If player has no tasks from grop create it
-      if @units_production_queue[group_by][unit_uid].nil?
-        @units_production_queue[group_by][unit_uid] = {
+      if @units_queue[group_by][unit_uid].nil?
+        @units_queue[group_by][unit_uid] = {
           :count => 1,
           :construction_time => construction_time
         }
       else
         # Increase tasks number if such tasks exist in queue
-        @units_production_queue[group_by][unit_uid][:count] += 1
+        @units_queue[group_by][unit_uid][:count] += 1
       end
     end
 
     def process_unit_queue current_time
-      @units_production_queue.each do |group_uid, group|
+      @units_queue.each do |group_uid, group|
 
         unit_uid, current_task = group.first
 
         if current_task.nil?
           # queue is empty for this group
-          @units_production_queue.delete(group_uid)
+          @units_queue.delete(group_uid)
         else
           if current_task[:finish_at].nil?
             construction_time = current_task[:construction_time]
