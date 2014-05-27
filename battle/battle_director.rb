@@ -48,32 +48,25 @@ module Battle
       Actor[@uid] = Actor.current
     end
 
-    def cast_spell(player_id, uid, target)
-      spell_data = Storage::GameData.spells_data[uid.to_sym]
+    def cast_spell(player_id, target, spell_data)
+      spell = SpellFactory.create spell_data
+      spell.channel = @channel
 
-      if spell_data.nil?
-        error "Spell (s: #{uid}, from player with id = #{player_id}) not found."
+      area = spell_data[:area]
+      life_time = spell.life_time * 1000
+
+      publish(@channel, [:send_spell_cast, spell_data[:uid], life_time, target, player_id, area])
+
+      if spell.friendly_targets?
+        spell.set_target(target, @opponents[player_id].path_ways)
       else
+        target = 1.0 - target
 
-        spell = SpellFactory.create spell_data
-        spell.channel = @channel
-
-        area = spell_data[:area]
-        life_time = spell.life_time * 1000
-
-        publish(@channel, [:send_spell_cast, uid, life_time, target, player_id, area])
-
-        if spell.friendly_targets?
-          spell.set_target(target, @opponents[player_id].path_ways)
-        else
-          target = 1.0 - target
-
-          opponent_uid = @opponents_indexes[player_id]
-          spell.set_target(target, @opponents[opponent_uid].path_ways)
-        end
-
-        @spells << spell
+        opponent_uid = @opponents_indexes[player_id]
+        spell.set_target(target, @opponents[opponent_uid].path_ways)
       end
+
+      @spells << spell
     end
 
     def set_opponent(data)
@@ -153,7 +146,8 @@ module Battle
       # And brodcast this data to clients
       battle_data = {
         :shared_data => [],
-        :units_data => {}
+        :units_data => {},
+        :mana_data => {}
       }
 
       @opponents.each do |player_id, opponent|
@@ -162,10 +156,10 @@ module Battle
         battle_data[:shared_data] << data
 
         battle_data[:units_data][player_id] = opponent.units_statistics
+        battle_data[:mana_data][player_id] = opponent.mana_data
       end
 
       battle_data
-
     end
 
     def create_battle_at_clients

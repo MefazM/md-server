@@ -3,7 +3,7 @@ module Battle
 
     @@uid_iteratior = 0
 
-    HEALTH_POINTS = 20000
+    HEALTH_POINTS = 200
     BODY_WIDTH = 0.05
 
     attr_accessor :uid, :health_points, :position

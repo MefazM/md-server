@@ -14,12 +14,11 @@ module Player
         @battle_uid = battle_uid
         @battle = battle
 
+        @status = :in_battle
         return true
       end
 
       # Set actual player status
-      @status = :in_battle
-
       false
     end
 
@@ -41,7 +40,7 @@ module Player
     end
 
     def create_new_battle_on_client data
-      send_create_new_battle_on_client(data[:units_data][@id], data[:shared_data])
+      send_create_new_battle_on_client(data[:units_data][@id], data[:shared_data], data[:mana_data][@id])
     end
 
     def finish_battle data

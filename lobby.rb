@@ -102,10 +102,12 @@ class Lobby
     # Actor["battle_#{battle_director.uid}"] = battle_director
 
     sender.attach_to_battle battle_director.uid
+    sender.compute_mana_storage
 
     battle_director.set_opponent({
       :id => sender_id,
       :units => sender.units(),
+      :mana => sender.mana_sync_data
       # Here will be other player options
     })
 
@@ -117,7 +119,6 @@ class Lobby
     })
 
     battle_director.create_battle_at_clients
-
   end
 
   def opponent_response_to_invitation(player_id, token, decision)
@@ -141,9 +142,12 @@ class Lobby
 
         player.attach_to_battle battle_director.uid
 
+        player.compute_mana_storage
+
         battle_director.set_opponent({
           :id => opponent_id,
-          :units => player.units
+          :units => player.units,
+          :mana => player.mana_sync_data
         })
 
       end

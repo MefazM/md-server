@@ -4,7 +4,7 @@ module Battle
     TARGETING_OFFSET = 0.6
     BETWEEN_COUNT_OFFSET = 1
 
-    attr_reader :spawned_units_count, :units_statistics, :path_ways, :ai, :id, :main_building
+    attr_reader :spawned_units_count, :units_statistics, :path_ways, :ai, :id, :main_building, :mana_data
 
     def initialize(data)
       @id = data[:id]
@@ -19,6 +19,15 @@ module Battle
       # Ai opponent is ready to battle by default
       @ready = ai
       @ai = data[:is_ai] || false
+      # HACK!!!!!
+      @mana_data = {}
+      if @ai == false
+        @mana_data = {
+          :value => data[:mana][1],
+          :capacity => data[:mana][2],
+          :amount => data[:mana][3]
+        }
+      end
 
       @main_building = BattleBuilding.new( 'building_1', 0.05 )
       #

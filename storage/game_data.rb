@@ -87,7 +87,7 @@ module Storage
       # Mana
       @@mana_settings_per_level = []
       game_settings[:mana_settings_per_level].each do |data|
-        @@mana_settings_per_level << data.inject({}) { |h, (k, v)| h[k] = v.to_i; h }
+        @@mana_settings_per_level << data.inject({}) { |h, (k, v)| h[k] = v.to_f; h }
       end
       # Kill mysql connection!
       @@mysql.finalize
@@ -207,7 +207,7 @@ module Storage
           :time_ms => time,
           :area => spell_data[:area],
           :vertical_area => spell_data[:vertical_area],
-          :manacost => spell_data[:manacost],
+          :mana_cost => spell_data[:mana_cost],
           :description => spell_data[:description]
         }
         # Get spel attrs

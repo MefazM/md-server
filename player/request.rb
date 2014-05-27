@@ -137,9 +137,20 @@ module Player
     end
     # end
 
-    def cast_spell payload
-      decreasre_mana 10
-      @battle.cast_spell(@id, payload[0], payload[1])
+    def cast_spell_action payload
+      uid, target = payload[0], payload[1]
+
+      spell_data = Storage::GameData.spells_data[uid.to_sym]
+      if spell_data.nil?
+
+        Celluloid::Logger::error "Spell (s: #{uid}, from player with id = #{@id}) not found."
+        return false
+      end
+
+      if decreasre_mana(spell_data[:mana_cost])
+
+        @battle.cast_spell(@id, target, spell_data)
+      end
     end
 
     def spawn_unit payload

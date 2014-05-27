@@ -103,8 +103,8 @@ module Player
     #  1 - create_battle @ client
     #  2 - send_battle_data (useful on battle restore)
     # remove @id
-    def send_create_new_battle_on_client(units, shared_data)
-      write_data [SEND_CREATE_NEW_BATTLE_ON_CLIENT_ACTION, @latency, @id, units, shared_data]
+    def send_create_new_battle_on_client(units, shared_data, mana_data)
+      write_data [SEND_CREATE_NEW_BATTLE_ON_CLIENT_ACTION, @latency, @id, units, shared_data, mana_data]
     end
 
     def send_spell_cast spell_data
@@ -121,14 +121,6 @@ module Player
 
     def send_ping
       write_data [SEND_PING_ACTION, @latency, Time.now.to_f]
-    end
-
-    def send_sync_mana_storage
-      data = Storage::GameData.mana_storage 1
-      amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
-
-      write_data [SEND_CUSTOM_EVENT, @latency, :syncManaStorage,
-        @mana_storage_value, data[:capacity], data[amount_key]]
     end
 
     def write_data data

@@ -8,14 +8,14 @@ require 'player/coins_storage'
 require 'player/coins_mine'
 require 'player/mana_storage'
 require 'player/battle_messages_proxy'
-require 'player/player_redis_mapper'
+require 'player/redis_mapper'
 
 
 module Player
   class PlayerActor
     include Celluloid
 
-    include PlayerRedisMapper
+    include RedisMapper
 
     include ::Networking::Actions
     include Celluloid::Logger
@@ -31,13 +31,12 @@ module Player
     include BattleMessagesProxy
     include ManaStorage
 
-
     attr_reader :username, :id, :units
 
     finalizer :drop_player
 
     UPDATE_PERIOD = 1
-    SERIALIZATION_PERIOD = 10
+    SERIALIZATION_PERIOD = 180
 
     map_request RECEIVE_UNIT_PRODUCTION_TASK_ACTION, :unit_production_task_action
     map_request RECEIVE_BUILDING_PRODUCTION_TASK_ACTION, :building_production_task_action
@@ -48,7 +47,7 @@ module Player
     map_request RECEIVE_BATTLE_START_ACTION, :battle_start_action
     map_request RECEIVE_LOBBY_DATA_ACTION, :lobby_data_action
     map_request RECEIVE_PING_ACTION, :ping_action
-    map_request RECEIVE_SPELL_CAST_ACTION, :cast_spell
+    map_request RECEIVE_SPELL_CAST_ACTION, :cast_spell_action
     map_request RECEIVE_SPAWN_UNIT_ACTION, :spawn_unit
 
     def initialize( id, email, username, socket )
@@ -115,13 +114,15 @@ module Player
 
     def disconnect
       @socket.close
+
+      compute_mana_storage
+      serialize_player
+
       @status = :term
 
       @update_timer.cancel
       @serialization_timer.cancel
       @mine_notificator_timer.cancel unless @mine_notificator_timer.nil?
-
-      serialize_player
 
       terminate
     end

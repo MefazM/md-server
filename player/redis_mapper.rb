@@ -1,5 +1,5 @@
 module Player
-  module PlayerRedisMapper
+  module RedisMapper
 
     def restore_from_redis
       @redis_player_key = "players:#{@id}"
@@ -27,6 +27,9 @@ module Player
       }) do |value|
         value.to_i
       end
+
+      read_redis_attrs(@redis_resources_key, { :battle_uid => nil })
+
     end
 
     def serialize_player
@@ -46,7 +49,8 @@ module Player
         :coins_in_storage,
         :harvester_storage,
         :last_mana_compute_time,
-        :mana_storage_value0
+        :mana_storage_value,
+        :battle_uid
       ])
 
       @serialization_timer.reset
