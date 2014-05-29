@@ -71,12 +71,16 @@ class GameServer
       false
     end
 
-    rescue EOFError
-      player.disconnect if player
+    rescue Exception => e
+      Celluloid::Logger::error e
+      # Close connection
+      player.nil? ? socket.close : player.async.disconnect
   end
 end
 
+###
 Lobby.new
+###
 
 supervisor = GameServer.supervise( SERVER_HOST, SERVER_PORT )
 trap("INT") { supervisor.terminate; exit }

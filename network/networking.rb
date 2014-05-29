@@ -60,6 +60,9 @@ module Networking
 
       end until yield( action.to_sym, data )
 
+    # rescue Exception => e
+    #   Celluloid::Logger::error e
+    #   disconnect
     end
 
   end

@@ -71,8 +71,8 @@ module Storage
         @@storage_capacity_per_level << data[:amount].to_i
       end
 
-      @@coin_generator_uid = game_settings[:coin_generator_uid]
-      @@storage_building_uid = game_settings[:storage_building_uid]
+      @@coin_generator_uid = game_settings[:coin_generator_uid].to_sym
+      @@storage_building_uid = game_settings[:storage_building_uid].to_sym
 
       # Collect and process game objects
       units = @@mysql.select("SELECT * FROM units")
