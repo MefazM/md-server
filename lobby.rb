@@ -99,10 +99,9 @@ class Lobby
     set_players_frozen_state(sender_id, true)
 
     battle_director = Battle::BattleDirector.new()
-    # Actor["battle_#{battle_director.uid}"] = battle_director
 
-    sender.attach_to_battle battle_director.uid
     sender.compute_mana_storage
+    sender.attach_to_battle battle_director.uid
 
     battle_director.set_opponent({
       :id => sender_id,
@@ -140,9 +139,8 @@ class Lobby
         player.freeze!
         set_players_frozen_state(opponent_id, true)
 
-        player.attach_to_battle battle_director.uid
-
         player.compute_mana_storage
+        player.attach_to_battle battle_director.uid
 
         battle_director.set_opponent({
           :id => opponent_id,

@@ -45,14 +45,26 @@ module Player
 
     def finish_battle data
       send_finish_battle(data[:loser_id])
+      # Sync player after battle
+      # -add earned points
+      # -decrease units count
+      # -other...
+      data[@id][:units].each do |uid, unit_data|
+        @units[uid] -= unit_data[:lost]
+        # Destroy field if no units left.
+        if @units[uid] <= 0
+          @units.delete(uid)
+        end
+      end
+
+      @status = :run
 
       unfreeze!
 
-      sync_after_battle data[@id]
+      compute_mana_storage
+      send_custom_event mana_sync_data
 
       detach_from_battle
-
-      @status = :run
     end
 
   end

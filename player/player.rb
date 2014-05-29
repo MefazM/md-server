@@ -134,20 +134,6 @@ module Player
       info "Terminating player (id = #{@id})"
     end
 
-    # Sync player after battle
-    # -add earned points
-    # -decrease units count
-    # -other...
-    def sync_after_battle data
-      data[:units].each do |uid, unit_data|
-        @units[uid] -= unit_data[:lost]
-        # Destroy field if no units left.
-        if @units[uid] <= 0
-          @units.delete(uid)
-        end
-      end
-    end
-
     # Try to restore battle
     def restore_battle
       info "Player (#{@id}) try to restore battle..."

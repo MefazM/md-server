@@ -42,19 +42,6 @@ module Battle
       @main_building.dead?
     end
 
-    def finish_battle!(loser_id)
-      # Sync player data, if not AI
-      unless @ai
-        player = PlayerFactory.instance.player(@id)
-        player.unfreeze!
-        player.sync_after_battle({
-          :units => @units_statistics
-        })
-        # Notificate about battle ended
-        # @connection.send_finish_battle(loser_id)
-      end
-    end
-
     def sort_units!
       @path_ways.each do |path_way|
         path_way.sort_by!{|v| v.position}.reverse!

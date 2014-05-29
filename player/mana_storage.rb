@@ -3,12 +3,9 @@ module Player
 
     def compute_mana_storage
       mana_settings = Storage::GameData.mana_storage 1
-      # @last_mana_compute_time
 
       amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
       amount_per_second = mana_settings[amount_key]
-
-      print("#{amount_key}, #{@status}")
 
       current_time = Time.now.to_i
       d_time = current_time - @last_mana_compute_time
