@@ -4,7 +4,6 @@ module Player
     def restore_from_redis
       @redis_player_key = "players:#{@id}"
       @redis_resources_key = "#{@redis_player_key}:resources"
-
       current_time = Time.now.to_i
       # ебааааать
       read_redis_attrs(@redis_player_key, {
@@ -23,7 +22,8 @@ module Player
         :harvester_storage => 0,
         :last_mana_compute_time => current_time,
         :mana_storage_value => 0,
-        :battle_uid => nil
+        :battle_uid => nil,
+        :score => 0
       }) do |value|
         value.to_i
       end
@@ -50,7 +50,8 @@ module Player
         :harvester_storage,
         :last_mana_compute_time,
         :mana_storage_value,
-        :battle_uid
+        :battle_uid,
+        :score
       ])
 
       @serialization_timer.reset

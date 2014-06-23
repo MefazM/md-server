@@ -1,7 +1,7 @@
 #
 #
 class Poison < AbstractSpell
- def initialize data
+ def initialize(data, player_id)
     super
     @states_stack = compute_processing_stack(:over_time)
     @damage_per_charge = data[:damage_per_charge].to_f || 0.0
@@ -12,8 +12,6 @@ class Poison < AbstractSpell
   end
 
   def affect_targets!
-    unless @target_units.empty?
-      @target_units.each { |target| target.decrease_health_points(@damage_per_charge) }
-    end
+    decrease_targets_hp! @damage_per_charge
   end
 end

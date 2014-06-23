@@ -1,6 +1,6 @@
 class Bless < AbstractSpell
 
-  def initialize data
+  def initialize(data, player_id)
     super
     @states_stack = compute_processing_stack(:effect_switch)
     @value = data[:value_percentage].to_f || 0.0

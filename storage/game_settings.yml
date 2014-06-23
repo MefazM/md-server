@@ -1,0 +1,165 @@
+game_rate: 0.8
+
+player_settings_per_level:
+  - level_at: 3000
+    static_reward: 20
+
+  - level_at: 6000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Seagold the Slayer"
+      description: "Super spell1"
+      icon: "new_spell"
+
+  - level_at: 9000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Hollysword the Slayer"
+      description: "Super spell2"
+      icon: "new_spell"
+
+  - level_at: 12500
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Tomb Looter"
+      description: "Super spell3"
+      icon: "new_spell"
+
+  - level_at: 16000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Cruros the Lazy"
+      description: "Super spell4"
+      icon: "new_spell"
+
+  - level_at: 18000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Fame-Seeker"
+      description: "Super spell5"
+      icon: "new_spell"
+
+  - level_at: 21000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Cruros Spirittalker"
+      description: "Super spell6"
+      icon: "new_spell"
+
+  - level_at: 24000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Stolyassa the Seeker"
+      description: "Super spell7"
+      icon: "new_spell"
+
+  - level_at: 27000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Woodsheart the Seeker"
+      description: "Super spell8"
+      icon: "new_spell"
+
+  - level_at: 30000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Ruin Mapper Xavmorn the Unmatched"
+      description: "Super spell9"
+      icon: "new_spell"
+
+  - level_at: 33000
+    static_reward: 20
+
+    obtained_items:
+      coins: 200
+      premium: 50
+      title: "Yllalyassa Diamondeath the Foreigner"
+      description: "Super spell9"
+      icon: "new_spell"
+
+
+mana_storage_settings:
+  - amount_at_shard: 10
+    amount_at_battle: 5
+    capacity: 100
+
+  - amount_at_shard: 10
+    amount_at_battle: 5
+    capacity: 100
+
+  - amount_at_shard: 10
+    amount_at_battle: 5
+    capacity: 100
+
+  - amount_at_shard: 10
+    amount_at_battle: 5
+    capacity: 100
+
+  - amount_at_shard: 10
+    amount_at_battle: 5
+    capacity: 100
+
+  - amount_at_shard: 10
+    amount_at_battle: 5
+    capacity: 100
+
+coins_production:
+  coin_generator_uid: 'gold_mine'
+  storage_building_uid: 'gold_storage'
+  storage_capacity_per_level:
+    - 1000
+    - 2000
+    - 3000
+    - 4000
+    - 5000
+
+  coins_generation_per_level:
+    - amount: 0.2
+      harvest_capacity: 100
+
+    - amount: 0.4
+      harvest_capacity: 200
+
+    - amount: 0.6
+      harvest_capacity: 300
+
+    - amount: 0.8
+      harvest_capacity: 400
+
+    - amount: 1.0
+      harvest_capacity: 500
+
+    - amount: 1.2
+      harvest_capacity: 600
+
+battle_achievements:
+  fast_battle:
+    score_price: 300
+    time_period: 20000

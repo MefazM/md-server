@@ -8,7 +8,7 @@ module Player
     # Update coins storage space
     def compute_storage_capacity
       level = @buildings[@storage_building_uid] || 0
-      @storage_capacity =  Storage::GameData.storage_capacity(level)
+      @storage_capacity =  Storage::GameData.coins_storage_capacity level
     end
 
     def make_payment coins

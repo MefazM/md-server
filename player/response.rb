@@ -29,12 +29,14 @@ module Player
           :mana_storage_capacity => mana_settings[:capacity],
           :mana_value => @mana_storage_value,
 
+          :score => score_sync_data,
+
           :units => {
             # restore unit production queue on client
             :queue => units_in_queue_export
           }
         },
-        :game_data => Storage::GameData.collected_data,
+        :game_data => Storage::GameData.initialization_data,
         :server_version => 1101 #Settings::SERVER_VERSION
       }
 
@@ -79,12 +81,16 @@ module Player
       write_data [SEND_INVITE_TO_BATTLE_ACTION, @latency, token, sender_id]
     end
 
-    def send_custom_event event_data
-      message = [SEND_CUSTOM_EVENT, @latency]
-      if event_data.kind_of?(Array)
-        message += event_data
-      else
-        message << event_data
+    def send_custom_event args
+      name, *data = args
+      message = [SEND_CUSTOM_EVENT, @latency, name]
+
+      unless data.empty?
+        if data.kind_of?(Array)
+          message += data
+        else
+          message << data
+        end
       end
 
       write_data message

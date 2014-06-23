@@ -1,7 +1,7 @@
 #
 #
 class Regeneration < AbstractSpell
- def initialize data
+ def initialize(data, player_id)
     super
     @states_stack = compute_processing_stack(:over_time)
     @heal_per_charge = data[:heal_per_charge].to_f || 0.0

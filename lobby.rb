@@ -66,7 +66,7 @@ class Lobby
     sender = Actor["p_#{sender_id}"]
 
     if sender.frozen?
-      sender.send_custom_event(:inviteCanceledNotification)
+      sender.send_custom_event :inviteCanceledNotification
       return false
     end
 
@@ -103,19 +103,11 @@ class Lobby
     sender.compute_mana_storage
     sender.attach_to_battle battle_director.uid
 
-    battle_director.set_opponent({
-      :id => sender_id,
-      :units => sender.units(),
-      :mana => sender.mana_sync_data
-      # Here will be other player options
-    })
+    battle_director.set_opponent( sender.battle_data )
 
     # Set AI opponent
-    battle_director.set_opponent({
-      :id => ai_id,
-      :units => Battle::AiPlayer.new.units(),
-      :is_ai => true
-    })
+    ai_boy = Battle::AiPlayer.new
+    battle_director.set_opponent ai_boy.battle_data
 
     battle_director.create_battle_at_clients
   end
@@ -142,11 +134,7 @@ class Lobby
         player.compute_mana_storage
         player.attach_to_battle battle_director.uid
 
-        battle_director.set_opponent({
-          :id => opponent_id,
-          :units => player.units,
-          :mana => player.mana_sync_data
-        })
+        battle_director.set_opponent( player.battle_data )
 
       end
 
@@ -211,7 +199,7 @@ class Lobby
       sender.async.unfreeze!
       set_players_frozen_state(sender_id, false)
 
-      sender.async.send_custom_event(:inviteCanceledNotification)
+      sender.async.send_custom_event :inviteCanceledNotification
     end
 
     rescue Celluloid::DeadActorError

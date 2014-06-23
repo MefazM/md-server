@@ -4,9 +4,11 @@ module Battle
     TARGETING_OFFSET = 0.6
     BETWEEN_COUNT_OFFSET = 1
 
-    attr_reader :spawned_units_count, :units_statistics, :path_ways, :ai, :id, :main_building, :mana_data
+    attr_reader :spawned_units_count, :units_statistics, :path_ways,
+                :ai, :id, :main_building, :mana_data, :spells_statistics,
+                :username, :level
 
-    def initialize(data)
+    def initialize data
       @id = data[:id]
       # Units data, available and lost
       @units_statistics = {}
@@ -23,9 +25,9 @@ module Battle
       @mana_data = {}
       if @ai == false
         @mana_data = {
-          :value => data[:mana][1],
-          :capacity => data[:mana][2],
-          :amount => data[:mana][3]
+          :value => data[:mana][0],
+          :capacity => data[:mana][1],
+          :amount => data[:mana][2]
         }
       end
 
@@ -36,6 +38,24 @@ module Battle
         @path_ways << []
       end
       @spawned_units_count = 0
+
+      @spells_statistics = []
+
+      @username = data[:username]
+      @level = data[:level]
+    end
+
+    def statistics
+      {
+        :units => @units_statistics,
+        :spells => @spells_statistics,
+        :level => @level,
+        :username => @username
+      }
+    end
+
+    def track_spell_statistics uid
+      @spells_statistics << uid
     end
 
     def lose?
@@ -126,7 +146,7 @@ module Battle
       end
 
       if valid
-        unit = BattleUnit.new(unit_name)
+        unit = BattleUnit.new unit_name
         unit.path_id = rand(0..PATH_COUNT-1)
         @path_ways[unit.path_id] << unit
 

@@ -4,10 +4,10 @@ module Player
     # Update coin amount
     def compute_coins_gain
       level = @buildings[@coin_generator_uid] || 0
-      data = Storage::GameData.harvester(level)
+      data = Storage::GameData.coins_harvester level
 
       @coins_gain = data[:amount]
-      @harvester_capacity = data[:harvester_capacity]
+      @harvester_capacity = data[:harvest_capacity]
     end
 
     def reset_gold_mine_notificator

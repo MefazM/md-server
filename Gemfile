@@ -23,3 +23,5 @@ gem 'pry-debugger', platform: :ruby
 
 
 gem 'httparty', '~> 0.13.1'
+
+gem 'elasticsearch'

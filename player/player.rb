@@ -9,6 +9,7 @@ require 'player/coins_mine'
 require 'player/mana_storage'
 require 'player/battle_messages_proxy'
 require 'player/redis_mapper'
+require 'player/game_score'
 
 
 module Player
@@ -30,6 +31,7 @@ module Player
     include BuildingsProduction
     include BattleMessagesProxy
     include ManaStorage
+    include GameScore
 
     attr_reader :username, :id, :units
 
@@ -60,6 +62,7 @@ module Player
 
       restore_from_redis
 
+      @level = calculate_current_level
       # Buildings uids, assigned to coins generation
       @storage_building_uid = Storage::GameData.storage_building_uid
       @coin_generator_uid = Storage::GameData.coin_generator_uid
@@ -162,6 +165,16 @@ module Player
         end
 
       end
+    end
+
+    def battle_data
+      {
+        :id => @id,
+        :units => @units,
+        :mana => mana_sync_data,
+        :level => @level,
+        :username => @username
+      }
     end
 
   end

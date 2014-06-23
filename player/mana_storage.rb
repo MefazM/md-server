@@ -23,7 +23,11 @@ module Player
       data = Storage::GameData.mana_storage 1
       amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
 
-      [:syncManaStorage, @mana_storage_value, data[:capacity], data[amount_key]]
+      [@mana_storage_value, data[:capacity], data[amount_key]]
+    end
+
+    def send_sync_mana_storage
+      send_custom_event([:syncManaStorage, *mana_sync_data])
     end
 
     def decreasre_mana value
@@ -32,7 +36,8 @@ module Player
       enough_mana = @mana_storage_value >= value
       if enough_mana
         @mana_storage_value -= value
-        send_custom_event mana_sync_data
+
+        send_sync_mana_storage
       end
 
       enough_mana

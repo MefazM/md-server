@@ -29,7 +29,11 @@ module Player
       send(handler, payload)
 
       rescue Exception => e
-        Celluloid::Logger::error "Can't execute handler #{handler} for actions state_#{action} \n #{e}"
+        Celluloid::Logger::error <<-MSG
+          Can't execute handler #{handler} for actions state_#{action}
+          #{e}
+          #{e.backtrace.join('\n')}
+        MSG
     end
 
     #
@@ -44,14 +48,17 @@ module Player
       building_level = unit[:depends_on_building_level]
       price = unit[:price]
       # TODO: add building_is_ready velidation here
-      buiding_exist = @buildings[building_uid].nil? ? false : @buildings[building_uid] == building_level
+      buiding_exist = @buildings[building_uid].nil? ? false : @buildings[building_uid] >= building_level
 
       if buiding_exist
 
         if make_payment price
           production_time = unit[:production_time]
+
           add_unit_production_task(unit_uid, production_time, building_uid)
+
           send_new_unit_queue_item(unit_uid, building_uid, production_time)
+
           send_coins_storage_capacity
         end
       end
@@ -60,9 +67,9 @@ module Player
     # RECEIVE_BUILDING_PRODUCTION_TASK_ACTION
     def building_production_task_action payload
       building_uid = payload[0].to_sym
-      # if player already construct this building, current_level > 0
-      current_level = @buildings[building_uid] || 0
-      target_level = current_level + 1
+      # if player already construct this building, current level > 0
+      level = @buildings[building_uid] || 0
+      target_level = level + 1
       # TODO: add updateable validation here
       # TODO: add not_units_task to this building validation here
       building = Storage::GameData.building "#{building_uid}_#{target_level}"
@@ -139,8 +146,7 @@ module Player
 
     def cast_spell_action payload
       uid, target = payload[0], payload[1]
-
-      spell_data = Storage::GameData.spells_data[uid.to_sym]
+      spell_data = Storage::GameData.spell_data uid
       if spell_data.nil?
 
         Celluloid::Logger::error "Spell (s: #{uid}, from player with id = #{@id}) not found."

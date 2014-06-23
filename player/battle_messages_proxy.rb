@@ -17,7 +17,6 @@ module Player
         @status = :in_battle
         return true
       end
-
       # Set actual player status
       false
     end
@@ -36,7 +35,11 @@ module Player
       send(handler, args)
 
       rescue Exception => e
-        Celluloid::Logger::error "Can't execute battle message handler #{handler} \n #{e}"
+        Celluloid::Logger::error <<-MSG
+          Can't execute battle message handler #{handler}
+          #{e}
+          #{e.backtrace.join('\n')}
+        MSG
     end
 
     def create_new_battle_on_client data
@@ -44,27 +47,31 @@ module Player
     end
 
     def finish_battle data
-      send_finish_battle(data[:loser_id])
-      # Sync player after battle
-      # -add earned points
-      # -decrease units count
-      # -other...
-      data[@id][:units].each do |uid, unit_data|
-        @units[uid] -= unit_data[:lost]
-        # Destroy field if no units left.
-        if @units[uid] <= 0
-          @units.delete(uid)
-        end
-      end
+      # TODO: send sync data in one action!
+      send_custom_event([:finishBattle, update_score(data)])
+
+      remove_killed_units! data[@id][:units]
 
       @status = :run
 
       unfreeze!
 
       compute_mana_storage
-      send_custom_event mana_sync_data
+
+      send_sync_mana_storage
+
+      send_score_sync
 
       detach_from_battle
+    end
+
+    def remove_killed_units! lost_units_data
+      # Sync lost units data
+      lost_units_data.each do |uid, unit_data|
+        @units[uid] -= unit_data[:lost]
+        # Destroy field if no units left.
+        @units.delete(uid) if @units[uid] < 1
+      end
     end
 
   end

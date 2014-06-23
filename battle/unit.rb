@@ -13,16 +13,14 @@ module Battle
     NO_TARGET = -1
     MAX_POSITION = 0.9
 
-    NEAREST_TARGET_DEFAULT_OFFSET = 0.25
-
     attr_accessor :uid, :position, :status, :name,
       :movement_speed, :force_sync, :range_attack_power,
       :melee_attack_power, :target, :path_id, :health_points
 
     attr_reader :unit_prototype, :body_width, :attack_offset
 
-    def initialize(name, position = 0.0)
-      @name = name.to_sym
+    def initialize(unit_uid, position = 0.0)
+      @name = unit_uid.to_sym
       # initialization unit by prototype
       @unit_prototype = Storage::GameData.unit @name
 
@@ -96,6 +94,8 @@ module Battle
       decrease_by *= 0.5 if resist_type and attack_type == resist_type
       @health_points -= decrease_by
       @force_sync = true
+      # return hp
+      @health_points
     end
 
     def increase_health_points(increase_by)

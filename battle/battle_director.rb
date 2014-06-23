@@ -20,7 +20,7 @@ module Battle
     IN_PROGRESS = 3
     FINISHED = 4
     # Timings
-    DEFAULT_UNITS_SPAWN_TIME = 5.0
+    DEFAULT_UNITS_SPAWN_TIME = 0.5
     # TODO: adjust this parameter properly!!!
     UPDATE_PERIOD = 0.1 #== each 100 ms
 
@@ -44,12 +44,11 @@ module Battle
       info "New BattleDirector initialize..."
 
       Actor[:statistics].async.battle_started
-
       Actor[@uid] = Actor.current
     end
 
     def cast_spell(player_id, target, spell_data)
-      spell = SpellFactory.create spell_data
+      spell = SpellFactory.create(spell_data, player_id)
       spell.channel = @channel
 
       area = spell_data[:area]
@@ -88,7 +87,7 @@ module Battle
     end
     # Update:
     # 1. Calculating units moverment, damage and states.
-    # 2. Calculating outer effects (user spels, ...)
+    # 2. Calculating outer effects (user spells, ...)
     # 3. Default units spawn.
     def update
       current_time = Time.now.to_f
@@ -96,13 +95,7 @@ module Battle
       iteration_delta = current_time - @prev_iteration_time
       @prev_iteration_time = current_time
 
-      @spells.each do |spell|
-        spell.update(current_time, iteration_delta)
-
-        if spell.completed
-          @spells.delete(spell)
-        end
-      end
+      update_spells(current_time, iteration_delta)
 
       sync_data = []
 
@@ -120,17 +113,37 @@ module Battle
       end
 
       publish(@channel, [:send_battle_sync, sync_data]) unless sync_data.empty?
-
       # /UPDATE
+    end
+    # Update spells
+    def update_spells(current_time, iteration_delta)
+      @spells.each do |spell|
+
+        spell.update(current_time, iteration_delta)
+
+        if spell.completed
+
+          if spell.achievementable?
+            @opponents[spell.player_id].track_spell_statistics spell.uid
+
+            notificate_player_achievement!(spell.player_id, spell.uid, spell.killed_units)
+          end
+
+          @spells.delete spell
+        end
+
+      end
     end
     # Additional units spawning.
     def spawn_unit(unit_name, player_id, validate = true)
       unit_name = unit_name.to_sym
       unit = @opponents[player_id].add_unit_to_pool(unit_name, validate)
 
-      data = [:send_unit_spawning, unit.uid, unit_name, player_id, unit.path_id]
+      unless unit.nil?
+        data = [:send_unit_spawning, unit.uid, unit_name, player_id, unit.path_id]
 
-      publish(@channel, data) unless unit.nil?
+        publish(@channel, data)
+      end
     end
     # Destroy battle director
     def destroy
@@ -164,7 +177,6 @@ module Battle
 
     def create_battle_at_clients
       info "BattleDirector| has two opponents. Initialize battle on clients."
-
       # hack to get player id by its opponent id.
       indexes = @opponents.keys
       @opponents_indexes[indexes[0]] = indexes[1]
@@ -173,14 +185,11 @@ module Battle
       publish(@channel, [:create_new_battle_on_client, battle_initialization_data])
     end
 
-
     private
     # Start the battle.
     def start!
       info "BattleDirector| is started!"
       @status = IN_PROGRESS
-
-      # @opponents.each_value { |opponent| opponent.start_battle! }
 
       @prev_iteration_time = Time.now.to_f
       # Start timers
@@ -201,11 +210,10 @@ module Battle
       }
 
       publish(@channel, [:send_custom_event, :startBattle])
-
-      # publish(@channel, [:send_start_battle])
+      @start_time = Time.now.to_i
     end
     # Simple finish battle.
-    def finish_battle!(loser_id)
+    def finish_battle! loser_id
       info "BattleDirector| Battle finished, player (#{loser_id} - lose.)"
 
       @default_unit_spawn_timer.cancel
@@ -214,13 +222,14 @@ module Battle
       @status = FINISHED
 
       data = {
+        :battle_time => @start_time - Time.now.to_i,
+        :winner_id => @opponents_indexes[loser_id],
         :loser_id => loser_id
+        # :score => calculate_score(@opponents_indexes[loser_id])
       }
 
-      @opponents.each do |player_id, opponent|
-        data[player_id] = {
-          :units => opponent.units_statistics
-        }
+      @opponents.each do |player_id, player|
+        data[player_id] = player.statistics
       end
 
       publish(@channel, [:finish_battle, data])
@@ -234,10 +243,12 @@ module Battle
     end
 
     def drop_director
-
       Actor[:statistics].async.battle_ended
+      info "BattleDirector| #{@uid} dying. Status= #{@status}"
+    end
 
-      puts "BattleDirector| #{@uid} dying. Status= #{@status}"
+    def notificate_player_achievement!(player_id, uid, value)
+      Actor["p_#{player_id}"].async.send_custom_event([:showAchievement, uid, value])
     end
   end
 end

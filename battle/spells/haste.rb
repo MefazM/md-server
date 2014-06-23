@@ -1,6 +1,6 @@
 class Haste < AbstractSpell
 
-  def initialize data
+  def initialize(data, player_id)
     super
 
     @states_stack = compute_processing_stack(:effect_switch)

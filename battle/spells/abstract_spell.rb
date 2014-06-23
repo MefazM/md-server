@@ -3,10 +3,10 @@ class AbstractSpell
 
   include Celluloid::Notifications
 
-  attr_reader :completed, :life_time
+  attr_reader :completed, :life_time, :killed_units, :player_id, :uid
   attr_writer :channel
 
-  def initialize data
+  def initialize(data, player_id)
     @data = data
     @completed = false
     @charges_count = 0
@@ -20,6 +20,16 @@ class AbstractSpell
     @life_time = @data[:time_s]
     # communication channel
     @channel = nil
+
+    @uid = data[:uid]
+    # track killed units...
+    @killed_units = 0
+
+    @player_id = player_id
+  end
+
+  def achievementable?
+    false
   end
 
   def set_target(horizontal_target, path_ways)
@@ -28,6 +38,16 @@ class AbstractSpell
     @right_bound = horizontal_target + half_horizontal_area
 
     @path_ways = path_ways
+  end
+
+  def decrease_targets_hp! damage_power
+    unless @target_units.empty?
+      @target_units.each do |target|
+
+        hp_left = target.decrease_health_points damage_power
+        @killed_units += 1 if hp_left < 0.0
+      end
+    end
   end
 
   def update(current_time, iteration_delta)

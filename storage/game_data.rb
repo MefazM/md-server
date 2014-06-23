@@ -1,229 +1,233 @@
+require 'yaml'
+
 module Storage
-  class GameData
-    # Define getters
+  module GameData
+    class << self
 
-    def self.collected_data
-      @@collected_data
-    end
+      attr_reader :player_levels, :coin_generator_uid,
+        :storage_building_uid, :battle_score_settings,
+        :game_rate
 
-    def self.coin_generator_uid
-      @@coin_generator_uid
-    end
+      def load!
+        Celluloid::Logger::info 'Loading game data...'
 
-    def self.storage_building_uid
-      @@storage_building_uid
-    end
+        mysql_connection = Mysql::MysqlClient.new
 
-    def self.spells_data
-      @@spells_data
-    end
+        @settings = YAML.load_file('storage/game_settings.yml')
+        @settings.recursive_symbolize_keys!
 
-    def self.unit_price uid
-      @@collected_data[:units_data][uid][:price]
-    end
+        @game_rate = @settings[:game_rate]
 
-    def self.units
-      @@collected_data[:units_data]
-    end
+        @coin_generator_uid = @settings[:coins_production][:coin_generator_uid].to_sym
+        @storage_building_uid = @settings[:coins_production][:storage_building_uid].to_sym
 
-    def self.unit uid
-      @@collected_data[:units_data][uid]
-    end
+        @battle_score_settings = @settings[:battle_achievements]
 
-    def self.building uid
-      @@collected_data[:buildings_data][uid]
-    end
+        @max_player_level = @settings[:player_settings_per_level].length
+        @player_levels = @settings[:player_settings_per_level]
 
-    def self.mana_storage level
-      @@mana_settings_per_level[level]
-    end
+        load_units mysql_connection
+        load_spells mysql_connection
+        load_buildings mysql_connection
 
-    def self.load!
-      Celluloid::Logger::info 'Loading game data...'
-
-      @@mysql = Mysql::MysqlClient.new
-
-      # Process game settings
-      game_settings = {}
-      @@mysql.select("SELECT * FROM game_settings").each do |option|
-        game_settings[option[:key].to_sym] = option[:value]
-      end
-      # Convert JSON data.
-      [:storage_capacity_per_level, :coins_generation_per_level, :mana_settings_per_level].each do |type|
-
-        game_settings[type] = JSON.parse(game_settings[type])
+        mysql_connection.finalize
+        mysql_connection = nil
       end
 
-      # game_settings = game_settings.recursive_symbolize_keys(game_settings)
-      game_settings.recursive_symbolize_keys!
+      def next_level_at level
+        level = [level, @max_player_level - 1].min
 
-      # Coins
-      @@coins_generation_per_level = []
-      game_settings[:coins_generation_per_level].each do |data|
-        @@coins_generation_per_level << {
-          :amount => data[:amount].to_f,
-          :harvester_capacity => data[:harvest_capacity].to_i
+        @player_levels[level][:level_at]
+      end
+
+      def battle_reward level
+        level = [level, @max_player_level - 1].min
+
+        @player_levels[level][:static_reward]
+      end
+
+      def initialization_data
+        {
+          :buildings_production => @buildings_produce_units,
+          :units_data => @units_data,
+          :buildings_data => @buildings_data
         }
       end
 
-      @@storage_capacity_per_level = []
-      game_settings[:storage_capacity_per_level].each do |data|
-        @@storage_capacity_per_level << data[:amount].to_i
+      def spell_data uid
+        @spells_data[uid.to_sym]
       end
 
-      @@coin_generator_uid = game_settings[:coin_generator_uid].to_sym
-      @@storage_building_uid = game_settings[:storage_building_uid].to_sym
-
-      # Collect and process game objects
-      units = @@mysql.select("SELECT * FROM units")
-
-      @@collected_data = {
-        :buildings_production => self.export_buildings_production(units) ,
-        :units_data => self.export_units(units),
-        :buildings_data => self.load_buildings
-      }
-
-      @@spells_data = self.load_spells
-      # Mana
-      @@mana_settings_per_level = []
-      game_settings[:mana_settings_per_level].each do |data|
-        @@mana_settings_per_level << data.inject({}) { |h, (k, v)| h[k] = v.to_f; h }
+      def unit uid
+        @units_data[uid.to_sym]
       end
-      # Kill mysql connection!
-      @@mysql.finalize
-      @@mysql = nil
-    end
 
-    def self.harvester level
-      @@coins_generation_per_level[level]
-    end
+      def building uid
+        @buildings_data[uid.to_sym]
+      end
 
-    def self.storage_capacity level
-      @@storage_capacity_per_level[level]
-    end
+      def mana_storage level
+        max_mana_level = @settings[:mana_storage_settings].length
+        level = [level, max_mana_level - 1].min
 
-    private
+        @settings[:mana_storage_settings][level]
+      end
 
-    def self.export_buildings_production units
-      units_by_building = {}
-      units.each do |unit|
-        building_uid = unit[:depends_on_building_uid].to_sym
-        unless building_uid.empty?
-          units_by_building[building_uid] = [] if units_by_building[building_uid].nil?
-          units_by_building[building_uid] << {
-            :uid => unit[:uid],
-            :level => unit[:depends_on_building_level]
+      def coins_harvester level
+        coins_generation_per_level = @settings[:coins_production][:coins_generation_per_level]
+
+        max_harvester_level = coins_generation_per_level.length
+        level = [level, max_harvester_level - 1].min
+
+        coins_generation_per_level[level]
+      end
+
+      def coins_storage_capacity level
+        storage_capacity_per_level = @settings[:coins_production][:storage_capacity_per_level]
+
+        max_storage_capacity_level = storage_capacity_per_level.length
+        level = [level, max_storage_capacity_level - 1].min
+
+        storage_capacity_per_level[level]
+      end
+
+      private
+
+      def load_units mysql_connection
+
+        units = mysql_connection.select("SELECT * FROM units")
+
+        @units_data = {}
+        @buildings_produce_units = {}
+
+        @battle_score_settings ||= {}
+
+        units.each do |unit|
+          data = {}
+          [:name, :description, :health_points,
+           :movement_speed, :production_time,
+           :price, :score_price, :depends_on_building_level].each do |attr|
+
+            data[attr] = unit[attr]
+          end
+
+          [:range_attack, :melee_attack].each do |attack_type|
+            if unit[attack_type] == true
+              attack_data = {}
+              [:power_max, :power_min, :range].each do |attack_field|
+                value = unit["#{attack_type}_#{attack_field}".to_sym]
+                attack_data[attack_field] = value
+              end
+              # Convert attack speed in ms to server seconds
+              attack_speed_key = "#{attack_type}_speed".to_sym
+              attack_data[:speed] = unit[attack_speed_key] * 0.001
+
+              damage_type = unit["#{attack_type}_damage_type".to_sym]
+              attack_data[:type] = damage_type unless damage_type.nil?
+
+              data[attack_type] = attack_data
+            end
+          end
+
+          unit_uid = unit[:uid].to_sym
+          # Relation to building
+          unless unit[:depends_on_building_uid].empty?
+
+            building_uid = unit[:depends_on_building_uid].to_sym
+
+            data[:depends_on_building_uid] = building_uid
+
+            @buildings_produce_units[building_uid] ||= []
+
+            @buildings_produce_units[building_uid] << {
+              :uid => unit_uid,
+              :level => unit[:depends_on_building_level]
+            }
+          end
+
+          @units_data[unit_uid] = data
+          #Score paid for killing this unit
+          @battle_score_settings[unit_uid] = {
+            :score_price => data[:score_price] || 0
+          }
+
+        end
+      end
+
+      def load_buildings mysql_connection
+        @buildings_data = {}
+
+        is_updateable = Proc.new {|uid, level|
+          target_level = level + 1
+          building = mysql_connection.select("SELECT * FROM buildings WHERE level = #{target_level} AND uid = '#{uid}'").first
+
+          not building.nil?
+        }
+
+        is_unit_producer = Proc.new{|uid, level|
+          units = mysql_connection.select("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
+          units.count > 0
+        }
+
+        mysql_connection.select("SELECT * FROM buildings").each do |building|
+          building_uid = building[:uid].to_sym
+          key = :"#{building_uid}_#{building[:level]}"
+
+          @buildings_data[key] = {}
+
+          [:name, :description, :production_time, :price].each do |attr|
+            @buildings_data[key][attr] = building[attr]
+          end
+
+          @buildings_data[key][:actions] = {
+            :build => is_updateable.call(building[:uid], building[:level]),
+            :info => @coin_generator_uid != building_uid,
+            :units => is_unit_producer.call(building[:uid], building[:level]),
+            :harvest_collect => @coin_generator_uid == building_uid,
+            :harvest_info => @coin_generator_uid == building_uid
           }
         end
       end
 
-      units_by_building
-    end
+      def load_spells mysql_connection
+        @spells_data = {}
 
-    def self.export_units units
-      units_data = {}
-      units.each do |unit|
-        data = {}
-        [ :name, :description, :health_points,
-          :movement_speed, :production_time,
-          :depends_on_building_level, :price ].each do |attr|
+        @battle_score_settings ||= {}
 
-          data[attr] = unit[attr]
-        end
+        mysql_connection.select("SELECT * FROM spells").each do |spell_data|
+          # Convert ms to seconds
+          uid = spell_data[:uid].to_sym
+          time = spell_data[:time] || 0
+          spell_prototype = {
+            :uid => uid,
+            :time_s => time * 0.001,
+            :time_ms => time,
+            :area => spell_data[:area],
+            :vertical_area => spell_data[:vertical_area],
+            :mana_cost => spell_data[:mana_cost],
+            :description => spell_data[:description]
+          }
+          # Get spel attrs
+          mysql_connection.select("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
+            key = spell_attrs[:key]
+            value = spell_attrs[:value]
 
-        data[:depends_on_building_uid] = unit[:depends_on_building_uid].to_sym
-
-        [:range_attack, :melee_attack].each do |attack_type|
-          if unit[attack_type] == true
-            attack_data = {}
-            [:power_max, :power_min, :range].each do |attack_field|
-              value = unit["#{attack_type}_#{attack_field}".to_sym]
-              attack_data[attack_field] = value
-            end
-            # Convert attack speed in ms to server seconds
-            attack_speed_key = "#{attack_type}_speed".to_sym
-            attack_data[:speed] = unit[attack_speed_key] * 0.001
-
-            damage_type = unit["#{attack_type}_damage_type".to_sym]
-            attack_data[:type] = damage_type unless damage_type.nil?
-
-            data[attack_type] = attack_data
+            spell_prototype[key.to_sym] = value
           end
-        end
 
-        units_data[unit[:uid].to_sym] = data
+          @spells_data[uid] = spell_prototype
+
+          if spell_prototype[:units_to_kill] and spell_prototype[:score_price]
+
+            @battle_score_settings[uid] = {
+              :units_to_kill => spell_prototype[:units_to_kill].to_i,
+              :score_price => spell_prototype[:score_price].to_i
+            }
+          end
+
+        end
       end
 
-      units_data
     end
-
-    def self.load_buildings
-      buildings_data = {}
-      @@mysql.select("SELECT * FROM buildings").each do |building|
-        building_uid = building[:uid].to_sym
-        uid = "#{building_uid}_#{building[:level]}"
-        # buildings_data[uid] = [] if buildings_data[uid].nil?
-
-        buildings_data[uid] = {}
-
-        [:name, :description, :production_time, :price].each do |attr|
-          buildings_data[uid][attr] = building[attr]
-        end
-
-        buildings_data[uid][:actions] = {
-          :build => self.updateable?(building[:uid], building[:level]),
-          :info => @@coin_generator_uid != building_uid,
-          :units => self.produce_units?(building[:uid], building[:level]),
-          :harvest_collect => @@coin_generator_uid == building_uid,
-          :harvest_info => @@coin_generator_uid == building_uid
-        }
-      end
-
-      buildings_data
-    end
-
-    def self.updateable? uid, level
-      target_level = level + 1
-      building = @@mysql.select("SELECT * FROM buildings WHERE level = #{target_level} AND uid = '#{uid}'").first
-
-      building.nil? == false
-    end
-
-    def self.produce_units? uid, level
-      units = @@mysql.select("SELECT * FROM units WHERE depends_on_building_uid = '#{uid}' AND depends_on_building_level = #{level}")
-      units.count > 0
-    end
-
-    def self.load_spells
-      spells_data = {}
-
-      @@mysql.select("SELECT * FROM spells").each do |spell_data|
-        # Convert ms to seconds
-        uid = spell_data[:uid].to_sym
-        time = spell_data[:time] || 0
-        spell_prototype = {
-          :uid => uid,
-          :time_s => time * 0.001,
-          :time_ms => time,
-          :area => spell_data[:area],
-          :vertical_area => spell_data[:vertical_area],
-          :mana_cost => spell_data[:mana_cost],
-          :description => spell_data[:description]
-        }
-        # Get spel attrs
-        @@mysql.select("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
-          key = spell_attrs[:key]
-          value = spell_attrs[:value]
-
-          spell_prototype[key.to_sym] = value
-        end
-
-        spells_data[uid] = spell_prototype
-
-      end
-
-      spells_data
-    end
-
   end
 end

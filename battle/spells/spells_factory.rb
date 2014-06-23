@@ -32,7 +32,7 @@ class SpellFactory
     :rect_water => Stun
   }
 
-  def self.create data
+  def self.create(data, player_id)
     klass = @@spells[data[:uid]]
 
     if klass.nil?
@@ -40,6 +40,6 @@ class SpellFactory
       return nil
     end
 
-    klass.new data
+    klass.new(data, player_id)
   end
 end
