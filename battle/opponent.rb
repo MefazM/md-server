@@ -68,7 +68,7 @@ module Battle
         }
 
         if block_given?
-          if yield unit
+          if yield(unit)
             positions["k_#{segment}"][:count] += 1
             positions["k_#{segment}"][:pos] += unit.position
           end
@@ -82,8 +82,9 @@ module Battle
 
       return nil if matched.nil?
 
-      avg_pos = (matches[:pos] / matches[:count].to_f)
-      avg_pos, matches[:count]
+      avg_pos = matches[:pos] / matches[:count].to_f
+
+      return avg_pos, matches[:count]
     end
 
     def track_spell_statistics uid
