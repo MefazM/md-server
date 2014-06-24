@@ -62,8 +62,12 @@ module Battle
       puts "Battle Unit| #{id} dying at #{Time.new}"
     end
 
-    def dead?()
+    def dead?
       @health_points < 0.0
+    end
+
+    def low_hp? scale
+      @health_points.to_f < @unit_prototype[:health_points].to_f * scale
     end
 
     def sync_data

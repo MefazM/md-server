@@ -112,8 +112,7 @@ module Player
     end
 
     def calculate_current_level
-      # Refactor this shit
-      Storage::GameData.player_levels.rindex{|score| @score > score[:level_at] }
+      Storage::GameData.player_levels.rindex{|score| @score > score[:level_at] } || 0
     end
 
     def send_score_sync

@@ -163,3 +163,9 @@ battle_achievements:
   fast_battle:
     score_price: 300
     time_period: 20000
+  z_air:
+    units_to_kill: 4
+    score_price: 50
+  circle_fire:
+    units_to_kill: 10
+    score_price: 50

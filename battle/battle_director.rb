@@ -20,7 +20,7 @@ module Battle
     IN_PROGRESS = 3
     FINISHED = 4
     # Timings
-    DEFAULT_UNITS_SPAWN_TIME = 0.5
+    DEFAULT_UNITS_SPAWN_TIME = 3.0
     # TODO: adjust this parameter properly!!!
     UPDATE_PERIOD = 0.1 #== each 100 ms
 
@@ -43,7 +43,7 @@ module Battle
 
       info "New BattleDirector initialize..."
 
-      Actor[:statistics].async.battle_started
+      # Actor[:statistics].async.battle_started
       Actor[@uid] = Actor.current
     end
 
@@ -68,11 +68,11 @@ module Battle
       @spells << spell
     end
 
-    def set_opponent(data)
+    def set_opponent data
       info "BattleDirector| added opponent. ID = #{data[:id]}"
-      @opponents[data[:id]] = Opponen.new data
-    end
 
+      push_opponent Opponen.new data
+    end
     # After initialization battle on clients.
     # Battle starts after all opponents are ready.
     def set_opponent_ready player_id
@@ -202,8 +202,8 @@ module Battle
       @default_unit_spawn_timer = after(DEFAULT_UNITS_SPAWN_TIME) {
         @opponents.each_key do |player_id|
           spawn_unit('crusader', player_id, false)
-          spawn_unit('mage', player_id, false)
-          spawn_unit('elf', player_id, false)
+          # spawn_unit('mage', player_id, false)
+          # spawn_unit('elf', player_id, false)
         end
 
         @default_unit_spawn_timer.reset
@@ -243,12 +243,19 @@ module Battle
     end
 
     def drop_director
-      Actor[:statistics].async.battle_ended
+      # Actor[:statistics].async.battle_ended
       info "BattleDirector| #{@uid} dying. Status= #{@status}"
     end
 
     def notificate_player_achievement!(player_id, uid, value)
       Actor["p_#{player_id}"].async.send_custom_event([:showAchievement, uid, value])
+    end
+
+    def push_opponent opponent
+
+      @opponents[opponent.id] = opponent
+
+      raise "To many opponents for one battle! Battle uid - #{@uid}" if @opponents.length > 2
     end
   end
 end

@@ -1,5 +1,6 @@
 require 'battle/ai_player'
 require 'battle/battle_director'
+require 'battle/battle_director_ai'
 
 class Lobby
   include Celluloid
@@ -98,7 +99,7 @@ class Lobby
     sender.freeze!
     set_players_frozen_state(sender_id, true)
 
-    battle_director = Battle::BattleDirector.new()
+    battle_director = Battle::BattleDirectorAi.new
 
     sender.compute_mana_storage
     sender.attach_to_battle battle_director.uid
@@ -107,7 +108,7 @@ class Lobby
 
     # Set AI opponent
     ai_boy = Battle::AiPlayer.new
-    battle_director.set_opponent ai_boy.battle_data
+    battle_director.set_ai_opponent ai_boy.battle_data
 
     battle_director.create_battle_at_clients
   end
@@ -123,7 +124,7 @@ class Lobby
     if decision == true
       info "Battle accepted. P1: #{player_id} accepts P2(sender): #{invitation[:sender_id]}"
 
-      battle_director = Battle::BattleDirector.new()
+      battle_director = Battle::BattleDirector.new
 
       [player_id, invitation[:sender_id]].each do |opponent_id|
 

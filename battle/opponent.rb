@@ -54,6 +54,38 @@ module Battle
       }
     end
 
+    def units_at_front segment_length = 15
+      positions = {} #Hash.new(0)
+
+      units = @path_ways.flatten
+      units.each do |unit|
+
+        segment = ((unit.position / segment_length) * 100).to_i
+
+        positions["k_#{segment}"] ||= {
+          :count => 0,
+          :pos => 0.0
+        }
+
+        if block_given?
+          if yield unit
+            positions["k_#{segment}"][:count] += 1
+            positions["k_#{segment}"][:pos] += unit.position
+          end
+        else
+          positions["k_#{segment}"][:count] += 1
+          positions["k_#{segment}"][:pos] += unit.position
+        end
+      end
+
+      matched, matches = positions.max_by{|_,u| u[:count]}
+
+      return nil if matched.nil?
+
+      avg_pos = (matches[:pos] / matches[:count].to_f)
+      avg_pos, matches[:count]
+    end
+
     def track_spell_statistics uid
       @spells_statistics << uid
     end
@@ -131,7 +163,7 @@ module Battle
     end
 
     def ready?
-      @ready = true
+      @ready# = true
     end
 
     def add_unit_to_pool(unit_name, validate)
