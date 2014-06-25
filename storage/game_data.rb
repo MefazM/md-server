@@ -40,7 +40,7 @@ module Storage
             :level => 2,
             :name => "Galkir Cantilever (normal)",
 
-            :heal => [],
+            :heal => [:arrow_earth],
             :buff => [:arrow_fire],
             :debuff => [:rect_air, :rect_water],
             :atk_spell => [:z_air]
