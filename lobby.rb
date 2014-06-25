@@ -1,4 +1,3 @@
-require 'battle/ai_player'
 require 'battle/battle_director'
 require 'battle/battle_director_ai'
 
