@@ -26,14 +26,24 @@ module Battle
 
     AI_ACTIONS = [:ai_heal, :ai_buff, :ai_debuff, :ai_atk_spell, :ai_spawn_unit]
 
-    def set_ai_opponent data
-      info "BattleDirector| added AI opponent. ID = #{data[:id]}"
+    def set_ai_opponent ai_preset_name #data
+      @ai_preset = Storage::GameData.ai_presets[ai_preset_name.to_sym]
 
-      ai_opponent = Opponen.new data
+      raise "Wrong ai preset #{ai_preset_name}" if @ai_preset.nil?
+
+      info "BattleDirector| added AI opponent preset: #{ai_preset_name}"
+
+      @ai_opponent_id = rand(0...99999)
+
+      ai_opponent = Opponen.new({
+        :id => @ai_opponent_id,
+        :units => {},
+        :level => @ai_preset[:level],
+        :username => @ai_preset[:name],
+        :is_ai => true
+      })
+
       ai_opponent.ready!
-
-
-      @ai_opponent_id = ai_opponent.id
 
       push_opponent ai_opponent
     end
@@ -47,7 +57,7 @@ module Battle
     def start!
       super
 
-      @ai_update_time = after(AI_UPDATE_TIME) {
+      @ai_update_time = after(@ai_preset[:activity_period]) {
         action = AI_ACTIONS.sample
         send action
 
@@ -70,7 +80,7 @@ module Battle
       unless matched_path_way.nil?
         position, matches = matched_path_way
 
-        spell_uid = [:circle_earth, :arrow_earth].sample
+        spell_uid = @ai_preset[:heal].sample
         if matches > 1
           ai_cast_spell(@ai_opponent_id, position, spell_uid)
         end
@@ -84,7 +94,7 @@ module Battle
       unless matched_path_way.nil?
         position, matches = matched_path_way
 
-        spell_uid = [:arrow_fire, :arrow_air].sample
+        spell_uid = @ai_preset[:buff].sample
         if matches > 3
           ai_cast_spell(@ai_opponent_id, position, spell_uid)
         end
@@ -100,7 +110,7 @@ module Battle
       unless matched_path_way.nil?
         position, matches = matched_path_way
 
-        spell_uid = [:z_water, :rect_air, :arrow_water, :rect_water, :z_fire].sample
+        spell_uid = @ai_preset[:debuff].sample
         if matches > 2
           ai_cast_spell(@ai_opponent_id, 1.0 - position, spell_uid)
         end
@@ -143,7 +153,7 @@ module Battle
       unless matched_path_way.nil?
         position, matches = matched_path_way
 
-        spell_uid = [:z_air, :circle_water, :circle_fire].sample
+        spell_uid = @ai_preset[:atk_spell].sample
         if matches > 2
           ai_cast_spell(@ai_opponent_id, 1.0 - position, spell_uid)
         end
@@ -151,7 +161,7 @@ module Battle
     end
 
     def ai_spawn_unit
-      unit_name = ['crusader', 'mage', 'elf'].sample
+      unit_name = @ai_preset[:units].sample
       spawn_unit(unit_name, @ai_opponent_id, false)
     end
 

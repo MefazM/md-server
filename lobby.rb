@@ -46,7 +46,7 @@ class Lobby
 
       player_id = player[:id]
 
-      unless filtration_data[:except] == player[:id] and player[:frozen]
+      unless filtration_data[:except] == player[:id] or player[:frozen]
         lobby_data << [player[:id], player[:name]]
       end
 
@@ -86,8 +86,8 @@ class Lobby
       warn "Opponent player (#{opponent_id}) is offline!"
   end
 
-  def create_ai_battle(sender_id, ai_id)
-    info "New battle AI battle. P: #{sender_id}, Ai: #{ai_id}."
+  def create_ai_battle(sender_id, ai_preset_name)
+    info "New battle AI battle. P: #{sender_id}, Ai: #{ai_preset_name}."
     # MAY BE UNSAFE!!!!
     sender = Actor["p_#{sender_id}"]
 
@@ -107,8 +107,7 @@ class Lobby
     battle_director.set_opponent( sender.battle_data )
 
     # Set AI opponent
-    ai_boy = Battle::AiPlayer.new
-    battle_director.set_ai_opponent ai_boy.battle_data
+    battle_director.set_ai_opponent ai_preset_name #ai_boy.battle_data
 
     battle_director.create_battle_at_clients
   end
@@ -136,7 +135,6 @@ class Lobby
         player.attach_to_battle battle_director.uid
 
         battle_director.set_opponent( player.battle_data )
-
       end
 
       @invites.delete player_id

@@ -6,7 +6,7 @@ module Storage
 
       attr_reader :player_levels, :coin_generator_uid,
         :storage_building_uid, :battle_score_settings,
-        :game_rate
+        :game_rate, :ai_presets
 
       def load!
         Celluloid::Logger::info 'Loading game data...'
@@ -32,6 +32,32 @@ module Storage
 
         mysql_connection.finalize
         mysql_connection = nil
+
+        @ai_presets = {
+          :ai_normal => {
+            :units => ['sub', 'elf'],
+            :activity_period => 3.0,
+            :level => 2,
+            :name => "Galkir Cantilever (normal)",
+
+            :heal => [],
+            :buff => [:arrow_fire],
+            :debuff => [:rect_air, :rect_water],
+            :atk_spell => [:z_air]
+          },
+          :ai_hard => {
+            :units => ['sub', 'mage', 'elf', 'horse'],
+            :activity_period => 1.5,
+
+            :level => 6,
+            :name => "Krag Zarkanan (hard)",
+
+            :heal => [:circle_earth, :arrow_earth],
+            :buff => [:arrow_fire, :arrow_air],
+            :debuff => [:z_water, :rect_air, :arrow_water, :rect_water, :z_fire],
+            :atk_spell => [:z_air, :circle_water, :circle_fire]
+          }
+        }
       end
 
       def next_level_at level
