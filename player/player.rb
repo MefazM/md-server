@@ -79,13 +79,13 @@ module Player
       # Test this!
       Actor[:lobby].async.register(@id, @username)
 
-      @update_timer = after(UPDATE_PERIOD) {
+      @update_timer = after(UPDATE_PERIOD) do
         async.update
-      }
+      end
 
-      @serialization_timer = after(SERIALIZATION_PERIOD) {
+      @serialization_timer = after(SERIALIZATION_PERIOD) do
         async.serialize_player
-      }
+      end
       # TODO: add inactivity timer
 
       restore_battle unless @battle_uid.nil?

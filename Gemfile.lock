@@ -11,38 +11,13 @@ GEM
       redis
     coderay (1.1.0)
     connection_pool (2.0.0)
-    elasticsearch (1.0.2)
-      elasticsearch-api (= 1.0.2)
-      elasticsearch-transport (= 1.0.2)
-    elasticsearch-api (1.0.2)
-      multi_json
-    elasticsearch-transport (1.0.2)
-      faraday
-      multi_json
-    faraday (0.9.0)
-      multipart-post (>= 1.2, < 3)
     ffi (1.9.3-java)
-    hiredis (0.4.5)
     hiredis (0.4.5-java)
-    hitimes (1.2.1)
     hitimes (1.2.1-java)
-    httparty (0.13.1)
-      json (~> 1.8)
-      multi_xml (>= 0.5.2)
     jdbc-mysql (5.1.30)
-    json (1.8.1)
     json (1.8.1-java)
-    json-jruby (1.4.3.1-java)
     method_source (0.8.2)
-    multi_json (1.10.1)
-    multi_xml (0.5.5)
-    multipart-post (2.0.0)
-    nio4r (1.0.0)
     nio4r (1.0.0-java)
-    pry (0.9.12.6)
-      coderay (~> 1.0)
-      method_source (~> 0.8)
-      slop (~> 3.4)
     pry (0.9.12.6-java)
       coderay (~> 1.0)
       method_source (~> 0.8)
@@ -63,12 +38,8 @@ DEPENDENCIES
   celluloid-io
   celluloid-redis
   connection_pool (~> 2.0.0)
-  elasticsearch
   hiredis (~> 0.4.5)
-  httparty (~> 0.13.1)
   jdbc-mysql
-  json-jruby
+  json
   pry
-  pry-debugger
-  pry-stack_explorer
   redis (~> 3.0.1)

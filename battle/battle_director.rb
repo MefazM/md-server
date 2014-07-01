@@ -192,24 +192,22 @@ module Battle
 
       @prev_iteration_time = Time.now.to_f
       # Start timers
-      @update_timer = after(UPDATE_PERIOD) {
-        update
+      @update_timer = every UPDATE_PERIOD do
+        async.update
+      end
 
-        @update_timer.reset
-      }
-
-      @default_unit_spawn_timer = after(DEFAULT_UNITS_SPAWN_TIME) {
-        @opponents.each_key do |player_id|
-          spawn_unit('crusader', player_id, false)
-          # spawn_unit('mage', player_id, false)
-          # spawn_unit('elf', player_id, false)
-        end
-
-        @default_unit_spawn_timer.reset
-      }
+      @default_unit_spawn_timer = every DEFAULT_UNITS_SPAWN_TIME do
+        async.spawn_default_units
+      end
 
       publish(@channel, [:send_custom_event, :startBattle])
       @start_time = Time.now.to_i
+    end
+
+    def spawn_default_units
+      @opponents.each_key do |player_id|
+        spawn_unit('crusader', player_id, false)
+      end
     end
     # Simple finish battle.
     def finish_battle! loser_id

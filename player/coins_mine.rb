@@ -25,9 +25,9 @@ module Player
       end
 
       if time_left > 0.0
-        @mine_notificator_timer = after(time_left) {
+        @mine_notificator_timer = after(time_left) do
           send_gold_mine_storage_full
-        }
+        end
 
       else
         send_gold_mine_storage_full

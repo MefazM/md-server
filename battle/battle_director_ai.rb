@@ -56,12 +56,12 @@ module Battle
     def start!
       super
 
-      @ai_update_time = after(@ai_preset[:activity_period]) {
+      @ai_update_time = after(@ai_preset[:activity_period]) do
         action = AI_ACTIONS.sample
         send action
 
         @ai_update_time.reset
-      }
+      end
     end
 
     def finish_battle! loser_id
