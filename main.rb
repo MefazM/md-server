@@ -1,5 +1,4 @@
 #!/usr/bin/env ruby
-
 require 'celluloid'
 require 'celluloid/io'
 require 'celluloid/autostart'
@@ -11,12 +10,6 @@ require 'player/player_factory'
 require 'network/networking'
 require 'lobby'
 require 'hash_symbolize_keys'
-
-require 'game_statistics/game_statistics'
-
-# Celluloid.logger = nil
-
-GameStatistics.new
 
 class GameServer
   include Celluloid::IO
@@ -78,9 +71,7 @@ class GameServer
   end
 end
 
-###
 Lobby.new
-###
 
 supervisor = GameServer.supervise( SERVER_HOST, SERVER_PORT )
 trap("INT") { supervisor.terminate; exit }

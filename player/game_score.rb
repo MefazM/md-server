@@ -9,7 +9,7 @@ module Player
       level = @level
 
       stat = {
-        :battle_time => Time.at(battle_time).strftime('%H:%M:%S'),
+        :battle_time => battle_time,
         :units_killed => 0,
         :units_killed_score => 0,
         :is_winner => is_winner
@@ -43,7 +43,7 @@ module Player
       stat[:opponent_name] = data[opponent_id][:username]
       # Level modificator
       opponent_level = data[opponent_id][:level]
-      score_modificator = (opponent_level - level) * Storage::GameData.game_rate
+      score_modificator = opponent_level / level
       stat[:modificator] = score_modificator
 
       # Score for spells
@@ -79,12 +79,18 @@ module Player
         stat[:units_killed_score] += unit_score
       end
 
-      score *= score_modificator
+      score *= score_modificator * Storage::GameData.game_rate
       @score += score
 
       stat[:score] = score
       stat[:score_sum] = @score
-      stat[:coins] = score * 1.2
+
+      coins = score * 1.2
+
+      add_extra_gold coins
+      send_coins_storage_capacity
+
+      stat[:coins] = coins
 
       level = calculate_current_level
 
@@ -100,19 +106,26 @@ module Player
     end
 
     def score_sync_data
-      next_level_at = Storage::GameData.next_level_at( @level + 1 )
-      cur_level_at = Storage::GameData.next_level_at @level
+      level_at = Storage::GameData.next_level_at @level
+      prev_level_at = Storage::GameData.next_level_at prev_level
       {
         :score => @score,#4
-        :next_level_at => next_level_at,
+        :level_at => level_at - prev_level_at,
         :level => @level,
-        :leveled_score => @score - cur_level_at,
-        :level_score => next_level_at - cur_level_at
+        :level_score => @score - prev_level_at
       }
     end
 
+    def prev_level
+      [0, @level].min
+    end
+
     def calculate_current_level
-      Storage::GameData.player_levels.rindex{|score| @score > score[:level_at] } || 0
+      # Storage::GameData.player_levels.rindex{|score| @score > score[:level_at] } || 0
+      level = 0
+      Storage::GameData.player_levels.each{|score| level+=1 if @score > score[:level_at] }
+
+      level
     end
 
     def send_score_sync

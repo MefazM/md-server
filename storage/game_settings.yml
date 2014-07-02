@@ -1,11 +1,11 @@
-game_rate: 0.8
+game_rate: 1.1
 
 player_settings_per_level:
   - level_at: 3000
     static_reward: 20
 
   - level_at: 6000
-    static_reward: 20
+    static_reward: 2000
 
     obtained_items:
       coins: 200
@@ -15,7 +15,7 @@ player_settings_per_level:
       icon: "new_spell"
 
   - level_at: 9000
-    static_reward: 20
+    static_reward: 2000
 
     obtained_items:
       coins: 200
@@ -25,7 +25,7 @@ player_settings_per_level:
       icon: "new_spell"
 
   - level_at: 12500
-    static_reward: 20
+    static_reward: 2000
 
     obtained_items:
       coins: 200
@@ -112,23 +112,23 @@ mana_storage_settings:
 
   - amount_at_shard: 10
     amount_at_battle: 5
-    capacity: 100
+    capacity: 200
 
   - amount_at_shard: 10
     amount_at_battle: 5
-    capacity: 100
+    capacity: 300
 
   - amount_at_shard: 10
     amount_at_battle: 5
-    capacity: 100
+    capacity: 400
 
   - amount_at_shard: 10
     amount_at_battle: 5
-    capacity: 100
+    capacity: 500
 
   - amount_at_shard: 10
     amount_at_battle: 5
-    capacity: 100
+    capacity: 600
 
 coins_production:
   coin_generator_uid: 'gold_mine'

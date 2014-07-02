@@ -35,7 +35,7 @@ module Storage
 
         @ai_presets = {
           :ai_normal => {
-            :units => ['sub', 'elf'],
+            :units => {:sub => 15, :elf => 10, :crusader => 50},
             :activity_period => 3.0,
             :level => 2,
             :name => "Galkir Cantilever (normal)",
@@ -46,7 +46,7 @@ module Storage
             :atk_spell => [:z_air]
           },
           :ai_hard => {
-            :units => ['sub', 'mage', 'elf', 'horse'],
+            :units => {:sub => 35, :mage => 15, :elf => 25, :horse => 6, :crusader => 50},
             :activity_period => 1.5,
 
             :level => 6,
@@ -218,7 +218,7 @@ module Storage
       def load_spells mysql_connection
         @spells_data = {}
 
-        @battle_score_settings ||= {}
+        # @battle_score_settings ||= {}
 
         mysql_connection.select("SELECT * FROM spells").each do |spell_data|
           # Convert ms to seconds
@@ -243,13 +243,13 @@ module Storage
 
           @spells_data[uid] = spell_prototype
 
-          if spell_prototype[:units_to_kill] and spell_prototype[:score_price]
+          # if spell_prototype[:units_to_kill] and spell_prototype[:score_price]
 
-            @battle_score_settings[uid] = {
-              :units_to_kill => spell_prototype[:units_to_kill].to_i,
-              :score_price => spell_prototype[:score_price].to_i
-            }
-          end
+          #   @battle_score_settings[uid] = {
+          #     :units_to_kill => spell_prototype[:units_to_kill].to_i,
+          #     :score_price => spell_prototype[:score_price].to_i
+          #   }
+          # end
 
         end
       end

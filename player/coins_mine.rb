@@ -60,5 +60,14 @@ module Player
       reset_gold_mine_notificator
     end
 
+    def add_extra_gold coins_count
+      @coins_in_storage += coins_count
+      @coins_in_storage = @coins_in_storage.to_i
+
+      if @coins_in_storage >= @storage_capacity
+        @coins_in_storage = @storage_capacity
+      end
+    end
+
   end
 end

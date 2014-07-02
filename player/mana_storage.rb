@@ -2,7 +2,7 @@ module Player
   module ManaStorage
 
     def compute_mana_storage
-      mana_settings = Storage::GameData.mana_storage 1
+      mana_settings = Storage::GameData.mana_storage @level
 
       amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
       amount_per_second = mana_settings[amount_key]
@@ -20,9 +20,8 @@ module Player
     end
 
     def mana_sync_data
-      data = Storage::GameData.mana_storage 1
+      data = Storage::GameData.mana_storage @level
       amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
-
       [@mana_storage_value, data[:capacity], data[amount_key]]
     end
 

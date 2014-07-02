@@ -4,7 +4,6 @@ require 'battle/opponent'
 require 'battle/unit'
 require 'battle/unit'
 require 'battle/spells/spells_factory'
-require 'game_statistics/statistics_methods'
 
 module Battle
   class BattleDirector
@@ -110,8 +109,9 @@ module Battle
           return
         end
       end
-
-      publish(@channel, [:send_battle_sync, sync_data]) unless sync_data.empty?
+      unless sync_data.empty?
+        publish(@channel, [:send_battle_sync, sync_data])
+      end
       # /UPDATE
     end
     # Update spells
@@ -134,9 +134,9 @@ module Battle
       end
     end
     # Additional units spawning.
-    def spawn_unit(unit_name, player_id, validate = true)
+    def spawn_unit(unit_name, player_id)
       unit_name = unit_name.to_sym
-      unit = @opponents[player_id].add_unit_to_pool(unit_name, validate)
+      unit = @opponents[player_id].add_unit_to_pool unit_name
 
       unless unit.nil?
         data = [:send_unit_spawning, unit.uid, unit_name, player_id, unit.path_id]
@@ -206,7 +206,7 @@ module Battle
 
     def spawn_default_units
       @opponents.each_key do |player_id|
-        spawn_unit('crusader', player_id, false)
+        spawn_unit('crusader', player_id)
       end
     end
     # Simple finish battle.
@@ -219,7 +219,7 @@ module Battle
       @status = FINISHED
 
       data = {
-        :battle_time => @start_time - Time.now.to_i,
+        :battle_time => Time.now.to_i - @start_time,
         :winner_id => @opponents_indexes[loser_id],
         :loser_id => loser_id
         # :score => calculate_score(@opponents_indexes[loser_id])

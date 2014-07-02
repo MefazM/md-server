@@ -4,7 +4,6 @@ require 'battle/opponent'
 require 'battle/unit'
 require 'battle/unit'
 require 'battle/spells/spells_factory'
-require 'game_statistics/statistics_methods'
 
 module Battle
   class BattleDirectorAi < BattleDirector
@@ -36,7 +35,7 @@ module Battle
 
       ai_opponent = Opponen.new({
         :id => @ai_opponent_id,
-        :units => {},
+        :units => @ai_preset[:units],
         :level => @ai_preset[:level],
         :username => @ai_preset[:name],
         :is_ai => true
@@ -56,11 +55,8 @@ module Battle
     def start!
       super
 
-      @ai_update_time = after(@ai_preset[:activity_period]) do
-        action = AI_ACTIONS.sample
-        send action
-
-        @ai_update_time.reset
+      @ai_update_time = every(@ai_preset[:activity_period]) do
+        send AI_ACTIONS.sample
       end
     end
 
@@ -160,8 +156,8 @@ module Battle
     end
 
     def ai_spawn_unit
-      unit_name = @ai_preset[:units].sample
-      spawn_unit(unit_name, @ai_opponent_id, false)
+      unit_name = @ai_preset[:units].keys.sample
+      spawn_unit(unit_name, @ai_opponent_id)
     end
 
     def ai_cast_spell(ai_id, target, spell_uid)

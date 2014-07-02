@@ -167,7 +167,8 @@ module Battle
       @ready# = true
     end
 
-    def add_unit_to_pool(unit_name, validate)
+    def add_unit_to_pool(unit_name, validate = true)
+
       valid = !validate
 
       if validate

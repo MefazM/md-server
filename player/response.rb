@@ -15,7 +15,7 @@ module Player
         buildings[building_uid][:ready] = false
       end
 
-      mana_settings = Storage::GameData.mana_storage 1
+      mana_settings = Storage::GameData.mana_storage @level
       mana_amount_key = @status == :in_battle ? :amount_at_battle : :amount_at_shard
 
       game_data = {

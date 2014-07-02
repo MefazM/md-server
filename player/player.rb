@@ -89,9 +89,6 @@ module Player
       # TODO: add inactivity timer
 
       restore_battle unless @battle_uid.nil?
-
-      Actor[:statistics].async.player_connected
-
       Actor["p_#{id}"] = Actor.current
     end
 
@@ -131,7 +128,6 @@ module Player
     end
 
     def drop_player
-      Actor[:statistics].async.player_disconnected
       Actor[:lobby].async.remove @id
 
       info "Terminating player (id = #{@id})"
@@ -168,9 +164,12 @@ module Player
     end
 
     def battle_data
+      units = @units
+      units[:crusader] = (@level + 1) * 15
+
       {
         :id => @id,
-        :units => @units,
+        :units => units,
         :mana => mana_sync_data,
         :level => @level,
         :username => @username
