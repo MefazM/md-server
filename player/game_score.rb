@@ -43,7 +43,7 @@ module Player
       stat[:opponent_name] = data[opponent_id][:username]
       # Level modificator
       opponent_level = data[opponent_id][:level]
-      score_modificator = opponent_level / level
+      score_modificator = opponent_level / (level + 1)
       stat[:modificator] = score_modificator
 
       # Score for spells
