@@ -4,6 +4,7 @@ module Player
     def update_score data
       score = 0
       opponent_id = nil
+
       battle_time = data[:battle_time]
       is_winner = @id == data[:winner_id]
       level = @level
@@ -107,7 +108,13 @@ module Player
 
     def score_sync_data
       level_at = Storage::GameData.next_level_at @level
-      prev_level_at = Storage::GameData.next_level_at prev_level
+
+      prev_level_at = if @level == 0
+        0
+      else
+        prev_level_at = Storage::GameData.next_level_at prev_level
+      end
+
       {
         :score => @score,#4
         :level_at => level_at - prev_level_at,

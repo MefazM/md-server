@@ -131,7 +131,6 @@ module Player
       # TODO: REFACTOR THIS TO FUTURES!!!
       players = Celluloid::Actor[:lobby].players({
         :except => @id,
-
       })
 
       ai = Storage::GameData.ai_presets.map{|uid, preset| [uid, preset[:name]]}

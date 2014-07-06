@@ -34,6 +34,18 @@ module Storage
         mysql_connection = nil
 
         @ai_presets = {
+          :ai_easy => {
+            :units => {:sub => 1, :mage => 1, :elf => 1, :horse => 1, :crusader => 1},
+            :activity_period => 4.0,
+
+            :level => 2,
+            :name => "Wilford Dragan (easy)",
+
+            :heal => [:arrow_earth],
+            :buff => [:arrow_fire],
+            :debuff => [:rect_water],
+            :atk_spell => [:circle_water]
+          },
           :ai_normal => {
             :units => {:sub => 15, :elf => 10, :crusader => 50},
             :activity_period => 3.0,
