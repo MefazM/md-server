@@ -56,7 +56,7 @@ module Battle
       super
 
       @ai_update_time = every(@ai_preset[:activity_period]) do
-        send AI_ACTIONS.sample
+        send AI_ACTIONS.sample unless ENV['DEBUG']
       end
     end
 
