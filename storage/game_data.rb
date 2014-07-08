@@ -13,7 +13,8 @@ module Storage
 
         mysql_connection = Mysql::MysqlClient.new
 
-        @settings = YAML.load_file('storage/game_settings.yml')
+        @settings = JSON.parse( IO.read(GAME_SETTINGS_JSON_PATH) )
+
         @settings.recursive_symbolize_keys!
 
         @game_rate = @settings[:game_rate]
