@@ -6,17 +6,20 @@ module Storage
 
       attr_reader :player_levels, :coin_generator_uid,
         :storage_building_uid, :battle_score_settings,
-        :game_rate, :ai_presets
+        :game_rate, :ai_presets, :loser_modifier, :score_to_coins_modifier
 
       def load!
         Celluloid::Logger::info 'Loading game data...'
 
         mysql_connection = Mysql::MysqlClient.new
 
-        @settings = YAML.load_file('storage/game_settings.yml')
+        @settings = JSON.parse( IO.read(GAME_SETTINGS_JSON_PATH) )
+
         @settings.recursive_symbolize_keys!
 
         @game_rate = @settings[:game_rate]
+        @loser_modifier = @settings[:loser_modifier]
+        @score_to_coins_modifier = @settings[:score_to_coins_modifier].to_f
 
         @coin_generator_uid = @settings[:coins_production][:coin_generator_uid].to_sym
         @storage_building_uid = @settings[:coins_production][:storage_building_uid].to_sym
@@ -34,6 +37,18 @@ module Storage
         mysql_connection = nil
 
         @ai_presets = {
+          :ai_easy => {
+            :units => {:sub => 1, :mage => 1, :elf => 1, :horse => 1, :crusader => 1},
+            :activity_period => 4.0,
+
+            :level => 2,
+            :name => "Wilford Dragan (easy)",
+
+            :heal => [:arrow_earth],
+            :buff => [:arrow_fire],
+            :debuff => [:rect_water],
+            :atk_spell => [:circle_water]
+          },
           :ai_normal => {
             :units => {:sub => 15, :elf => 10, :crusader => 50},
             :activity_period => 3.0,

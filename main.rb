@@ -1,4 +1,7 @@
 #!/usr/bin/env ruby
+
+# ENV['DEBUG'] = 'true' #    ¯\_(ツ)_/¯
+
 require 'celluloid'
 require 'celluloid/io'
 require 'celluloid/autostart'
@@ -20,6 +23,7 @@ class GameServer
 
   def initialize(host, port)
     info "***Starting server on #{host}:#{port}. Ver.- #{SERVER_VERSION}.***"
+    info "=== DEBUG: #{ENV['DEBUG'] ? 'on' : 'off'} ==="
 
     Storage::Mysql::Pool.create!
     Storage::Redis::Pool.create!

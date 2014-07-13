@@ -2,59 +2,117 @@ module Player
   module GameScore
 
     def update_score data
-      score = 0
-      opponent_id = nil
-      battle_time = data[:battle_time]
-      is_winner = @id == data[:winner_id]
+      @data = data
+      @score_settings = Storage::GameData.battle_score_settings
+      @battle_score = 0
+      @battle_coins = 0
+      @achievement_score = 0
+      @@opponent_id = nil
+      @battle_time = data[:battle_time]
+      @is_winner = (@id == data[:winner_id])
+
       level = @level
 
-      stat = {
-        :battle_time => battle_time,
+      @stat = {
+        :battle_time => @battle_time,
         :units_killed => 0,
         :units_killed_score => 0,
-        :is_winner => is_winner
+        :is_winner => @is_winner,
+        :static_win => 0,
+        :opponent_name => "",
+        :modificator => 0,
+        :spells => [],
+        :score => 0,
+        :score_sum => 0,
+        :coins => 0
       }
 
-      score_settings = Storage::GameData.battle_score_settings
+      #################### \
+      @opponent_id = determine_opponent!
+      @stat[:opponent_name] = data[@opponent_id][:username]
 
-      if is_winner
-        # time bonus
-        if battle_time > score_settings[:fast_battle][:time_period]
-          fast_battle_score = score_settings[:fast_battle][:score_price]
-          score += fast_battle_score
+      @stat[:modificator] = score_modificator = calculate_score_modificator_for(@opponent_id)
+      #################### /
 
-          stat[:fast_battle] = fast_battle_score
-        end
-        # static level reward
-        static_win_score = Storage::GameData.battle_reward level
-        stat[:static_win] = static_win_score
-        score += static_win_score
+      #################### \
+      spells_score, spells_statistics = calculate_spells_score_for(@id)
+      #################### /
 
-        opponent_id = data[:loser_id]
+      #################### \
+      units_score, units_killed = calculate_killed_units_score_for(@opponent_id)
+      #################### /
 
-      elsif @id == data[:loser_id]
+      #################### \
+      @achievement_score += calculate_time_bonus + spells_score
 
-        opponent_id = data[:winner_id]
+      if @is_winner
+        @battle_score = (calculate_static_level_reward * winner_level + units_score + @achievement_score) * score_modificator
       else
+        @battle_score = (calculate_static_level_reward * winner_level) * Storage::GameData.loser_modifier + units_score
+      end
+      @battle_score *= Storage::GameData.game_rate
 
+      @stat[:score] = @battle_score.to_i
+      @stat[:coins] = calcuate_coins(@battle_score).to_i
+      @score += @stat[:score]
+      @stat[:score_sum] = @score
+      #################### /
+
+      #################### \
+      add_extra_gold(@battle_coins)
+      send_coins_storage_capacity
+      #################### /
+
+      #################### \
+      level = calculate_current_level
+      update_level_if_necessary(level)
+      #################### /
+
+      @stat
+    end
+
+    def determine_opponent!
+      if @is_winner
+         @data[:loser_id]
+      elsif @id == @data[:loser_id]
+        @data[:winner_id]
+      else
         raise "Data corruption @ after_battle score calculation!"
       end
+    end
 
-      stat[:opponent_name] = data[opponent_id][:username]
-      # Level modificator
-      opponent_level = data[opponent_id][:level]
-      score_modificator = opponent_level / (level + 1)
-      stat[:modificator] = score_modificator
+    def calcuate_coins(coins)
+      coins * Storage::GameData.score_to_coins_modifier
+    end
 
-      # Score for spells
-      # group spells by type
-      spells_grouped = Hash.new(0)
-      data[@id][:spells].each {|uid| spells_grouped[uid] += 1 }
+    def update_level_if_necessary(level)
+      if level > @level
+
+        @level = level
+
+        @stat[:levelup] = Storage::GameData.player_levels[@level]
+        @stat[:levelup][:level] = @level
+      end
+    end
+
+    def calculate_score_modificator_for(player_id)
+      opponent_level = @data[player_id][:level]
+      opponent_level = opponent_level.zero? ? 1 : opponent_level
+      level = @level.zero? ? 1 : @level
+
+      opponent_level / level
+    end
+
+    def calculate_spells_score_for(player_id)
+      score = 0
+      spells_grouped = {}
       spells_statistics = []
+
+      @data[player_id][:spells].each { |uid| spells_grouped[uid] = spells_grouped[uid].to_i + 1 }
       # calculate score for each spell
       spells_grouped.each do |uid, times|
 
-        spell_score = score_settings[uid][:score_price] * times
+        spell_score = @score_settings[uid][:score_price] * times
 
         unless spell_score.nil?
           spells_statistics << {
@@ -66,48 +124,60 @@ module Player
           score += spell_score
         end
       end
-      stat[:spells] = spells_statistics
 
-      # process score income for each killed units
-      data[opponent_id][:units].each do |uid, unit_data|
+      @stat[:spells] = spells_statistics
 
-        unit_score = score_settings[uid][:score_price] * unit_data[:lost]
+      [score, spells_statistics]
+    end
 
-        score += unit_score
+    def calculate_killed_units_score_for(player_id)
+      units_score = 0
+      units_killed = 0
 
-        stat[:units_killed] += unit_data[:lost]
-        stat[:units_killed_score] += unit_score
+      @data[player_id][:units].each do |uid, unit_data|
+        units_score += @score_settings[uid][:score_price] * unit_data[:lost]
+
+        units_killed += unit_data[:lost]
       end
 
-      score *= score_modificator * Storage::GameData.game_rate
-      @score += score
+      @stat[:units_killed] += units_killed
+      @stat[:units_killed_score] += units_score
 
-      stat[:score] = score
-      stat[:score_sum] = @score
+      [units_score, units_killed]
+    end
 
-      coins = score * 1.2
+    def calculate_time_bonus
+      if @battle_time > @score_settings[:fast_battle][:time_period]
+        fast_battle_score = @score_settings[:fast_battle][:score_price]
 
-      add_extra_gold coins
-      send_coins_storage_capacity
+        @stat[:fast_battle] = fast_battle_score
 
-      stat[:coins] = coins
-
-      level = calculate_current_level
-
-      if level > @level
-
-        @level = level
-
-        stat[:levelup] = Storage::GameData.player_levels[@level]
-        stat[:levelup][:level] = @level
+        return fast_battle_score
       end
 
-      stat
+      0
+    end
+
+    def calculate_static_level_reward
+      static_win_score = Storage::GameData.battle_reward winner_level
+      @stat[:static_win] = static_win_score if @is_winner
+
+      static_win_score
+    end
+
+    def winner_level
+      @data[@data[:winner_id]][:level]
     end
 
     def score_sync_data
       level_at = Storage::GameData.next_level_at @level
-      prev_level_at = Storage::GameData.next_level_at prev_level
+
+      prev_level_at = if @level == 0
+        0
+      else
+        prev_level_at = Storage::GameData.next_level_at prev_level
+      end
+
       {
         :score => @score,#4
         :level_at => level_at - prev_level_at,

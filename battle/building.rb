@@ -3,7 +3,12 @@ module Battle
 
     @@uid_iteratior = 0
 
-    HEALTH_POINTS = 200
+    if ENV['DEBUG']
+      HEALTH_POINTS = 10
+    else
+      HEALTH_POINTS = 200
+    end
+
     BODY_WIDTH = 0.05
 
     attr_accessor :uid, :health_points, :position
