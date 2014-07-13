@@ -43,17 +43,17 @@ module Player
       #################### /
 
       #################### \
-      @achievement_score += calculate_time_bonus
+      @achievement_score += calculate_time_bonus + spells_score
 
       if @is_winner
-        @battle_coins = (calculate_static_level_reward * winner_level + units_score + @achievement_score) * score_modificator
+        @battle_score = (calculate_static_level_reward * winner_level + units_score + @achievement_score) * score_modificator
       else
-        @battle_coins = (calculate_static_level_reward * winner_level) * Storage::GameData.loser_modifier + units_score
+        @battle_score = (calculate_static_level_reward * winner_level) * Storage::GameData.loser_modifier + units_score
       end
-      @battle_coins *= Storage::GameData.game_rate
+      @battle_score *= Storage::GameData.game_rate
 
-      @stat[:coins] = @battle_coins.to_i
-      @stat[:score] = calcuate_score(@battle_coins).to_i
+      @stat[:score] = @battle_score.to_i
+      @stat[:coins] = calcuate_coins(@battle_score).to_i
       @score += @stat[:score]
       @stat[:score_sum] = @score
       #################### /
@@ -81,8 +81,8 @@ module Player
       end
     end
 
-    def calcuate_score(coins)
-      coins * Storage::GameData.coins_to_score_modifier
+    def calcuate_coins(coins)
+      coins * Storage::GameData.score_to_coins_modifier
     end
 
     def update_level_if_necessary(level)

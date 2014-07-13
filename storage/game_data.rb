@@ -6,7 +6,7 @@ module Storage
 
       attr_reader :player_levels, :coin_generator_uid,
         :storage_building_uid, :battle_score_settings,
-        :game_rate, :ai_presets, :loser_modifier, :coins_to_score_modifier
+        :game_rate, :ai_presets, :loser_modifier, :score_to_coins_modifier
 
       def load!
         Celluloid::Logger::info 'Loading game data...'
@@ -19,7 +19,7 @@ module Storage
 
         @game_rate = @settings[:game_rate]
         @loser_modifier = @settings[:loser_modifier]
-        @coins_to_score_modifier = @settings[:coins_to_score_modifier]
+        @score_to_coins_modifier = @settings[:score_to_coins_modifier].to_f
 
         @coin_generator_uid = @settings[:coins_production][:coin_generator_uid].to_sym
         @storage_building_uid = @settings[:coins_production][:storage_building_uid].to_sym
