@@ -257,15 +257,6 @@ module Storage
           end
 
           @spells_data[uid] = spell_prototype
-
-          # if spell_prototype[:units_to_kill] and spell_prototype[:score_price]
-
-          #   @battle_score_settings[uid] = {
-          #     :units_to_kill => spell_prototype[:units_to_kill].to_i,
-          #     :score_price => spell_prototype[:score_price].to_i
-          #   }
-          # end
-
         end
       end
 

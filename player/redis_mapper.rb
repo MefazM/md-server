@@ -29,7 +29,6 @@ module Player
       end
 
       read_redis_attrs(@redis_resources_key, { :battle_uid => nil })
-
     end
 
     def serialize_player

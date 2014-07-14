@@ -37,8 +37,8 @@ module Player
         current_time = Time.now.to_f
         @buildings_queue.each do |building_uid, task|
           task_info = {
-            :finish_time => (task[:finish_at] - current_time) * 1000,
-            :production_time => task[:construction_time] * 1000,
+            :finish_time => (task[:finish_at] - Time.now.to_f) * 1000,
+            :construction_time => task[:construction_time],
             :level => task[:level],
             :uid => building_uid
           }
