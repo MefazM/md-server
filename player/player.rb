@@ -148,8 +148,7 @@ module Player
 
         opponents.each do |player_id, player|
           player.path_ways.flatten.each do |unit|
-            data = [unit.uid, unit.name, player_id, unit.path_id]
-            send_unit_spawning data
+            send_unit_spawning [unit.uid, unit.name, player_id, unit.path_id]
           end
         end
 

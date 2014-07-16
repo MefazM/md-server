@@ -74,6 +74,8 @@ module Battle
     # After initialization battle on clients.
     # Battle starts after all opponents are ready.
     def set_opponent_ready player_id
+      # Dont let start already started BD.
+      return if @status != PENDING
       info "BattleDirector| opponent ID = #{player_id} is ready to battle."
       @opponents[player_id].ready!
       # Autostart battle
