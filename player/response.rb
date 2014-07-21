@@ -43,9 +43,13 @@ module Player
       write_data [SEND_GAME_DATA_ACTION, @latency, game_data]
     end
 
-    def send_coins_storage_capacity
-      write_data [SEND_CUSTOM_EVENT, @latency, :setStorageCapacity,
+    def send_coins_storage_capacity earned = nil
+      data = [SEND_CUSTOM_EVENT, @latency, :setStorageCapacity,
         @coins_in_storage, @storage_capacity]
+
+      data << earned unless data.nil?
+
+      write_data data
     end
 
     def send_current_mine_amount

@@ -46,10 +46,11 @@ module Player
         @harvester_storage = @harvester_capacity
       end
 
-      @coins_in_storage += @harvester_storage
+      in_storage = @coins_in_storage + @harvester_storage
 
-      if @coins_in_storage >= @storage_capacity
-        @harvester_storage = @coins_in_storage - @storage_capacity
+      if in_storage >= @storage_capacity
+        @harvester_storage = in_storage - @storage_capacity
+        earned = @storage_capacity - @coins_in_storage
         @coins_in_storage = @storage_capacity
       else
         @harvester_storage = 0
@@ -58,6 +59,8 @@ module Player
       @last_harvest_time = current_time
 
       reset_gold_mine_notificator
+
+      earned
     end
 
     def add_extra_gold coins_count
