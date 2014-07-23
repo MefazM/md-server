@@ -1,5 +1,4 @@
 class Curse < AbstractSpell
-
   def initialize(data, player_id)
     super
     @states_stack = compute_processing_stack(:effect_switch)
@@ -16,22 +15,15 @@ class Curse < AbstractSpell
   end
 
   def affect_targets!
-    unless @target_units.empty?
-      @target_units.each { |target|
-        unit_prototype = target.unit_prototype
-        target.range_attack_power -= unit_prototype[:range_attack][:power_min] * @value unless target.range_attack_power.nil?
-        target.melee_attack_power -= unit_prototype[:melee_attack][:power_min] * @value unless target.melee_attack_power.nil?
-      }
-    end
+    data = [
+      {:var => :range_attack_power, :val => @value, :type => :reduce, :percentage => true},
+      {:var => :melee_attack_power, :val => @value, :type => :reduce, :percentage => true}
+    ]
+
+    @target_units.each { |target| target.affect(:curse, data)}
   end
 
   def remove_effect!
-    unless @target_units.empty?
-      @target_units.each { |target|
-        unit_prototype = target.unit_prototype
-        target.range_attack_power += unit_prototype[:range_attack][:power_min] * @value unless target.range_attack_power.nil?
-        target.melee_attack_power += unit_prototype[:melee_attack][:power_min] * @value unless target.melee_attack_power.nil?
-      }
-    end
+    @target_units.each { |target| target.remove_effect :curse }
   end
 end

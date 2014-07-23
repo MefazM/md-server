@@ -1,17 +1,16 @@
 class AbstractSpell
-  STATES = [ :process, :affect, :wait, :empty ]
-
   include Celluloid::Notifications
 
   attr_reader :completed, :life_time, :killed_units, :player_id, :uid
   attr_writer :channel
+
+  STATES = [ :process, :affect, :wait, :empty ]
 
   def initialize(data, player_id)
     @data = data
     @completed = false
     @charges_count = 0
     @target_units = nil
-    @target_units_ids = nil
     # @units_pool = {}
     @elapsed_time = 0
     # @horizontal_target = nil
@@ -83,11 +82,7 @@ class AbstractSpell
       @states_stack.delete_at(0)
     # Spell is ready if task stack is empty
     when :empty
-      # @units_pool = nil
-      @target_units = nil
-      @target_units_ids = nil
-      @path_ways = nil
-      @completed = true
+      finalize_spell
     end
   end
 
@@ -97,15 +92,21 @@ class AbstractSpell
 
   private
 
+  def finalize_spell
+    @target_units = nil
+    @path_ways = nil
+    @completed = true
+  end
+
   def process!
     find_targets!
   end
 
   def notificate_affected!
     publish(@channel,[ :send_custom_event,
-        :addIcon,
-        @data[:uid], @life_time * 1000, @target_units_ids
-      ])
+      :addIcon,
+      @data[:uid], @life_time * 1000, @target_units.map{|u| u.uid}
+    ])
   end
 
   def affect_targets!
@@ -122,15 +123,11 @@ class AbstractSpell
 
   def find_targets!
     @target_units = []
-    @target_units_ids = []
 
-    @path_ways.each do |path|
-      path.each do |target|
-        position = target.position
-        if position >= @left_bound and position <= @right_bound
-          @target_units << target
-          @target_units_ids << target.uid
-        end
+    @path_ways.flatten.each do |target|
+      position = target.position
+      if position >= @left_bound and position <= @right_bound
+        @target_units << target
       end
     end
   end
@@ -138,19 +135,16 @@ class AbstractSpell
   def compute_processing_stack(processing_type)
     case processing_type
       when :instant
-        # @life_time = data[:time]
         [:process, :affect]
       when :after_t
         [:wait, :process, :affect]
-
       when :effect_switch
         [:process, :affect, :wait, :remove_effect]
-
       when :over_time
         # In this case time parameter is a spell charges count
         @num_charges = @data[:num_charges].to_i || 1
         @life_time = @data[:time_s] * @num_charges
-        [:process] + [:affect, :wait_charge] * @num_charges
+        [:process, :affect, :wait_charge] * @num_charges
     end
   end
 end

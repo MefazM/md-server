@@ -17,25 +17,14 @@ class Slow < AbstractSpell
   end
 
   def affect_targets!
-    unless @target_units.empty?
-      @target_units.each { |target|
-        # puts(target.movement_speed, @value, @value * target.movement_speed)
-        # target.movement_speed = target.movement_speed * @value
-        target.movement_speed -= target.unit_prototype[:movement_speed] * @value
-        target.force_sync = true
-      }
-    end
+    data = [
+      {:var => :movement_speed, :val => @value, :type => :reduce, :percentage => true}
+    ]
+
+    @target_units.each { |target| target.affect(:slow, data)}
   end
 
   def remove_effect!
-    unless @target_units.empty?
-      @target_units.each { |target|
-        # puts(@value * target.movement_speed)
-        # target.movement_speed = target.movement_speed / @value
-        target.movement_speed += target.unit_prototype[:movement_speed] * @value
-        target.force_sync = true
-      }
-      # notificate_dispel!
-    end
+    @target_units.each { |target| target.remove_effect :slow }
   end
 end

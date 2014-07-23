@@ -109,19 +109,18 @@ module Battle
 
       @path_ways.each_with_index do |path, index|
         path.each do |unit|
+
           next if unit.dead?
 
           if unit.has_no_target? && unit.can_attack?
             target = find_target!(unit, opponent)
             unless target.nil?
-
               unit.target = target
-              # unless target.static?
-                unit.path_id = target.path_id
-                unit.force_sync = true
-              # end
-
               @path_ways[unit.path_id] << @path_ways[index].delete(unit)
+
+              if target.has_no_target?
+                target.target = unit
+              end
             end
           end
 
@@ -130,13 +129,9 @@ module Battle
 
       @path_ways.each_with_index do |path, index|
         path.each do |unit|
-
           if unit.update(iteration_delta)
             sync_data_arr << unit.sync_data
           end
-
-          unit.target = nil if unit.target_leave_path?
-
           if unit.dead?
             # Iterate lost unit counter
             unit_data = @units_statistics[unit.name]
@@ -148,7 +143,6 @@ module Battle
           end
         end
       end
-
       # Main building - is a main game trigger.
       # If it is destroyed - player loses
       # Send main bulding updates only if has changes
@@ -164,13 +158,11 @@ module Battle
     end
 
     def ready?
-      @ready# = true
+      @ready
     end
 
     def add_unit_to_pool(unit_name, validate = true)
-
       valid = !validate
-
       if validate
         unit_data = @units_statistics[unit_name]
         if !unit_data.nil? and unit_data[:available] > 0
@@ -180,13 +172,9 @@ module Battle
       end
 
       if valid
-        unit = BattleUnit.new unit_name
-        unit.path_id = rand(0..PATH_COUNT-1)
+        unit = BattleUnit.new(unit_name, rand(0..PATH_COUNT-1))
         @path_ways[unit.path_id] << unit
-
-
         @spawned_units_count += 1
-
         return unit
       end
 
@@ -229,6 +217,9 @@ module Battle
         unless targets.empty?
           nearest = targets[0]
           nearest_position = nearest.position
+
+          next if nearest_position < 0.06
+
           distance = nearest_position + attaker_position
 
           next if distance > 1.0

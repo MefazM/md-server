@@ -11,6 +11,7 @@ require_relative 'bomb.rb'
 require_relative 'thunder.rb'
 require_relative 'curse.rb'
 require_relative 'bless.rb'
+require_relative 'poison_cloud.rb'
 
 class SpellFactory
   # Ugly mapping
@@ -27,9 +28,10 @@ class SpellFactory
     :z_water => Poison,
     :z_air => Thunder,
     :z_fire => Curse,
+    :z_earth => PoisonCloud,
 
     :rect_air => WindBlow,
-    :rect_water => Stun
+    :rect_water => Stun,
   }
 
   def self.create(data, player_id)

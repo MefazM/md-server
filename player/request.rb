@@ -98,8 +98,6 @@ module Player
         earned = harvest
         send_coins_storage_capacity earned
       end
-
-      send_gold_mine_storage_full
     end
 
     # RECEIVE_NEW_BATTLE_ACTION

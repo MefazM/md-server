@@ -1,5 +1,3 @@
-#
-# INSTANT HEAL
 class Stun < AbstractSpell
   def initialize(data, player_id)
     super
@@ -20,7 +18,7 @@ class Stun < AbstractSpell
     unless @target_units.empty?
       @target_units.each { |target|
         @prev_status = target.status
-        target.status = Battle::BattleUnit::STUNED
+        target.status = Battle::BattleUnit::IDLE
         target.force_sync = true
       }
     end

@@ -1,5 +1,3 @@
-#
-# FIREBALL
 class Fireball < AbstractSpell
   def initialize(data, player_id)
     super
@@ -20,5 +18,4 @@ class Fireball < AbstractSpell
   def achievementable?
     @killed_units > @units_to_kill
   end
-
 end

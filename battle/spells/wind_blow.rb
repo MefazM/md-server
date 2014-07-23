@@ -1,5 +1,3 @@
-#
-# INSTANT HEAL
 class WindBlow < AbstractSpell
   def initialize(data, player_id)
     super
@@ -12,14 +10,10 @@ class WindBlow < AbstractSpell
   end
 
   def affect_targets!
-    unless @target_units.empty?
-      @target_units.each { |target|
-        position = target.position - @offset
-        position = 0.0 if position < 0.0
-        # puts("#{target.position - @offset}, #{target.position}, #{@offset}")
-        target.position = position
-        target.force_sync = true
-      }
-    end
+    data = [
+      {:var => :position, :val => @offset, :type => :reduce}
+    ]
+
+    @target_units.each { |target| target.affect( nil, data)}
   end
 end

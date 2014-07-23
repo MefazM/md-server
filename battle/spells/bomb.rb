@@ -1,5 +1,3 @@
-#
-# BOMB
 class Bomb < AbstractSpell
   def initialize(data, player_id)
     super

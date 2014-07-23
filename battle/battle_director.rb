@@ -18,7 +18,7 @@ module Battle
     IN_PROGRESS = 3
     FINISHED = 4
     # Timings
-    DEFAULT_UNITS_SPAWN_TIME = 3.0
+    DEFAULT_UNITS_SPAWN_TIME = 1.0
     # TODO: adjust this parameter properly!!!
     UPDATE_PERIOD = 0.1 #== each 100 ms
 
@@ -47,6 +47,8 @@ module Battle
 
     def cast_spell(player_id, target, spell_data)
       spell = SpellFactory.create(spell_data, player_id)
+      return nil if spell.nil?
+
       spell.channel = @channel
 
       area = spell_data[:area]
@@ -106,7 +108,6 @@ module Battle
         sync_data += player.update(opponent, iteration_delta)
 
         if player.lose?
-
           finish_battle!(player_id)
           return
         end

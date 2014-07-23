@@ -6,7 +6,7 @@ module Battle
     if ENV['DEBUG']
       HEALTH_POINTS = 10
     else
-      HEALTH_POINTS = 200
+      HEALTH_POINTS = 20000000
     end
 
     BODY_WIDTH = 0.05
@@ -33,8 +33,12 @@ module Battle
       @engaged_routes.sample
     end
 
-    def static?
-      true
+    def at_same_path? path_id
+      @engaged_routes.include? path_id
+    end
+
+    def has_no_target?
+      false
     end
 
     def changed?

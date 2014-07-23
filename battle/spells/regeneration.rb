@@ -1,5 +1,3 @@
-#
-#
 class Regeneration < AbstractSpell
  def initialize(data, player_id)
     super

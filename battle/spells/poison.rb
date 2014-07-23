@@ -1,5 +1,3 @@
-#
-#
 class Poison < AbstractSpell
  def initialize(data, player_id)
     super

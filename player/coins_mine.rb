@@ -44,21 +44,22 @@ module Player
 
       if @harvester_storage > @harvester_capacity
         @harvester_storage = @harvester_capacity
+        earned = @harvester_capacity
       end
 
       in_storage = @coins_in_storage + @harvester_storage
 
       if in_storage >= @storage_capacity
         @harvester_storage = in_storage - @storage_capacity
-        earned = @storage_capacity - @coins_in_storage
         @coins_in_storage = @storage_capacity
       else
+        @coins_in_storage = in_storage
         @harvester_storage = 0
       end
 
       @last_harvest_time = current_time
 
-      reset_gold_mine_notificator
+      # reset_gold_mine_notificator
 
       earned
     end

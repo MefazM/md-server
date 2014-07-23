@@ -1,5 +1,9 @@
+require "battle/unit_spells_effect"
 module Battle
   class BattleUnit
+
+    include UnitSpellsEffect
+
     @@uid_iteratior = 0
     # Unit states
     MOVE = 1
@@ -7,28 +11,27 @@ module Battle
     ATTACK_MELEE = 4
     ATTACK_RANGE = 5
     IDLE = 42
-    # "spell-based" states
-    STUNED = 101
     #
     NO_TARGET = -1
     MAX_POSITION = 0.9
 
     attr_accessor :uid, :position, :status, :name,
       :movement_speed, :force_sync, :range_attack_power,
-      :melee_attack_power, :target, :path_id, :health_points
+      :melee_attack_power,  :health_points
 
-    attr_reader :unit_prototype, :body_width, :attack_offset
+    attr_reader :unit_prototype, :body_width, :attack_offset, :path_id
 
-    def initialize(unit_uid, position = 0.0)
+    def initialize(unit_uid, path_id, position = 0.0)
       @name = unit_uid.to_sym
+      @path_id = path_id
       # initialization unit by prototype
       @unit_prototype = Storage::GameData.unit @name
 
       @uid = "u#{@@uid_iteratior}"
       @@uid_iteratior += 1
       # additional params
-      @status = IDLE
-      @prev_status = IDLE
+      @status = MOVE
+      @prev_status = MOVE
       @attack_period_time = 0
       @position = position
 
@@ -37,29 +40,29 @@ module Battle
 
       @health_points = @unit_prototype[:health_points]
       @movement_speed = @unit_prototype[:movement_speed]
-      @attack_type = nil
 
-      @force_sync = false
-
+      @force_sync = true
       @body_width = 1.0 - 0.015
-
       @target = nil
-
       @attack_offset = @unit_prototype[:melee_attack][:range]
 
-      # ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc)
+      @affected_spells = {}
     end
 
-    def target_leave_path?
-      !@target.nil? && !@target.static?  && @target.path_id != @path_id
+    def at_same_path? path_id
+      @path_id == path_id
     end
 
     def has_no_target?
-      @target.nil? || @target.dead?
-    end
+      unless @target.nil?
+        @target = nil if @target.position + @position > 1.0
+      end
 
-    def self.finalize(id)
-      puts "Battle Unit| #{id} dying at #{Time.new}"
+      unless @target.nil? || @target.at_same_path?(@path_id)
+        @target = nil
+      end
+
+      @target.nil? || @target.dead?
     end
 
     def dead?
@@ -74,21 +77,17 @@ module Battle
       hp_scale = @health_points.to_f / @unit_prototype[:health_points].to_f
       data = [@uid, @status, @path_id, @position.round(3), hp_scale]
 
-  # puts("#{@uid} #{position} ")
-      target = has_no_target? ? NO_TARGET : @target.uid
-
-      data << target
+      data << has_no_target? ? NO_TARGET : @target.uid
 
       animation_scale = case @status
       when MOVE
         @movement_speed / @unit_prototype[:movement_speed]
-      # when ATTACK_MELEE, ATTACK_RANGE
       else
         1.0
       end
 
       data << animation_scale
-      # data << @movement_speed
+
       data
     end
 
@@ -136,53 +135,43 @@ module Battle
       end
     end
 
-    def static?
-      false
+    def can_attack?
+      @status == MOVE
     end
 
-    def can_attack?
-      (@status == MOVE || @status == IDLE)
+    def target= target
+      @target = target
+      unless target.nil?
+        @path_id = target.path_id
+        @force_sync = true
+      end
     end
 
     def update(iteration_delta)
+
+      @status = DIE if @health_points < 0.0
+
+      has_changes = @status != @prev_status
+      @prev_status = @status
 
       if can_attack? && !has_no_target?
         [:melee_attack, :range_attack].each do |type|
           if in_attack_range?(@target, type)
             attack(@target, type)
-
-            if @target.static? == false && @target.target != self
-              @target.target = self if @target.position + @position > 0.9
-            end
-            if @target.dead?
-              @target = nil
-              break
-            end
           end
         end
       end
 
       case @status
       when MOVE
-        if @position < MAX_POSITION
-          @position += iteration_delta * @movement_speed
-        else
-          @status = IDLE
-        end
+
+        @position += iteration_delta * @movement_speed if @position < MAX_POSITION
+
       when ATTACK_MELEE, ATTACK_RANGE
         @attack_period_time -= iteration_delta
-        @status = IDLE if @attack_period_time < 0
-      when IDLE
-        @status = MOVE if @position < MAX_POSITION
+        @status = MOVE if @attack_period_time < 0
       end
 
-      @status = DIE if @health_points < 0.0
-      # Processing sync
-      has_changes = @force_sync
-      unless @status == IDLE
-        has_changes = @status != @prev_status
-        @prev_status = @status
-      end
       has_changes = true if @force_sync
       @force_sync = false
 
@@ -190,12 +179,9 @@ module Battle
     end
 
     def attack_power attack_type
-
       return nil if @unit_prototype[attack_type].nil?
-
       min = @unit_prototype[attack_type][:power_min]
       max = @unit_prototype[attack_type][:power_max]
-
       rand(min..max)
     end
 

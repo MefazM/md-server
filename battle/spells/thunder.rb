@@ -1,5 +1,3 @@
-#
-#
 class Thunder < AbstractSpell
  def initialize(data, player_id)
     super
@@ -15,7 +13,6 @@ class Thunder < AbstractSpell
   end
 
   def affect_targets!
-    find_targets!
     decrease_targets_hp! @damage_per_charge
   end
 

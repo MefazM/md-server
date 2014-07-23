@@ -61,7 +61,7 @@ module Storage
             :atk_spell => [:z_air]
           },
           :ai_hard => {
-            :units => {:sub => 35, :mage => 15, :elf => 25, :horse => 6, :crusader => 50},
+            :units => {:sub => 35, :mage => 15, :elf => 25, :horse => 6, :crusader => 500000},
             :activity_period => 1.5,
 
             :level => 6,
