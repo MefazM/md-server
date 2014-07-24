@@ -1,9 +1,7 @@
 require "battle/unit_spells_effect"
 module Battle
   class BattleUnit
-
     include UnitSpellsEffect
-
     @@uid_iteratior = 0
     # Unit states
     MOVE = 1
@@ -47,6 +45,8 @@ module Battle
       @attack_offset = @unit_prototype[:melee_attack][:range]
 
       @affected_spells = {}
+
+      @distance_attack_sync_info = []
     end
 
     def at_same_path? path_id
@@ -74,10 +74,9 @@ module Battle
     end
 
     def sync_data
-      hp_scale = @health_points.to_f / @unit_prototype[:health_points].to_f
-      data = [@uid, @status, @path_id, @position.round(3), hp_scale]
+      data = [@uid, @health_points, @distance_attack_sync_info, @status, @path_id, @position.round(3)]
 
-      data << has_no_target? ? NO_TARGET : @target.uid
+      @distance_attack_sync_info = []
 
       animation_scale = case @status
       when MOVE
@@ -91,14 +90,15 @@ module Battle
       data
     end
 
-    def decrease_health_points(decrease_by, attack_type = nil)
-      # TODO: Implement resists
-      resist_type = @unit_prototype[:resist_type]
-      decrease_by *= 0.5 if resist_type and attack_type == resist_type
+    def decrease_health_points decrease_by
       @health_points -= decrease_by
       @force_sync = true
       # return hp
       @health_points
+    end
+
+    def add_distance_attack_sync_info opponent_unit_uid
+      @distance_attack_sync_info << opponent_unit_uid
     end
 
     def increase_health_points(increase_by)
@@ -120,15 +120,14 @@ module Battle
     def attack(target, attack_type)
       case attack_type
       when :melee_attack
-        target.decrease_health_points(@melee_attack_power,
-          @unit_prototype[:melee_attack][:type])
+        target.decrease_health_points @melee_attack_power
 
         @attack_period_time = @unit_prototype[:melee_attack][:speed]
         @status = ATTACK_MELEE
       when :range_attack
+        target.decrease_health_points @range_attack_power
 
-        target.decrease_health_points(@range_attack_power,
-          @unit_prototype[:range_attack][:type])
+        target.add_distance_attack_sync_info @uid
 
         @attack_period_time = @unit_prototype[:range_attack][:speed]
         @status = ATTACK_RANGE
@@ -148,9 +147,7 @@ module Battle
     end
 
     def update(iteration_delta)
-
       @status = DIE if @health_points < 0.0
-
       has_changes = @status != @prev_status
       @prev_status = @status
 
@@ -164,9 +161,7 @@ module Battle
 
       case @status
       when MOVE
-
         @position += iteration_delta * @movement_speed if @position < MAX_POSITION
-
       when ATTACK_MELEE, ATTACK_RANGE
         @attack_period_time -= iteration_delta
         @status = MOVE if @attack_period_time < 0

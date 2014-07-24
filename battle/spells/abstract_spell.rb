@@ -42,7 +42,6 @@ class AbstractSpell
   def decrease_targets_hp! damage_power
     unless @target_units.empty?
       @target_units.each do |target|
-
         hp_left = target.decrease_health_points damage_power
         @killed_units += 1 if hp_left < 0.0
       end

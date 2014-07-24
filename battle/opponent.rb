@@ -147,7 +147,7 @@ module Battle
       # If it is destroyed - player loses
       # Send main bulding updates only if has changes
       if @main_building.changed?
-        sync_data_arr << [main_building.uid, main_building.health_points]
+        sync_data_arr << main_building.sync_data
       end
 
       return sync_data_arr

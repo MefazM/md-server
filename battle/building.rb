@@ -27,6 +27,7 @@ module Battle
       @body_width = 1.0 - BODY_WIDTH
 
       @engaged_routes = [9,8,6,7]
+      @distance_attack_sync_info = []
     end
 
     def path_id
@@ -39,6 +40,10 @@ module Battle
 
     def has_no_target?
       false
+    end
+
+    def add_distance_attack_sync_info opponent_unit_uid
+      @distance_attack_sync_info << opponent_unit_uid
     end
 
     def changed?
@@ -56,8 +61,12 @@ module Battle
       [@uid, @uid, @position, @health_points]
     end
 
-    def decrease_health_points(decrease_by, attack_type)
-      # Сила аттаки уменьшается в двое, если юнит имеет защиту от такого типа атак.
+    def sync_data
+      [@uid, @health_points, @distance_attack_sync_info]
+      @distance_attack_sync_info = []
+    end
+
+    def decrease_health_points decrease_by
       @health_points -= decrease_by
       @force_sync = true
     end

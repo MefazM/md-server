@@ -18,7 +18,7 @@ module Battle
     IN_PROGRESS = 3
     FINISHED = 4
     # Timings
-    DEFAULT_UNITS_SPAWN_TIME = 1.0
+    DEFAULT_UNITS_SPAWN_TIME = 4.0
     # TODO: adjust this parameter properly!!!
     UPDATE_PERIOD = 0.1 #== each 100 ms
 
