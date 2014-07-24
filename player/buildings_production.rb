@@ -26,8 +26,18 @@ module Player
           end
 
           send_sync_building_state(building_uid, @buildings[building_uid])
-        end
 
+          after_building_updates building_uid
+        end
+      end
+    end
+
+    def after_building_updates building_uid
+      case building_uid
+      # update coins storage
+      when @storage_building_uid
+        compute_storage_capacity
+        send_coins_storage_capacity
       end
     end
 
