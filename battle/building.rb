@@ -6,7 +6,7 @@ module Battle
     if ENV['DEBUG']
       HEALTH_POINTS = 10
     else
-      HEALTH_POINTS = 20000000
+      HEALTH_POINTS = 200
     end
 
     BODY_WIDTH = 0.05
@@ -62,8 +62,10 @@ module Battle
     end
 
     def sync_data
-      [@uid, @health_points, @distance_attack_sync_info]
+      data = [@uid, @health_points, @distance_attack_sync_info]
       @distance_attack_sync_info = []
+
+      data
     end
 
     def decrease_health_points decrease_by
