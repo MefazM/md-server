@@ -19,18 +19,11 @@ module Battle
     # :z_fire,
     # :rect_air,
     # :rect_water]
-
-    AI_UPDATE_TIME = 1.5
-
     AI_ACTIONS = [:ai_heal, :ai_buff, :ai_debuff, :ai_atk_spell, :ai_spawn_unit]
+    def set_ai_opponent ai_preset
+      info "BattleDirector| added AI opponent preset: #{ai_preset[:name]}"
 
-    def set_ai_opponent ai_preset_name #data
-      @ai_preset = Storage::GameData.ai_presets[ai_preset_name.to_sym]
-
-      raise "Wrong ai preset #{ai_preset_name}" if @ai_preset.nil?
-
-      info "BattleDirector| added AI opponent preset: #{ai_preset_name}"
-
+      @ai_preset = ai_preset
       @ai_opponent_id = rand(0...99999)
 
       ai_opponent = Opponen.new({
@@ -111,33 +104,6 @@ module Battle
         end
       end
     end
-
-    # def cast_spell_on_player segment_length, min_matches, spell_uid
-    #   ai_boy = @opponents[@ai_opponent_id]
-    #   matched_path_way = ai_boy.units_at_front segment_length
-
-    #   unless matched_path_way.nil?
-    #     position, matches = matched_path_way
-    #     if matches > min_matches
-    #       ai_cast_spell(@ai_opponent_id, position, spell_uid)
-    #     end
-    #   end
-    # end
-
-    # def cast_spell_on_ai segment_length, min_matches, spell_uid
-    #   opponent_id = @opponents_indexes[@ai_opponent_id]
-    #   opponent = @opponents[opponent_id]
-
-    #   matched_path_way = opponent.units_at_front segment_length
-
-    #   unless matched_path_way.nil?
-    #     position, matches = matched_path_way
-
-    #     if matches > min_matches
-    #       ai_cast_spell(@ai_opponent_id, 1.0 - position, spell_uid)
-    #     end
-    #   end
-    # end
 
     def ai_atk_spell
       opponent_id = @opponents_indexes[@ai_opponent_id]

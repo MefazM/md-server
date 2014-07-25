@@ -41,7 +41,7 @@ module Storage
             :units => {:sub => 1, :mage => 1, :elf => 1, :horse => 1, :crusader => 1},
             :activity_period => 4.0,
 
-            :level => 2,
+            :level => -1,
             :name => "Wilford Dragan (easy)",
 
             :heal => [:arrow_earth],
@@ -52,7 +52,7 @@ module Storage
           :ai_normal => {
             :units => {:sub => 15, :elf => 10, :crusader => 50},
             :activity_period => 3.0,
-            :level => 2,
+            :level => 0,
             :name => "Galkir Cantilever (normal)",
 
             :heal => [:arrow_earth],
@@ -64,7 +64,7 @@ module Storage
             :units => {:sub => 35, :mage => 15, :elf => 25, :horse => 6, :crusader => 500000},
             :activity_period => 1.5,
 
-            :level => 6,
+            :level => 2,
             :name => "Krag Zarkanan (hard)",
 
             :heal => [:circle_earth, :arrow_earth],

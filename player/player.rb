@@ -33,7 +33,7 @@ module Player
     include ManaStorage
     include GameScore
 
-    attr_reader :username, :id, :units
+    attr_reader :username, :id, :units, :level
 
     finalizer :drop_player
 

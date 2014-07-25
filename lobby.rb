@@ -105,9 +105,15 @@ class Lobby
 
     battle_director.set_opponent( sender.battle_data )
 
-    # Set AI opponent
-    battle_director.set_ai_opponent ai_preset_name #ai_boy.battle_data
+    # Set AI opponent.
+    ai_preset = Storage::GameData.ai_presets[ai_preset_name.to_sym]
+    raise "AI battle. Wrong ai preset: #{ai_preset_name}" if ai_preset.nil?
 
+    # Set actual ai level, depends on players level.
+    ai_preset[:level] += sender.level
+    ai_preset[:level] = 0 if ai_preset[:level] < 0
+
+    battle_director.set_ai_opponent ai_preset
     battle_director.create_battle_at_clients
   end
 

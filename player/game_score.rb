@@ -7,7 +7,7 @@ module Player
       @battle_score = 0
       @battle_coins = 0
       @achievement_score = 0
-      @@opponent_id = nil
+      @opponent_id = nil
       @battle_time = data[:battle_time]
       @is_winner = (@id == data[:winner_id])
 
