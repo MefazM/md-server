@@ -14,7 +14,7 @@ module Player
               # :production_time => task[:construction_time]
             }
 
-            if task[:started_at]
+            if task[:finish_at]
               # task_info[:started_at] = (( task[:finish_at] - current_time ) * 1000 ).to_i
               # task_info[:started_at] = (task[:started_at] * 1000 ).to_i
               task_info[:production_time] = (( task[:finish_at] - current_time ) * 1000 ).to_i

@@ -173,13 +173,9 @@ module Storage
           unit_uid = unit[:uid].to_sym
           # Relation to building
           unless unit[:depends_on_building_uid].empty?
-
             building_uid = unit[:depends_on_building_uid].to_sym
-
             data[:depends_on_building_uid] = building_uid
-
             @buildings_produce_units[building_uid] ||= []
-
             @buildings_produce_units[building_uid] << {
               :uid => unit_uid,
               :level => unit[:depends_on_building_level]
@@ -227,7 +223,25 @@ module Storage
             :harvest_collect => @coin_generator_uid == building_uid,
             :harvest_info => @coin_generator_uid == building_uid
           }
+
+          @buildings_data[key][:common_info] = building_common_info building_uid
         end
+      end
+
+      def building_common_info uid
+        info = {}
+
+        case uid
+        when @coin_generator_uid
+          info[:extra] = @settings[:coins_production][:coins_generation_per_level]
+        when @storage_building_uid
+          storage_capacity_per_level = @settings[:coins_production][:storage_capacity_per_level]
+          info[:extra] = storage_capacity_per_level.map{|l| {:storage_capacity_per => l}}
+        else
+          info[:units] = @buildings_produce_units[uid]
+        end
+
+        info
       end
 
       def load_spells mysql_connection
