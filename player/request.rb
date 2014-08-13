@@ -133,7 +133,12 @@ module Player
         :except => @id,
       })
 
-      ai = Storage::GameData.ai_presets.map{|uid, preset| [uid, preset[:name]]}
+      ai = Storage::GameData.ai_presets.map{|uid, preset|
+        level = preset[:level] + @level
+        level = 0 if level < 0
+
+        [uid, preset[:name], level]
+      }
 
       send_lobby_data(players, ai)
     end

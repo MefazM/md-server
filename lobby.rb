@@ -24,10 +24,11 @@ class Lobby
     player[:frozen] = is_frozen unless player.nil?
   end
 
-  def register(player_id, name)
+  def register(player_id, name, level)
     @registred_players["p_#{player_id}"] = {
       :id => player_id,
       :name => name,
+      :level => level,
       :frozen => false
     }
   end
@@ -38,24 +39,18 @@ class Lobby
 
   def players filtration_data
     lobby_data = []
-
     registred_players_frozen = @registred_players.dup
-
     registred_players_frozen.each_value do |player|
-
       player_id = player[:id]
-
       unless filtration_data[:except] == player[:id] or player[:frozen]
         lobby_data << [player[:id], player[:name]]
       end
-
     end
 
     lobby_data
   end
 
   def invite(sender_id, opponent_id)
-
     if sender_id == opponent_id
       error "Player can't invite itself! "
       return

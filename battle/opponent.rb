@@ -208,7 +208,8 @@ module Battle
       target_max_path_way = attaker_path_id + 2
       target_max_path_way = 9 if target_max_path_way > 9
 
-      opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
+      # opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
+      opponent_path_ways.each_with_index do |path_way, index|
 
       # puts("I: #{attaker_path_id} | MIN: #{target_min_path_way} | MAX: #{target_max_path_way}")
 

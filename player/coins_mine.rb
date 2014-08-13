@@ -1,6 +1,5 @@
 module Player
   module CoinsMine
-
     # Update coin amount
     def compute_coins_gain
       level = @buildings[@coin_generator_uid] || 0

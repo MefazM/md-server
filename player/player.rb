@@ -77,7 +77,7 @@ module Player
 
       reset_gold_mine_notificator
       # Test this!
-      Actor[:lobby].async.register(@id, @username)
+      Actor[:lobby].async.register(@id, @username, @level)
 
       @update_timer = after(UPDATE_PERIOD) do
         async.update
