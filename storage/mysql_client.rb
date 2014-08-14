@@ -17,6 +17,7 @@ module Storage
         user_url = "jdbc:mysql://#{MYSQL_HOST}/#{MYSQL_DB_NAME}"
         begin
           @connections = java.sql.DriverManager.get_connection(user_url, MYSQL_USER_NAME, MYSQL_PASSWORD)
+          @connections.auto_reconnect = true
           @statement = @connections.create_statement
         rescue Exception => e
           error e
