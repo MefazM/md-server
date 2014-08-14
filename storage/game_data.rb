@@ -246,12 +246,11 @@ module Storage
 
       def load_spells mysql_connection
         @spells_data = {}
-
         # @battle_score_settings ||= {}
-
         mysql_connection.select("SELECT * FROM spells").each do |spell_data|
           # Convert ms to seconds
           uid = spell_data[:uid].to_sym
+
           time = spell_data[:time] || 0
           spell_prototype = {
             :uid => uid,

@@ -164,7 +164,7 @@ module Player
 
     def battle_data
       units = @units
-      units[:crusader] = (@level + 1) * 150
+      units[:crusader] = (@level + 1) * 150000
 
       {
         :id => @id,

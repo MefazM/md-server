@@ -25,10 +25,10 @@ class SpellFactory
     :arrow_earth => Regeneration,
     :arrow_fire => Bless,
 
-    :z_water => Poison,
+    :z_water => PoisonCloud,
     :z_air => Thunder,
     :z_fire => Curse,
-    :z_earth => PoisonCloud,
+    :z_earth => Poison,
 
     :rect_air => WindBlow,
     :rect_water => Stun,
@@ -41,7 +41,6 @@ class SpellFactory
       Celluloid::Logger::error "Spell klass preset (#{klass}) not found!"
       return nil
     end
-
     klass.new(data, player_id)
   end
 end

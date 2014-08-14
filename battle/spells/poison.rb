@@ -1,8 +1,13 @@
 class Poison < AbstractSpell
  def initialize(data, player_id)
     super
-    @states_stack = compute_processing_stack(:over_time)
+    @states_stack = compute_processing_stack(:effect_switch_over_time)
     @damage_per_charge = data[:damage_per_charge].to_f || 0.0
+  end
+
+  def process!
+    find_targets!
+    notificate_affected!
   end
 
   def friendly_targets?

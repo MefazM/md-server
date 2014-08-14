@@ -144,6 +144,11 @@ class AbstractSpell
         @num_charges = @data[:num_charges].to_i || 1
         @life_time = @data[:time_s] * @num_charges
         [:process, :affect, :wait_charge] * @num_charges
+      when :effect_switch_over_time
+        # In this case time parameter is a spell charges count
+        @num_charges = @data[:num_charges].to_i || 1
+        @life_time = @data[:time_s] * @num_charges
+        [:process] + [:affect, :wait_charge] * @num_charges
     end
   end
 end

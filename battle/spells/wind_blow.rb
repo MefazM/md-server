@@ -9,6 +9,11 @@ class WindBlow < AbstractSpell
     false
   end
 
+  def process!
+    find_targets!
+    notificate_affected!
+  end
+
   def affect_targets!
     data = [
       {:var => :position, :val => @offset, :type => :reduce}
