@@ -14,7 +14,7 @@ module Storage
 
         info "Mysql client connection to #{MYSQL_HOST}..."
 
-        user_url = "jdbc:mysql://#{MYSQL_HOST}/#{MYSQL_DB_NAME}"
+        user_url = "jdbc:mysql://#{MYSQL_HOST}/#{MYSQL_DB_NAME}?autoReconnect=true"
         begin
           @connections = java.sql.DriverManager.get_connection(user_url, MYSQL_USER_NAME, MYSQL_PASSWORD)
           @connections.auto_reconnect = true
