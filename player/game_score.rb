@@ -57,9 +57,8 @@ module Player
       @score += @stat[:score]
       @stat[:score_sum] = @score
       #################### /
-
       #################### \
-      add_extra_gold(@battle_coins)
+      add_extra_gold(@stat[:coins])
       send_coins_storage_capacity
       #################### /
 

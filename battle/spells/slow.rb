@@ -1,19 +1,12 @@
 class Slow < AbstractSpell
-
   def initialize(data, player_id)
     super
-
     @states_stack = compute_processing_stack(:effect_switch)
     @value = data[:value_percentage].to_f || 0.0
   end
 
   def friendly_targets?
     false
-  end
-
-  def process!
-    find_targets!
-    notificate_affected!
   end
 
   def affect_targets!
