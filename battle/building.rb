@@ -12,7 +12,7 @@ module Battle
     BODY_WIDTH = 0.05
 
     attr_accessor :uid, :health_points, :position, :target
-    attr_reader :body_width, :engaged_routes, :target
+    attr_reader :body_width, :engaged_routes
 
     def initialize(name, position)
       @name = name
@@ -29,7 +29,7 @@ module Battle
       @engaged_routes = [9,8,6,7]
       @distance_attack_sync_info = []
 
-      @target
+      @target = nil
     end
 
     def path_id
@@ -41,7 +41,7 @@ module Battle
     end
 
     def has_no_target?
-      false
+      @target.nil?
     end
 
     def add_distance_attack_sync_info opponent_unit_uid

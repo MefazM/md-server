@@ -154,7 +154,6 @@ module Battle
       if can_attack? && !has_no_target?
         [:melee_attack, :range_attack].each do |type|
           if in_attack_range?(@target, type)
-            attack type
 
             if @target.has_no_target?
               @target.target = self
@@ -163,12 +162,13 @@ module Battle
               position_to_target = 1.0 - (@target.position + @target.target.position)
               position_to_this_attaker = 1.0 - (@target.position + @position)
 
-
               if position_to_target > 0.07 &&  position_to_target > position_to_this_attaker
                 @target.target = self
               end
 
             end
+
+            attack type
 
           end
         end

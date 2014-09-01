@@ -75,6 +75,11 @@ module Storage
         }
       end
 
+      def player_level_data level
+        level = [level, @max_player_level - 1].min
+        @player_levels[level]
+      end
+
       def next_level_at level
         level = [level, @max_player_level - 1].min
 
