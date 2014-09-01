@@ -1,7 +1,7 @@
 module Battle
   class Opponen
 
-    TARGETING_OFFSET = 0.6
+    TARGETING_OFFSET = 0.8
     BETWEEN_COUNT_OFFSET = 1
 
     attr_reader :spawned_units_count, :units_statistics, :path_ways,
@@ -121,6 +121,8 @@ module Battle
               if target.has_no_target?
                 target.target = unit
               end
+            else
+
             end
           end
 
@@ -202,51 +204,52 @@ module Battle
       attaker_path_id = attaker.path_id
 
       target_min_path_way = attaker_path_id - 2
-
       target_min_path_way = 0 if target_min_path_way < 0
-
       target_max_path_way = attaker_path_id + 2
       target_max_path_way = 9 if target_max_path_way > 9
-
       # opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
+
       opponent_path_ways.each_with_index do |path_way, index|
 
-      # puts("I: #{attaker_path_id} | MIN: #{target_min_path_way} | MAX: #{target_max_path_way}")
+        nearest = path_way.find {|unit| (unit.position + attaker_position) < 1.0}
+        next if nearest.nil?
 
-        targets = path_way.select {|unit| (unit.position + attaker_position) < 1.0}
+        nearest_position = nearest.position
 
-        unless targets.empty?
-          nearest = targets[0]
-          nearest_position = nearest.position
+        next if nearest_position < 0.06 && attaker_path_id != index
 
-          next if nearest_position < 0.06
+        distance = nearest_position + attaker_position
 
-          distance = nearest_position + attaker_position
+        next if distance > 0.96
+        next if distance < 0.8
 
-          next if distance > 1.0
-          next if distance < TARGETING_OFFSET
+        target_inverted_position = 1.0 - nearest_position
+        # attack_offset = (attaker.attack_offset + nearest.attack_offset)
+        # time
+        # inverted_dist = (1.0 - distance) + attack_offset
+        # horizontal_time = inverted_dist + 0.05 / ((attaker.movement_speed  + nearest.movement_speed))
+        # vertical_time = (attaker_path_id - index).abs * 0.2
+        # next if vertical_time > horizontal_time
 
-          target_mirrored_position = 1.0 - nearest_position
-
-          attack_offset = (attaker.attack_offset + nearest.attack_offset)
-          # time
-          inverted_dist = (1.0 - distance) + attack_offset
-          horizontal_time = inverted_dist + 0.05 / ((attaker.movement_speed  + nearest.movement_speed))
-          vertical_time = (attaker_path_id - index).abs * 0.2
-          #next if vertical_time > horizontal_time
-
+        # if 1.0 - distance > 0.05
           count_between = @path_ways[index].select {|u|
-            # u.position > attaker_position && u.position < target_mirrored_position
-            u.position.between?(attaker_position, target_mirrored_position)
+            # u.position > attaker_position && u.position < target_inverted_position
+            u.position.between?(attaker_position, target_inverted_position)
           }.length
 
-          next if count_between > BETWEEN_COUNT_OFFSET
+        next if count_between > 1 && attaker_path_id == index
+        next if count_between > 2
 
-          if (distance > closest_distance)
-            closest_distance = distance
-            target = nearest
-          end
+        if (distance > closest_distance)
+          closest_distance = distance
+          target = nearest
         end
+
+      end
+
+      if target.nil? && closest_distance > 0.4
+        path_way = opponent_path_ways[target_min_path_way..target_max_path_way].sample
+        target = path_way.last unless path_way.nil?
       end
 
       target

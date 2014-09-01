@@ -15,9 +15,9 @@ module Battle
 
     attr_accessor :uid, :position, :status, :name,
       :movement_speed, :force_sync, :range_attack_power,
-      :melee_attack_power,  :health_points
+      :melee_attack_power,  :health_points, :path_id
 
-    attr_reader :unit_prototype, :body_width, :attack_offset, :path_id
+    attr_reader :unit_prototype, :body_width, :target, :attack_offset#, :path_id
 
     def initialize(unit_uid, path_id, position = 0.0)
       @name = unit_uid.to_sym
@@ -117,17 +117,17 @@ module Battle
       return ((distantion + attack_range) > target.body_width) && (distantion < 1.0)
     end
 
-    def attack(target, attack_type)
+    def attack attack_type
       case attack_type
       when :melee_attack
-        target.decrease_health_points @melee_attack_power
+        @target.decrease_health_points @melee_attack_power
 
         @attack_period_time = @unit_prototype[:melee_attack][:speed]
         @status = ATTACK_MELEE
       when :range_attack
-        target.decrease_health_points @range_attack_power
+        @target.decrease_health_points @range_attack_power
 
-        target.add_distance_attack_sync_info @uid
+        @target.add_distance_attack_sync_info @uid
 
         @attack_period_time = @unit_prototype[:range_attack][:speed]
         @status = ATTACK_RANGE
@@ -154,7 +154,22 @@ module Battle
       if can_attack? && !has_no_target?
         [:melee_attack, :range_attack].each do |type|
           if in_attack_range?(@target, type)
-            attack(@target, type)
+            attack type
+
+            if @target.has_no_target?
+              @target.target = self
+            elsif not @target.target == self
+
+              position_to_target = 1.0 - (@target.position + @target.target.position)
+              position_to_this_attaker = 1.0 - (@target.position + @position)
+
+
+              if position_to_target > 0.07 &&  position_to_target > position_to_this_attaker
+                @target.target = self
+              end
+
+            end
+
           end
         end
       end

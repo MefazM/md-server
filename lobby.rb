@@ -43,7 +43,7 @@ class Lobby
     registred_players_frozen.each_value do |player|
       player_id = player[:id]
       unless filtration_data[:except] == player[:id] or player[:frozen]
-        lobby_data << [player[:id], player[:name]]
+        lobby_data << [player[:id], player[:name], player[:level]]
       end
     end
 
