@@ -71,7 +71,7 @@ module Battle
     def set_opponent data
       info "BattleDirector| added opponent. ID = #{data[:id]}"
 
-      push_opponent Opponen.new data
+      push_opponent Opponent.new data
     end
     # After initialization battle on clients.
     # Battle starts after all opponents are ready.
@@ -160,17 +160,33 @@ module Battle
       # Collecting each player main buildings info.
       # And brodcast this data to clients
       battle_data = {
-        :shared_data => [],
+        :shared_data => {
+          :buildings => [],
+          :units => {}
+        },
         :units_data => {},
         :mana_data => {}
       }
 
       @opponents.each do |player_id, opponent|
+
         data = opponent.main_building.export
         data << player_id
-        battle_data[:shared_data] << data
 
-        battle_data[:units_data][player_id] = opponent.units_statistics
+        battle_data[:shared_data][:buildings] << data
+
+        opponent_uid = @opponents_indexes[player_id]
+
+        units_statistics = opponent.units_statistics.dup
+
+        units_statistics.each do |uid, _|
+          unit_prototype = Storage::GameData.unit uid
+          units_statistics[uid][:group_by] = unit_prototype[:depends_on_building_uid]
+        end
+
+        battle_data[:shared_data][:units][opponent_uid] = units_statistics.keys
+
+        battle_data[:units_data][player_id] = units_statistics
         battle_data[:mana_data][player_id] = opponent.mana_data
       end
 

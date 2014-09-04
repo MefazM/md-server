@@ -6,7 +6,7 @@ module Battle
     if ENV['DEBUG']
       HEALTH_POINTS = 10
     else
-      HEALTH_POINTS = 200
+      HEALTH_POINTS = 400
     end
 
     BODY_WIDTH = 0.05

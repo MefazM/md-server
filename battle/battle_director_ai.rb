@@ -26,7 +26,7 @@ module Battle
       @ai_preset = ai_preset
       @ai_opponent_id = rand(0...99999)
 
-      ai_opponent = Opponen.new({
+      ai_opponent = Opponent.new({
         :id => @ai_opponent_id,
         :units => @ai_preset[:units],
         :level => @ai_preset[:level],

@@ -1,5 +1,5 @@
 module Battle
-  class Opponen
+  class Opponent
 
     TARGETING_OFFSET = 0.8
     BETWEEN_COUNT_OFFSET = 1
