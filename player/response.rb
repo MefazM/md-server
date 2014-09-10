@@ -33,7 +33,8 @@ module Player
 
           :units => {
             # restore unit production queue on client
-            :queue => units_in_queue_export
+            :queue => units_in_queue_export,
+            :ready => @units,
           }
         },
         :game_data => Storage::GameData.initialization_data,
