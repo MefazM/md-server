@@ -6,7 +6,8 @@ module Storage
 
       attr_reader :player_levels, :coin_generator_uid,
         :storage_building_uid, :battle_score_settings,
-        :game_rate, :ai_presets, :loser_modifier, :score_to_coins_modifier
+        :game_rate, :ai_presets, :loser_modifier,
+        :score_to_coins_modifier, :spells_data
 
       def load!
         Celluloid::Logger::info 'Loading game data...'
@@ -38,7 +39,7 @@ module Storage
 
         @ai_presets = {
           :ai_easy => {
-            :units => {:sub => 1, :mage => 1, :elf => 1, :horse => 1, :crusader => 1},
+            :units => {:spearman => 1, :adept => 1, :slinger => 1, :scout => 1, :crusader => 1},
             :activity_period => 4.0,
 
             :level => -1,
@@ -50,7 +51,7 @@ module Storage
             :atk_spell => [:circle_water]
           },
           :ai_normal => {
-            :units => {:sub => 15, :elf => 10, :crusader => 50},
+            :units => {:spearman => 15, :slinger => 10, :crusader => 50},
             :activity_period => 3.0,
             :level => 0,
             :name => "Galkir Cantilever (normal)",
@@ -61,7 +62,7 @@ module Storage
             :atk_spell => [:z_air]
           },
           :ai_hard => {
-            :units => {:sub => 35, :mage => 15, :elf => 25, :horse => 6, :crusader => 500000},
+            :units => {:spearman => 35, :adept => 15, :slinger => 25, :scout => 6, :crusader => 500000},
             :activity_period => 1.5,
 
             :level => 2,
@@ -96,12 +97,24 @@ module Storage
         {
           :buildings_production => @buildings_produce_units,
           :units_data => @units_data,
-          :buildings_data => @buildings_data
+          :buildings_data => @buildings_data,
+          :spells => spells_grouped_by_gesture
         }
       end
 
       def spell_data uid
         @spells_data[uid.to_sym]
+      end
+
+      def spells_grouped_by_gesture
+        grouped = {}
+        @spells_data.each do |key, data|
+          gesture, element = key.to_s.split '_'
+          grouped[gesture.to_sym] ||= {}
+          grouped[gesture.to_sym][element.to_sym] = data
+        end
+
+        grouped
       end
 
       def unit uid
@@ -264,8 +277,26 @@ module Storage
             :area => spell_data[:area],
             :vertical_area => spell_data[:vertical_area],
             :mana_cost => spell_data[:mana_cost],
-            :description => spell_data[:description]
+            :description => spell_data[:description],
+            :name => spell_data[:name],
+            :spellbook_timing => spell_data[:spellbook_timing],
+            # :client_description => spell_data[:client_description]
           }
+
+          client_description_left = []
+          client_description_right = []
+
+          spell_data[:client_description].split('|').each do |row|
+            row_data = row.split '='
+            client_description_left << row_data.first
+            client_description_right << row_data.last
+          end
+
+          spell_prototype[:client_description] = {
+            :right => client_description_right.join("\n"),
+            :left => client_description_left.join("\n")
+          }
+
           # Get spel attrs
           mysql_connection.select("SELECT * FROM spells_attrs WHERE spell_id = #{spell_data[:id]}").each do |spell_attrs|
             key = spell_attrs[:key]

@@ -35,7 +35,7 @@ module Player
             # restore unit production queue on client
             :queue => units_in_queue_export,
             :ready => @units,
-          }
+          },
         },
         :game_data => Storage::GameData.initialization_data,
         :server_version => 1101 #Settings::SERVER_VERSION
