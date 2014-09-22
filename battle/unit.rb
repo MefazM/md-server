@@ -74,9 +74,12 @@ module Battle
     end
 
     def sync_data
-      data = [@uid, @health_points, @distance_attack_sync_info, @status, @path_id, @position.round(3)]
 
-      @distance_attack_sync_info = []
+      target_uid = @target.uid unless target.nil?
+
+      data = [@uid, @health_points, target_uid, @status, @path_id, @position.round(3)]
+
+      # @distance_attack_sync_info = []
 
       animation_scale = case @status
       when MOVE
@@ -127,7 +130,7 @@ module Battle
       when :range_attack
         @target.decrease_health_points @range_attack_power
 
-        @target.add_distance_attack_sync_info @uid
+        # @target.add_distance_attack_sync_info @uid
 
         @attack_period_time = @unit_prototype[:range_attack][:speed]
         @status = ATTACK_RANGE
