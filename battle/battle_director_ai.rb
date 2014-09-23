@@ -24,7 +24,7 @@ module Battle
       info "BattleDirector| added AI opponent preset: #{ai_preset[:name]}"
 
       @ai_preset = ai_preset
-      @ai_opponent_id = rand(0...99999)
+      @ai_opponent_id = "ai#{rand(0...99999)}"
 
       ai_opponent = Opponent.new({
         :id => @ai_opponent_id,
@@ -50,6 +50,7 @@ module Battle
 
       @ai_update_time = every(@ai_preset[:activity_period]) do
         send AI_ACTIONS.sample unless ENV['DEBUG']
+        # send :ai_spawn_unit
       end
     end
 
@@ -124,6 +125,8 @@ module Battle
     def ai_spawn_unit
       unit_name = @ai_preset[:units].keys.sample
       spawn_unit(unit_name, @ai_opponent_id)
+
+      # spawn_unit(@ai_preset[:units].keys.sample, @opponents_indexes[@ai_opponent_id])
     end
 
     def ai_cast_spell(ai_id, target, spell_uid)

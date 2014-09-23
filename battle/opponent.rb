@@ -203,27 +203,35 @@ module Battle
       attaker_position = attaker.position
       attaker_path_id = attaker.path_id
 
-      target_min_path_way = attaker_path_id - 2
+      target_min_path_way = attaker_path_id - 3
       target_min_path_way = 0 if target_min_path_way < 0
-      target_max_path_way = attaker_path_id + 2
+      target_max_path_way = attaker_path_id + 3
       target_max_path_way = 9 if target_max_path_way > 9
-      # opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
 
-      opponent_path_ways.each_with_index do |path_way, index|
+
+      self_units = 0
+      @path_ways.each{|path_way| self_units += path_way.count }
+
+      self_units = self_units * 0.1
+
+
+      opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
+      # opponent_path_ways.each_with_index do |path_way, index|
 
         nearest = path_way.find {|unit| (unit.position + attaker_position) < 1.0}
         next if nearest.nil?
 
         nearest_position = nearest.position
 
-        next if nearest_position < 0.06 && attaker_path_id != index
 
         distance = nearest_position + attaker_position
 
-        next if distance > 0.96
-        next if distance < 0.8
 
-        target_inverted_position = 1.0 - nearest_position
+        next if distance < 0.02 && attaker_path_id != index
+        next if distance > 0.96
+        # next if distance < 0.8
+
+        target_position = 1.0 - nearest_position
         # attack_offset = (attaker.attack_offset + nearest.attack_offset)
         # time
         # inverted_dist = (1.0 - distance) + attack_offset
@@ -231,14 +239,30 @@ module Battle
         # vertical_time = (attaker_path_id - index).abs * 0.2
         # next if vertical_time > horizontal_time
 
-        # if 1.0 - distance > 0.05
-          count_between = @path_ways[index].select {|u|
-            # u.position > attaker_position && u.position < target_inverted_position
-            u.position.between?(attaker_position, target_inverted_position)
+        # ff = nearest_position - 0.125
+        # ff = 0.0 if ff < 0.0
+
+        # # if 1.0 - distance > 0.05
+        #   count_between = @path_ways[index].select {|u|
+        #     # u.position > attaker_position && u.position < nearest_position
+
+
+
+        #     u.position.between?(ff , nearest_position)
+        #   }.length
+
+          count_between2 = @path_ways[index].select {|u|
+            # u.position > attaker_position && u.position < nearest_position
+
+
+
+            u.position.between?(attaker_position , nearest_position)
           }.length
 
-        next if count_between > 1 && attaker_path_id == index
-        next if count_between > 2
+        # next if count_between > 1 && attaker_path_id == index
+        # next if count_between > 2
+        # next if count_between >= self_units + 1 #&& distance > 0.4
+        next if count_between2 >= self_units + 1 #&& distance > 0.4
 
         if (distance > closest_distance)
           closest_distance = distance

@@ -51,8 +51,8 @@ module Storage
             :atk_spell => [:circle_water]
           },
           :ai_normal => {
-            :units => {:spearman => 15, :slinger => 10, :crusader => 50},
-            :activity_period => 3.0,
+            :units => {:spearman => 435, :slinger => 420, :crusader => 2500},
+            :activity_period => 4.0,
             :level => 0,
             :name => "Galkir Cantilever (normal)",
 
