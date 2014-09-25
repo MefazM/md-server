@@ -17,6 +17,8 @@ module Networking
     RECEIVE_DO_HARVESTING_ACTION = :do_harvesting
     RECEIVE_REQUEST_CURRENT_MINE_AMOUNT = :current_mine
 
+    RECEIVE_RELOAD_GAME_DATA = :reload_gd
+
     SEND_SPELL_CAST_ACTION = :spell_cast
     SEND_SPAWN_UNIT_ACTION = :spawn_unit
     SEND_BATTLE_SYNC_ACTION = :battle_sync
@@ -34,6 +36,7 @@ module Networking
 
     SEND_PING_ACTION = :ping
     SEND_CUSTOM_EVENT = :custom
+
   end
 
   class Request

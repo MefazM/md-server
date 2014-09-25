@@ -168,5 +168,11 @@ module Player
       @battle.spawn_unit(payload[0], @id)
     end
 
+    def reload_game_data_action payload
+      Storage::GameData.load!
+
+      write_data [Networking::Actions::SEND_CUSTOM_EVENT, @latency, :setGameDataAfterReload, Storage::GameData.initialization_data]
+    end
+
   end
 end

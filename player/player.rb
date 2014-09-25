@@ -52,6 +52,8 @@ module Player
     map_request RECEIVE_SPELL_CAST_ACTION, :cast_spell_action
     map_request RECEIVE_SPAWN_UNIT_ACTION, :spawn_unit
 
+    map_request RECEIVE_RELOAD_GAME_DATA, :reload_game_data_action
+
     def initialize( id, email, username, socket )
       @socket = socket
       @status = :run
