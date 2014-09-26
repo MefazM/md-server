@@ -121,7 +121,6 @@ module Battle
               if target.has_no_target?
                 target.target = unit
               end
-            else
 
             end
           end
@@ -215,8 +214,8 @@ module Battle
       self_units = self_units * 0.1
 
 
-      opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
-      # opponent_path_ways.each_with_index do |path_way, index|
+      # opponent_path_ways[target_min_path_way..target_max_path_way].each_with_index do |path_way, index|
+      opponent_path_ways.each_with_index do |path_way, index|
 
         nearest = path_way.find {|unit| (unit.position + attaker_position) < 1.0}
         next if nearest.nil?
