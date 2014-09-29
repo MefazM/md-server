@@ -7,16 +7,16 @@ module Storage
       attr_reader :player_levels, :coin_generator_uid,
         :storage_building_uid, :battle_score_settings,
         :game_rate, :ai_presets, :loser_modifier,
-        :score_to_coins_modifier, :spells_data
+        :score_to_coins_modifier, :spells_data, :default_unit_spawn_time
 
       def load!
-        Celluloid::Logger::info 'Loading game data...'
-
         mysql_connection = Mysql::MysqlClient.new
 
         @settings = JSON.parse( IO.read(GAME_SETTINGS_JSON_PATH) )
 
         @settings.recursive_symbolize_keys!
+
+        @default_unit_spawn_time = @settings[:default_unit_spawn_time]
 
         @game_rate = @settings[:game_rate]
         @loser_modifier = @settings[:loser_modifier]
@@ -34,7 +34,6 @@ module Storage
         load_spells mysql_connection
         load_buildings mysql_connection
 
-        mysql_connection.finalize
         mysql_connection = nil
 
         @ai_presets = {
@@ -74,6 +73,8 @@ module Storage
             :atk_spell => [:z_air, :circle_water, :circle_fire]
           }
         }
+
+        Celluloid::Logger::info 'Game data loaded...'
       end
 
       def player_level_data level
@@ -153,7 +154,6 @@ module Storage
       private
 
       def load_units mysql_connection
-
         units = mysql_connection.select("SELECT * FROM units")
 
         @units_data = {}
