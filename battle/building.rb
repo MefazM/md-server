@@ -9,7 +9,7 @@ module Battle
       HEALTH_POINTS = 400
     end
 
-    BODY_WIDTH = 0.05
+    BODY_WIDTH = 0.1
 
     attr_accessor :uid, :health_points, :position, :target
     attr_reader :body_width, :engaged_routes
@@ -26,7 +26,7 @@ module Battle
 
       @body_width = 1.0 - BODY_WIDTH
 
-      @engaged_routes = [9,8,6,7]
+      @engaged_routes = [2,3,4,5,6]
       @distance_attack_sync_info = []
 
       @target = nil

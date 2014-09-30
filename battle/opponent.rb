@@ -222,15 +222,15 @@ module Battle
 
         nearest_position = nearest.position
 
-
         distance = nearest_position + attaker_position
-
 
         next if distance < 0.02 && attaker_path_id != index
         next if distance > 0.96
-        # next if distance < 0.8
 
         target_position = 1.0 - nearest_position
+
+
+        next if (1.0 - distance).abs > 0.3
         # attack_offset = (attaker.attack_offset + nearest.attack_offset)
         # time
         # inverted_dist = (1.0 - distance) + attack_offset
@@ -242,26 +242,24 @@ module Battle
         # ff = 0.0 if ff < 0.0
 
         # # if 1.0 - distance > 0.05
-        #   count_between = @path_ways[index].select {|u|
-        #     # u.position > attaker_position && u.position < nearest_position
+        count_between = @path_ways[index].select {|u|
+          # u.position > attaker_position && u.position < nearest_position
+          u.position.between?(attaker_position, attaker_position + 0.3)
+        }.length
+
+        next if count_between >= self_units + 1 #&& distance > 0.4
+          # count_between2 = @path_ways[index].select {|u|
+          #   # u.position > attaker_position && u.position < nearest_position
 
 
 
-        #     u.position.between?(ff , nearest_position)
-        #   }.length
-
-          count_between2 = @path_ways[index].select {|u|
-            # u.position > attaker_position && u.position < nearest_position
-
-
-
-            u.position.between?(attaker_position , nearest_position)
-          }.length
+          #   u.position.between?(attaker_position , nearest_position)
+          # }.length
 
         # next if count_between > 1 && attaker_path_id == index
         # next if count_between > 2
         # next if count_between >= self_units + 1 #&& distance > 0.4
-        next if count_between2 >= self_units + 1 #&& distance > 0.4
+        # next if count_between2 >= self_units + 1 #&& distance > 0.4
 
         if (distance > closest_distance)
           closest_distance = distance
