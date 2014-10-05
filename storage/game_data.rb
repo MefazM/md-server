@@ -38,39 +38,39 @@ module Storage
 
         @ai_presets = {
           :ai_easy => {
-            :units => {:spearman => 1, :adept => 1, :slinger => 1, :scout => 1, :crusader => 1},
-            :activity_period => 4.0,
+            :units => {:spearman => 10, :crusader => 99999999},
+            :activity_period => 9.0,
 
             :level => -1,
             :name => "Wilford Dragan (easy)",
 
-            :heal => [:arrow_earth],
-            :buff => [:arrow_fire],
-            :debuff => [:rect_water],
-            :atk_spell => [:circle_water]
+            :heal => [:circle_earth],
+            :buff => [:arrow_air, :arrow_fire],
+            :debuff => [:arrow_water, :z_earth],
+            :atk_spell => [:rect_water, :z_fire]
           },
           :ai_normal => {
-            :units => {:spearman => 435, :slinger => 420, :crusader => 2500},
-            :activity_period => 4.0,
+            :units => {:spearman => 50, :slinger => 15, :scout => 10, :crusader => 99999999},
+            :activity_period => 6.0,
             :level => 0,
             :name => "Galkir Cantilever (normal)",
 
-            :heal => [:arrow_earth],
-            :buff => [:arrow_fire],
-            :debuff => [:rect_air, :rect_water],
-            :atk_spell => [:z_air]
+            :heal => [:arrow_earth, :circle_earth],
+            :buff => [:arrow_air, :arrow_fire],
+            :debuff => [:rect_water, :arrow_water, :z_fire ],
+            :atk_spell => [:rect_air, :z_earth, :circle_water]
           },
           :ai_hard => {
-            :units => {:spearman => 35, :adept => 15, :slinger => 25, :scout => 6, :crusader => 500000},
-            :activity_period => 1.5,
+            :units => {:spearman => 250, :adept => 20, :slinger => 150, :scout => 50, :crusader => 99999999},
+            :activity_period => 3.0,
 
             :level => 2,
             :name => "Krag Zarkanan (hard)",
 
-            :heal => [:circle_earth, :arrow_earth],
-            :buff => [:arrow_fire, :arrow_air],
-            :debuff => [:z_water, :rect_air, :arrow_water, :rect_water, :z_fire],
-            :atk_spell => [:z_air, :circle_water, :circle_fire]
+            :heal => [:arrow_earth, :circle_earth],
+            :buff => [:arrow_air, :arrow_fire],
+            :debuff => [:rect_water, :arrow_water, :z_fire ],
+            :atk_spell => [:rect_air, :z_earth, :circle_water, :z_air, :z_water, :circle_fire]
           }
         }
 
