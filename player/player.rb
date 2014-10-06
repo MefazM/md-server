@@ -137,15 +137,16 @@ module Player
 
     # Try to restore battle
     def restore_battle
+
       info "Player (#{@id}) try to restore battle..."
 
       battle = Actor[@battle_uid]
       if battle && battle.alive?
-
+        sleep 2
         info "Battle (@battle_uid) is in progress! Restoring..."
 
         create_new_battle_on_client battle.battle_initialization_data
-
+        send_custom_event :startBattle
         opponents = battle.opponents
 
         opponents.each do |player_id, player|
@@ -155,7 +156,7 @@ module Player
         end
 
         attach_to_battle @battle_uid
-        send_custom_event :startBattle
+
 
         opponents.each_value do |opponent|
           opponent.path_ways.flatten.each {|unit| unit.force_sync = true }

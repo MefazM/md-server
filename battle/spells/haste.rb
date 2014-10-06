@@ -7,7 +7,7 @@ class Haste < AbstractSpell
   end
 
   def process!
-    find_targets!
+    find_targets! :haste
     notificate_affected!
   end
 

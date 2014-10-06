@@ -94,6 +94,7 @@ module Battle
     end
 
     def decrease_health_points decrease_by
+      puts decrease_by if decrease_by < 0.0
       @health_points -= decrease_by
       @force_sync = true
       # return hp
@@ -195,6 +196,7 @@ module Battle
       return nil if @unit_prototype[attack_type].nil?
       min = @unit_prototype[attack_type][:power_min]
       max = @unit_prototype[attack_type][:power_max]
+
       rand(min..max)
     end
 

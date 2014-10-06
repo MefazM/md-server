@@ -6,7 +6,7 @@ class Bless < AbstractSpell
   end
 
   def process!
-    find_targets!
+    find_targets! :bless
     notificate_affected!
   end
 

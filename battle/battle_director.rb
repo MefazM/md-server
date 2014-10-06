@@ -264,7 +264,7 @@ module Battle
     end
 
     def notificate_player_achievement!(player_id, uid, value)
-      Actor["p_#{player_id}"].async.send_custom_event([:showAchievement, uid, value])
+      Actor["p_#{player_id}"].async.send_notification( uid, value )
     end
 
     def push_opponent opponent

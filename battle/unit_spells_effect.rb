@@ -1,14 +1,13 @@
 module Battle
   module UnitSpellsEffect
 
-    def affect(key, options)
-      unless key.nil?
-        unless @affected_spells[key].nil?
-          return false
-        end
+    def affected? key
+      @affected_spells.keys.include? key
+    end
 
-        @affected_spells[key] = options
-      end
+    def affect(key, options)
+
+      @affected_spells[key] = options unless key.nil?
 
       options.each do |option|
         next if option[:type].nil?
@@ -30,7 +29,6 @@ module Battle
       end
 
       @force_sync = true
-
     end
 
     def remove_effect key
@@ -54,6 +52,7 @@ module Battle
         end
       end
 
+      @affected_spells.delete key
       @force_sync = true
     end
 

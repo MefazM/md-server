@@ -120,13 +120,18 @@ class AbstractSpell
     end
   end
 
-  def find_targets!
+  def find_targets! key = nil
     @target_units = []
 
     @path_ways.flatten.each do |target|
       position = target.position
       if position >= @left_bound and position <= @right_bound
-        @target_units << target
+
+        unless key.nil?
+          @target_units << target unless target.affected? key
+        else
+          @target_units << target
+        end
       end
     end
   end

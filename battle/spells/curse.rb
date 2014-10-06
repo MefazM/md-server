@@ -10,7 +10,7 @@ class Curse < AbstractSpell
   end
 
   def process!
-    find_targets!
+    find_targets! :curse
     notificate_affected!
   end
 

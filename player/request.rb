@@ -60,6 +60,8 @@ module Player
           send_new_unit_queue_item(unit_uid, building_uid, production_time)
 
           send_coins_storage_capacity
+        else
+          send_notification( :low_cash )
         end
       end
     end
@@ -83,6 +85,8 @@ module Player
           send_sync_building_state(building_uid, target_level, false, production_time_in_ms)
 
           send_coins_storage_capacity
+        else
+          send_notification( :low_cash )
         end
       end
     end
@@ -161,6 +165,8 @@ module Player
       if decreasre_mana(spell_data[:mana_cost])
 
         @battle.cast_spell(@id, target, spell_data)
+      else
+        send_notification( :low_mana )
       end
     end
 

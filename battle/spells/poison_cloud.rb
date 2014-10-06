@@ -36,7 +36,9 @@ class PoisonCloud < AbstractSpell
       {:var => :movement_speed, :val => 0.5, :type => :reduce, :percentage => true}
     ]
 
-    units.each { |target| target.affect(:slow, data) }
+    units.each do |target|
+      target.affect(:slow, data) unless target.affected? :slow
+    end
 
     @target_units = units
   end

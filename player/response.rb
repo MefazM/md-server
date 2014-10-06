@@ -101,6 +101,13 @@ module Player
       write_data message
     end
 
+    def send_notification( uid, text = nil )
+       message = [SEND_CUSTOM_EVENT, @latency, :showNotification, uid]
+       message << text unless text.nil?
+
+       write_data message
+    end
+
     def send_lobby_data(players_data, ai_oppontns_data)
       write_data [SEND_LOBBY_DATA_ACTION, @latency, players_data, ai_oppontns_data]
     end

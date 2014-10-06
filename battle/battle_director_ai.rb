@@ -41,7 +41,7 @@ module Battle
 
     def notificate_player_achievement!(player_id, uid, value)
       unless @ai_opponent_id == player_id
-        Actor["p_#{player_id}"].async.send_custom_event([:showAchievement, uid, value])
+        Actor["p_#{player_id}"].async.send_notification( uid, value )
       end
     end
 

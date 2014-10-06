@@ -5,6 +5,10 @@ class Slow < AbstractSpell
     @value = data[:value_percentage].to_f || 0.0
   end
 
+  def process!
+    find_targets! :slow
+  end
+
   def friendly_targets?
     false
   end

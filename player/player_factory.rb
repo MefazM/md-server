@@ -20,9 +20,7 @@ module Player
     def self.create_player login_data
       player_id = Storage::Mysql::Pool.connections_pool.with do |mysql|
 
-        mysql.insert('players', {:email => login_data[:email], :username => login_data[:name]})
-
-        id = mysql.last_inser_id
+        id = mysql.insert('players', {:email => login_data[:email], :username => login_data[:name]})
 
         raise "Player is not created! \n #{login_data.inspect}" if id == -1
 
